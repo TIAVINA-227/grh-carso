@@ -13,35 +13,79 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ================== ENUMS ==================
+
+enum StatutUtilisateur {
+  ACTIF
+  BLOQUE
+}
+
+enum RoleUtilisateur {
+  SUPER_ADMIN
+  ADMIN
+  EMPLOYE
+}
+
+enum StatutContrat {
+  ACTIF
+  TERMINE
+}
+
+enum StatutPresence {
+  PRESENT
+  ABSENT
+  RETARD
+}
+
+enum StatutConge {
+  SOUMIS
+  APPROUVE
+  REJETE
+}
+
+enum StatutPaiement {
+  EFFECTUE
+  EN_ATTENTE
+  ANNULE
+}
+
+// ================== MODELES ==================
+
 model Utilisateur {
-  id                 Int       @id @default(autoincrement())
-  nom_utilisateur    String    @unique
+  id                 Int        @id @default(autoincrement())
+  nom_utilisateur    String     @unique
   mot_de_passe       String
-  email              String    @unique
-  role               String
-  statut             String    @default("actif")
-  date_creation      DateTime  @default(now())
+  email              String     @unique
+  role               RoleUtilisateur @default(EMPLOYE)
+  statut             StatutUtilisateur @default(ACTIF)
+  date_creation      DateTime   @default(now())
   derniere_connexion DateTime?
-  employe            Employe?  @relation(fields: [employeId], references: [id])
-  employeId          Int?
+
+  // Relation avec Employé (0,1)
+  employe   Employe? @relation(fields: [employeId], references: [id])
+  employeId Int? @unique
+
+  // Relation avec Congés
+  conges    Conge[]
 }
 
 model Employe {
-  id             Int                @id @default(autoincrement())
-  matricule      String             @unique
+  id             Int       @id @default(autoincrement())
+  matricule      String    @unique
   nom            String
   prenom         String
   date_naissance DateTime
   adresse        String?
-  email          String?            @unique
+  email          String?   @unique
   telephone      String?
   date_embauche  DateTime
 
   // Relations
-  departement    Departement?       @relation(fields: [departementId], references: [id])
+  departement    Departement? @relation(fields: [departementId], references: [id])
   departementId  Int?
-  poste          Poste?             @relation(fields: [posteId], references: [id])
+  poste          Poste?       @relation(fields: [posteId], references: [id])
   posteId        Int?
+
   utilisateur    Utilisateur?
   contrat        Contrat?
   absences       Absence[]
@@ -52,98 +96,106 @@ model Employe {
 }
 
 model Departement {
-  id             Int       @id @default(autoincrement())
-  nom_departement String   @unique
+  id              Int       @id @default(autoincrement())
+  nom_departement String    @unique
   responsable     String?
   employes        Employe[]
 }
 
 model Poste {
-  id_poste       Int       @id @default(autoincrement())
-  intitule_poste String
-  description    String?
-  niveau         String?
-  employes       Employe[]
+  id         Int       @id @default(autoincrement())
+  intitule   String
+  description String?
+  niveau      String?
+  employes    Employe[]
 }
 
 model Contrat {
-  id_contrat   Int      @id @default(autoincrement())
-  type_contrat String
-  date_debut   DateTime
-  date_fin     DateTime?
-  salaire_base Float
-  statut       String   @default("actif")
+  id            Int       @id @default(autoincrement())
+  type_contrat  String
+  date_debut    DateTime
+  date_fin      DateTime?
+  salaire_base  Float
+  statut        StatutContrat @default(ACTIF)
 
-  employe      Employe  @relation(fields: [employeId], references: [id])
-  employeId    Int      @unique
+  employe       Employe   @relation(fields: [employeId], references: [id])
+  employeId     Int       @unique
 }
 
 model Absence {
-  id_absence   Int      @id @default(autoincrement())
-  date_debut   DateTime
-  date_fin     DateTime
-  type_absence String
-  justification String?
-  piece_jointe  String?
-
-  employe      Employe  @relation(fields: [employeId], references: [id])
-  employeId    Int
-}
-
-model Presence {
-  id_presence    Int      @id @default(autoincrement())
-  date_jour      DateTime @default(now())
-  statut         String   @default("present") // present / absent / retard
-  heure_travaillees Int?
+  id             Int      @id @default(autoincrement())
+  date_debut     DateTime
+  date_fin       DateTime
+  type_absence   String
   justification  String?
+  piece_jointe   String?
 
   employe        Employe  @relation(fields: [employeId], references: [id])
   employeId      Int
 }
 
-model Conge {
-  id         Int      @id @default(autoincrement())
-  date_debut DateTime
-  date_fin   DateTime
-  statut     String   @default("Soumis") // Soumis, Approuvé, Rejeté
-  type_conge String?
+model Presence {
+  id              Int      @id @default(autoincrement())
+  date_jour       DateTime @default(now())
+  statut          StatutPresence @default(PRESENT)
+  heures_travaillees Int?
+  justification   String?
 
-  employe    Employe  @relation(fields: [employeId], references: [id])
-  employeId  Int
+  employe         Employe  @relation(fields: [employeId], references: [id])
+  employeId       Int
+}
+
+model Conge {
+  id             Int      @id @default(autoincrement())
+  type_conge     String?
+  date_debut     DateTime
+  date_fin       DateTime
+  statut         StatutConge @default(SOUMIS)
+
+  // Relations
+  utilisateur    Utilisateur @relation(fields: [utilisateurId], references: [id])
+  utilisateurId  Int
+
+  employe        Employe @relation(fields: [employeId], references: [id])
+  employeId      Int
 }
 
 model SuiviPerformance {
-  id          Int      @id @default(autoincrement())
-  date_eval   DateTime @default(now())
-  note        Int
-  commentaire String?
+  id              Int      @id @default(autoincrement())
+  date_eval       DateTime @default(now())
+  note            Int
+  resultat        String?
+  commentaires    String?
+  objectifs       String?
+  realisation     String?
 
-  employe     Employe  @relation(fields: [employeId], references: [id])
-  employeId   Int
+  employe         Employe  @relation(fields: [employeId], references: [id])
+  employeId       Int
 }
 
 model Paiement {
-  id_paiement   Int      @id @default(autoincrement())
-  date_paiement DateTime @default(now())
-  montant       Float
-  mode_paiement String
-  statut        String   @default("effectue")
-  periode_debut DateTime
-  periode_fin   DateTime
+  id             Int      @id @default(autoincrement())
+  date_paiement  DateTime @default(now())
+  montant        Float
+  mode_paiement  String
+  statut         StatutPaiement @default(EFFECTUE)
+  periode_debut  DateTime
+  periode_fin    DateTime
 
-  employe       Employe  @relation(fields: [employeId], references: [id])
-  employeId     Int
-  bulletin      BulletinSalaire?
+  employe        Employe  @relation(fields: [employeId], references: [id])
+  employeId      Int
+
+  bulletin       BulletinSalaire?
 }
 
 model BulletinSalaire {
-  id_bulletin   Int      @id @default(autoincrement())
-  mois          Int
-  annee         Int
-  salaire_brut  Float
-  salaire_net   Float
-  statut        String   @default("valide")
+  id             Int      @id @default(autoincrement())
+  mois           Int
+  annee          Int
+  salaire_brut   Float
+  salaire_net    Float
+  statut         String   @default("valide")
 
-  paiement      Paiement @relation(fields: [paiementId], references: [id])
-  paiementId    Int      @unique
+  paiement       Paiement @relation(fields: [paiementId], references: [id])
+  paiementId     Int      @unique
 }

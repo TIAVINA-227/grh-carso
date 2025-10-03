@@ -1,10 +1,12 @@
+// tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 export default {
-  // Tailwind v4 works zero-config. Customize theme/plugins here as needed.
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}", // Assurez-vous que cela inclut tous vos fichiers React
+  ],
   theme: {
     extend: {},
   },
   plugins: [],
-};
-
-
+}

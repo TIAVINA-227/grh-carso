@@ -11,6 +11,7 @@ const prisma = new PrismaClient();
 
 // Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
 // Route de base
@@ -18,58 +19,92 @@ app.get("/", (req, res) => {
   res.send("Hello Express + Prisma 🚀");
 });
 
+// register a new user
+app.post("/api/auth/register",async (req, res) => {
+   try {
+      const { nom_utilisateur , email, mot_de_passe } = req.body;
+  
+      // Vérifier si l’utilisateur existe déjà
+      const existingUser = await prisma.utilisateur.findUnique({
+        where: { email },
+      });
+  
+      if (existingUser) {
+        return res.status(400).json({ error: "Email déjà utilisé !" });
+      }
+  
+      // Hasher le mot de passe
+      const salt = await bcrypt.genSalt(10)
+      const hashedPassword = await bcrypt.hash(mot_de_passe, salt);
+  
+      // Créer un nouvel utilisateur
+      const user = await prisma.utilisateur.create({
+        data: {
+          nom_utilisateur ,
+          email,
+          mot_de_passe: hashedPassword,
+        },
+      });
+  
+      res.status(201).json({ message: "Utilisateur créé avec succès !" });
+    } catch (err) {
+      console.error("Erreur signup :", err);
+      res.status(500).json({ error: "Erreur serveur lors de l'inscription." });
+    }
+})
+
 // Route de login
 app.post("/api/auth/login", async (req, res) => {
   try {
-    const { nom_utilisateur, mot_de_passe } = req.body;
+    const { email, mot_de_passe } = req.body;
 
-    if (!nom_utilisateur || !mot_de_passe) {
-      return res.status(400).json({ message: "Nom d'utilisateur et mot de passe requis" });
+    if (!email || !mot_de_passe) {
+      return res.status(400).json({ message: "Email et mot de passe requis" });
     }
 
-    // Rechercher l'utilisateur
+    // 🔍 Recherche de l’utilisateur par email
     const utilisateur = await prisma.utilisateur.findUnique({
-      where: { nom_utilisateur },
-      include: { employe: true }
+      where: { email },
+      include: { employe: true, conges: true }
     });
 
     if (!utilisateur) {
-      return res.status(401).json({ message: "Nom d'utilisateur ou mot de passe incorrect" });
+      return res.status(401).json({ message: "Email ou mot de passe incorrect" });
     }
 
-    // Vérifier le mot de passe
+    // 🔐 Vérification du mot de passe
     const motDePasseValide = await bcrypt.compare(mot_de_passe, utilisateur.mot_de_passe);
-    
+
     if (!motDePasseValide) {
-      return res.status(401).json({ message: "Nom d'utilisateur ou mot de passe incorrect" });
+      return res.status(401).json({ message: "Email ou mot de passe incorrect" });
     }
 
-    // Vérifier le statut (autoriser null/undefined comme actif)
-    if (utilisateur.statut && utilisateur.statut !== "actif") {
+    // 🚦 Vérification du statut
+    if (utilisateur.statut && utilisateur.statut !== "ACTIF") {
       return res.status(401).json({ message: "Compte désactivé" });
     }
 
-    // Générer le token JWT
+    // 🎟️ Génération du token
     const token = jwt.sign(
-      { 
-        id: utilisateur.id_utilisateur, 
+      {
+        id: utilisateur.id,
         nom_utilisateur: utilisateur.nom_utilisateur,
-        role: utilisateur.role 
+        role: utilisateur.role,
       },
       process.env.JWT_SECRET || "votre_secret_jwt",
       { expiresIn: "24h" }
     );
 
-    // Mettre à jour la dernière connexion
+    // 🕒 Mise à jour dernière connexion
     await prisma.utilisateur.update({
-      where: { id_utilisateur: utilisateur.id_utilisateur },
+      where: { id: utilisateur.id },
       data: { derniere_connexion: new Date() }
     });
 
     res.json({
       token,
       user: {
-        id: utilisateur.id_utilisateur,
+        id: utilisateur.id,
         nom_utilisateur: utilisateur.nom_utilisateur,
         email: utilisateur.email,
         role: utilisateur.role,
@@ -83,6 +118,7 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
+
 // Route pour vérifier le token
 app.get("/api/auth/verify", async (req, res) => {
   try {
@@ -95,7 +131,7 @@ app.get("/api/auth/verify", async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "votre_secret_jwt");
     
     const utilisateur = await prisma.utilisateur.findUnique({
-      where: { id_utilisateur: decoded.id },
+      where: { id: decoded.id },
       include: { employe: true }
     });
 
@@ -105,7 +141,7 @@ app.get("/api/auth/verify", async (req, res) => {
 
     res.json({
       user: {
-        id: utilisateur.id_utilisateur,
+        id: utilisateur.id,
         nom_utilisateur: utilisateur.nom_utilisateur,
         email: utilisateur.email,
         role: utilisateur.role,
@@ -115,6 +151,42 @@ app.get("/api/auth/verify", async (req, res) => {
 
   } catch (error) {
     res.status(401).json({ message: "Token invalide" });
+  }
+});
+
+// Route protégée du dashboard
+app.get("/api/dashboard", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+
+    if (!token) {
+      return res.status(401).json({ message: "Token manquant" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "votre_secret_jwt");
+
+    const utilisateur = await prisma.utilisateur.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, nom_utilisateur: true, email: true, role: true }
+    });
+
+    if (!utilisateur) {
+      return res.status(401).json({ message: "Utilisateur non trouvé" });
+    }
+
+    return res.json({
+      success: true,
+      message: "Bienvenue sur le Dashboard 🚀",
+      user: utilisateur,
+    });
+
+  } catch (error) {
+    if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Token invalide" });
+    }
+    console.error("Erreur /api/dashboard:", error);
+    return res.status(500).json({ message: "Erreur interne du serveur" });
   }
 });
 
