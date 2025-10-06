@@ -1,118 +1,86 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React from 'react';
+import Navbar from '../Components/Navbar';
+import Sidebar from '../Components/Sidebar';
+import StatsCard from '../Components/StatCards';
+import ActivityCard from '../Components/ActivityCard';
+// Importer d'autres composants de graphique ici si vous les créez
+
+const dashboardData = {
+  stats: [
+    { title: 'Total Employés', value: '124', change: '+12%', period: 'vs mois dernier', type: 'up' },
+    { title: "Présents Aujourd'hui", value: '118', change: '95%', period: 'taux de présence', type: 'up' },
+    { title: 'Absences', value: '6', change: '-3%', period: 'vs semaine dernière', type: 'down' },
+    { title: 'Performance Moyenne', value: '87%', change: '+5%', period: 'vs trimestre dernier', type: 'up' },
+    { title: 'Congés en Attente', value: '8', change: '3 nouveaux', period: 'cette semaine', type: 'up' },
+    { title: 'Masse Salariale', value: '€485K', change: '+2%', period: 'vs mois dernier', type: 'up' },
+  ],
+  // ... Données pour les graphiques, activités, etc.
+};
 
 const Dashboard = () => {
-  const [user, setUser] = useState(null);
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        console.log("❌ Pas de token, redirection vers login");
-        navigate("/login");
-        return;
-      }
-
-      try {
-        console.log("🔄 Chargement du dashboard...");
-        
-        const response = await fetch("http://localhost:5000/api/dashboard", {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-          },
-        });
-
-        console.log("📊 Réponse dashboard:", response.status);
-
-        if (response.status === 404) {
-          setError("❌ Route /api/dashboard non trouvée. Vérifie le backend.");
-          return;
-        }
-
-        if (response.status === 401) {
-          localStorage.removeItem("token");
-          navigate("/login");
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error(`Erreur ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log("✅ Données dashboard:", data);
-
-        if (data.success) {
-          setMessage(data.message);
-          setUser(data.user);
-        } else {
-          setError(data.error || "Erreur inconnue");
-        }
-
-      } catch (err) {
-        console.error("💥 Erreur dashboard:", err);
-        setError("Impossible de charger le dashboard: " + err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboard();
-  }, [navigate]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#E0F2F1] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1c4d44] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement du dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-[#E0F2F1] flex flex-col items-center justify-center p-6">
-      <div className="bg-white shadow-lg rounded-xl p-8 max-w-2xl w-full">
-        <h1 className="text-3xl font-bold text-[#1c4d44] mb-4 text-center">Dashboard fa way CARSO</h1>
-        
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <strong>Erreur:</strong> {error}
+    <div className="flex bg-gray-50 min-h-screen">
+      <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <Navbar />
+
+        <main className="p-4 md:p-6 flex-1">
+          {/* Section d'accueil */}
+          <header className="mb-8">
+            <h1 className="text-3xl font-semibold text-gray-800">Bienvenue, Tiavina</h1>
+            <p className="text-gray-500">Voici un aperçu de votre entreprise</p>
+          </header>
+
+          {/* Cartes de Statistiques (Grid) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {dashboardData.stats.map((stat, index) => (
+              <StatsCard key={index} {...stat} />
+            ))}
           </div>
-        )}
 
-        {message && (
-          <p className="text-lg text-green-600 mb-4 text-center">{message}</p>
-        )}
+          {/* Graphiques et activités (Deux colonnes) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Colonne 1 : Graphiques (2/3 de la largeur sur grand écran) */}
+            <div className="lg:col-span-2 space-y-6">
+              
+              {/* Graphique 1 : Présences de la Semaine (Simulé) */}
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h2 className="text-lg font-medium text-gray-800 mb-4">Présences de la Semaine</h2>
+                <p className="text-sm text-gray-500 mb-6">Suivi quotidien des présences et absences</p>
+                <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg text-gray-400">
+                  {/* Placeholder pour le Graphique en barres */}
+                  <span className="text-sm">Placeholder Graphique en Barres</span>
+                </div>
+              </div>
 
-        {user && (
-          <div className="bg-gray-50 p-6 rounded-lg mb-6">
-            <h2 className="text-xl font-semibold mb-4">Informations utilisateur</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <p><strong>ID:</strong> {user.id}</p>
-              <p><strong>Nom:</strong> {user.nom_utilisateur}</p>
-              <p><strong>Email:</strong> {user.email}</p>
-              <p><strong>Rôle:</strong> {user.role}</p>
+              {/* Graphique 2 : Vue par Département (Simulé) */}
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h2 className="text-lg font-medium text-gray-800 mb-4">Vue par Département</h2>
+                <p className="text-sm text-gray-500 mb-6">Effectifs actuels par département</p>
+                <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg text-gray-400">
+                  {/* Placeholder pour le Graphique en Barres ou Circulaire */}
+                  <span className="text-sm">Placeholder Graphique par Département</span>
+                </div>
+              </div>
+
+            </div>
+            
+            {/* Colonne 2 : Activité/Congés (1/3 de la largeur sur grand écran) */}
+            <div className="lg:col-span-1 space-y-6">
+              <ActivityCard 
+                title="Activité Récente" 
+                subtitle="Les dernières actions dans le système"
+                type="activity"
+              />
+              <ActivityCard 
+                title="Congés à Venir" 
+                subtitle="Prochaines absences planifiées"
+                type="conges"
+              />
             </div>
           </div>
-        )}
-
-        <button
-          onClick={() => {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            navigate("/login");
-          }}
-          className="w-full bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition duration-300 font-semibold"
-        >
-          Déconnexion
-        </button>
+        </main>
       </div>
     </div>
   );

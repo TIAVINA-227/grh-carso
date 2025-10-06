@@ -27,7 +27,7 @@ const Login = () => {
         }),
       });
 
-      const data = await response.json();
+    const data = await response.json();
 
       if (!response.ok) {
         setError(data.message || "Email ou mot de passe incorrect");
@@ -88,7 +88,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#dadcdf] flex items-center justify-center font-sans">
+    <div className="min-h-screen bg-[#f6f6f7] flex items-center justify-center font-sans">
       <div className="flex flex-row md:flex-rox w-full max-w-4xl bg-white shadow-log rounded-xl overflow-hidden m-2">
         {/* Partie gauche */}
         <div className="hidden md:flex md:w-1/2 p-8 bg-gradient-to-br from-[#eff3f6] to-[#013293] items-center justify-center flex-col text-center">
@@ -101,7 +101,7 @@ const Login = () => {
           </div>
           <h1 className="text-5xl font-bold text-[#082154] mb-4">CARSO</h1>
           <p className="tex-lg text-gray-800 leadind-relaxed max-w-md">
-            Bienvenue sur votre plateforme de gestion des ressources humaines.
+            Bienvenue sur notre plateforme de gestion des ressources humaines.
             Accédez facilement à votre compte ou créez-en un nouveau.
           </p>
         </div>
