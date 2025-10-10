@@ -19,7 +19,7 @@ const dashboardData = {
 
 const Dashboard = () => {
   return (
-    <div className="flex bg-gray-50 min-h-screen">
+    <div className="flex bg-gray-50 min-h-20 pl-45">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Navbar />

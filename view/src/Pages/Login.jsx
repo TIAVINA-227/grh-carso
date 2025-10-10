@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom"; // ✅ pour rediriger après connexion
-import CarsoLogo from "../assets/carso1.png";
+import CarsoLogo from "../assets/carso 2.png";
 
 const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -88,15 +88,15 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f6f6f7] flex items-center justify-center font-sans">
-      <div className="flex flex-row md:flex-rox w-full max-w-4xl bg-white shadow-log rounded-xl overflow-hidden m-2">
+    <div className="min-h-screen bg-[#f4f4f4] flex shadow-sm items-center justify-center font-sans">
+      <div className="flex flex-row md:flex-rox w-full max-w-4xl bg-white shadow-sm rounded-xl overflow-hidden m-2">
         {/* Partie gauche */}
-        <div className="hidden md:flex md:w-1/2 p-8 bg-gradient-to-br from-[#eff3f6] to-[#013293] items-center justify-center flex-col text-center">
+        <div className="hidden md:flex md:w-1/2 p-8 bg-gradient-to-br from-[#011dba] to-[#89abef] items-center justify-center flex-col text-center">
           <div className="w-50 h-50 bg-white rounded-full flex items-center justify-center mb-6">
             <img
               src={CarsoLogo}
               alt="CARSO Logo"
-              className="h-48 w-auto mb-6 ml-1 mt-7"
+              className="h-50 w-auto mb-6 mt-7"
             />
           </div>
           <h1 className="text-5xl font-bold text-[#082154] mb-4">CARSO</h1>
@@ -112,10 +112,6 @@ const Login = () => {
             <h2 className="text-4xl font-semibold text-[#03266e] mb-2">
               {isSignUp ? "Créer un compte" : "Welcome"}
             </h2>
-            {/*<p className="text-gray-600 text-lg flex items-center justify-center">
-              <span className="mr-1 text-2xl">🔐</span>
-              {isSignUp ? "Sign Up" : "Login"}
-            </p>*/}
           </div>
 
           {/* Formulaire LOGIN */}
