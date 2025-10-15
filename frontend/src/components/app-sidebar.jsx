@@ -2,6 +2,16 @@
 
 import * as React from "react"
 import {
+  Users,
+  FileText,
+  Calendar,
+  CheckSquare,
+  TrendingUp,
+  Briefcase,
+  Umbrella,
+  Grid,
+  DollarSign,
+  File,
   AudioWaveform,
   BookOpen,
   Bot,
@@ -12,9 +22,11 @@ import {
   PieChart,
   Settings2,
   SquareTerminal,
+  LayoutDashboard,
+  Wallet,
 } from "lucide-react"
 
-import { NavMain } from "@/components/nav-main"
+import SidebarItem from "@/components/ui/sidebar-item"
 import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
@@ -35,7 +47,7 @@ const data = {
   },
   teams: [
     {
-      name: "Acme Inc",
+      name: "Carso",
       logo: GalleryVerticalEnd,
       plan: "Enterprise",
     },
@@ -50,112 +62,7 @@ const data = {
       plan: "Free",
     },
   ],
-  navMain: [
-    {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
-      isActive: true,
-      items: [
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Models",
-      url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
-    },
-  ],
-}
-
+  };
 export function AppSidebar({
   ...props
 }) {
@@ -165,8 +72,23 @@ export function AppSidebar({
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        {/* Main navigation matching the provided design */}
+        <div className="px-2">
+          <ul className="flex flex-col gap-2">
+            <SidebarItem to="/dashboard" icon={LayoutDashboard } label="Dashboard" />
+            <SidebarItem to="/employees" icon={Users} label="Employés" />
+            <SidebarItem to="/contrats" icon={FileText} label="Contrats" />
+            <SidebarItem to="/absences" icon={Calendar} label="Absences" />
+            <SidebarItem to="/presences" icon={CheckSquare} label="Présences" />
+            <SidebarItem to="/performances" icon={TrendingUp} label="Performances" />
+            <SidebarItem to="/postes" icon={Briefcase} label="Postes" />
+            <SidebarItem to="/conges" icon={Umbrella} label="Congés" />
+            <SidebarItem to="/departements" icon={Grid} label="Départements" />
+            <SidebarItem to="/paiements" icon={Wallet} label="Paiements" />
+            <SidebarItem to="/bulletins" icon={File} label="Bulletins" />
+          </ul>
+        </div>
+        
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

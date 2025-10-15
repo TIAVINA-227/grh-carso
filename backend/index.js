@@ -190,6 +190,30 @@ app.get("/api/dashboard", async (req, res) => {
   }
 });
 
+// Route pour récupérer tous les employés (publique pour l'instant)
+app.get("/api/employes", async (req, res) => {
+  try {
+    const employes = await prisma.employe.findMany({
+      select: {
+        id: true,
+        nom: true,
+        prenom: true,
+        email: true,
+        matricule: true,
+        telephone: true,
+        posteId: true,
+        departementId: true,
+        date_embauche: true,
+      },
+    });
+
+    res.json({ success: true, data: employes });
+  } catch (error) {
+    console.error("Erreur /api/employes:", error);
+    res.status(500).json({ success: false, message: "Erreur interne du serveur" });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur http://localhost:${PORT}`);
