@@ -76,16 +76,16 @@ export function AppSidebar({
         <div className="px-2">
           <ul className="flex flex-col gap-2">
             <SidebarItem to="/dashboard" icon={LayoutDashboard } label="Dashboard" />
-            <SidebarItem to="/employees" icon={Users} label="Employés" />
-            <SidebarItem to="/contrats" icon={FileText} label="Contrats" />
-            <SidebarItem to="/absences" icon={Calendar} label="Absences" />
-            <SidebarItem to="/presences" icon={CheckSquare} label="Présences" />
-            <SidebarItem to="/performances" icon={TrendingUp} label="Performances" />
-            <SidebarItem to="/postes" icon={Briefcase} label="Postes" />
-            <SidebarItem to="/conges" icon={Umbrella} label="Congés" />
-            <SidebarItem to="/departements" icon={Grid} label="Départements" />
-            <SidebarItem to="/paiements" icon={Wallet} label="Paiements" />
-            <SidebarItem to="/bulletins" icon={File} label="Bulletins" />
+            <SidebarItem to="/dashboard/employes" icon={Users} label="Employés" />
+            <SidebarItem to="/dashboard/contrats" icon={FileText} label="Contrats" />
+            <SidebarItem to="/dashboard/absences" icon={Calendar} label="Absences" />
+            <SidebarItem to="/dashboard/presences" icon={CheckSquare} label="Présences" />
+            <SidebarItem to="/dashboard/performances" icon={TrendingUp} label="Performances" />
+            <SidebarItem to="/dashboard/postes" icon={Briefcase} label="Postes" />
+            <SidebarItem to="/dashboard/conges" icon={Umbrella} label="Congés" />
+            <SidebarItem to="/dashboard/departements" icon={Grid} label="Départements" />
+            <SidebarItem to="/dashboard/paiements" icon={Wallet} label="Paiements" />
+            <SidebarItem to="/dashboard/bulletins" icon={File} label="Bulletins" />
           </ul>
         </div>
         

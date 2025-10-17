@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import cors from "cors";
+import employeRoutes from "./src/routes/employeRoutes.js";
 
 dotenv.config(); // charge les variables d'environnement
 const app = express();
@@ -92,7 +93,7 @@ app.post("/api/auth/login", async (req, res) => {
         role: utilisateur.role,
       },
       process.env.JWT_SECRET || "votre_secret_jwt",
-      { expiresIn: "24h" }
+      { expiresIn: "10min" }
     );
 
     // 🕒 Mise à jour dernière connexion
@@ -190,28 +191,11 @@ app.get("/api/dashboard", async (req, res) => {
   }
 });
 
-// Route pour récupérer tous les employés (publique pour l'instant)
-app.get("/api/employes", async (req, res) => {
-  try {
-    const employes = await prisma.employe.findMany({
-      select: {
-        id: true,
-        nom: true,
-        prenom: true,
-        email: true,
-        matricule: true,
-        telephone: true,
-        posteId: true,
-        departementId: true,
-        date_embauche: true,
-      },
-    });
+// Routes des employés
+app.use("/api/employes", employeRoutes);
 
-    res.json({ success: true, data: employes });
-  } catch (error) {
-    console.error("Erreur /api/employes:", error);
-    res.status(500).json({ success: false, message: "Erreur interne du serveur" });
-  }
+app.get ("/", (req, res) => {
+  res.send("API GRH_CARSO (Prisma + Express) fonctionne 🚀");
 });
 
 const PORT = process.env.PORT || 5000;

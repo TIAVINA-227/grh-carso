@@ -1,21 +1,17 @@
 import React from "react";
-import { Sun, Bell, Search, PanelLeft } from "lucide-react";
-import { useSidebar } from "@/components/ui/sidebar";
+import { Sun, Bell, Search} from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 export default function Topbar({ user = { name: "Jean Dupont", avatar: "/avatars/shadcn.jpg" } }) {
-  const { toggleSidebar } = useSidebar();
+
 
   return (
-    <div className="flex items-center justify-between gap-4 p-4">
+    <div className="flex items-center justify-between gap-3 p-3">
       <div className="flex items-center gap-4 flex-1">
-        <button
-          aria-label="Toggle sidebar"
-          onClick={() => toggleSidebar()}
-          className="rounded-md hover:bg-gray-200/50"
-        >
-          <PanelLeft />
-        </button>
+          <SidebarTrigger />
         <div className="w-full max-w-lg">
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"><Search size={16} /></span>
