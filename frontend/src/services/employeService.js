@@ -11,4 +11,18 @@ export async function getEmployes() {
   return data;
 }
 
+export async function createEmploye(payload) {
+  const url = `${API_BASE}/api/employes`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Erreur API: ${res.status} ${text}`);
+  }
+  return await res.json();
+}
+
 export default { getEmployes };

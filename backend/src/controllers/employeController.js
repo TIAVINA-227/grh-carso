@@ -35,55 +35,61 @@
 //     res.status(500).json({ message: "Erreur serveur" });
 //   } };
 
-import * as employeService from "../services/employeService.js";
 
-// ➕ Créer un employé
-export const createEmployes = async (req, res, next) => {
+// src/controllers/employeController.js
+import * as employeService from '../services/employeService.js';
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+
+// Créer un employé
+export const createEmploye = async (req, res) => {
   try {
-    const employes = await employeService.createEmploye(req.body);
-    res.status(201).json(employes);
+    const employe = await employeService.createEmploye(req.body);
+    res.status(201).json(employe);
   } catch (error) {
-    next(error);
+    res.status(500).json({ message: error.message });
   }
 };
 
-// 📋 Récupérer tous les employés
-export const getEmployes = async (req, res, next) => {
+// Récupérer tous les employés
+export const getAllEmployes = async (req, res) => {
   try {
-    const employes = await employeService.getEmployes();
-    res.json(employes);
+    const employes = await employeService.getAllEmployes();
+    res.status(200).json(employes);
   } catch (error) {
-    next(error);
+    res.status(500).json({ message: error.message });
   }
 };
 
-// 🔍 Récupérer un employé par ID
-export const getEmployeById = async (req, res, next) => {
+// Récupérer un employé par ID
+export const getEmployeById = async (req, res) => {
   try {
-    const employe = await employeService.getEmployeById(parseInt(req.params.id));
-    if (!employe) return res.status(404).json({ message: "Employé non trouvé" });
-    res.json(employe);
+    const employe = await employeService.getEmployeById(req.params.id);
+    if (!employe) return res.status(404).json({ message: 'Employé non trouvé' });
+    res.status(200).json(employe);
   } catch (error) {
-    next(error);
+    res.status(500).json({ message: error.message });
   }
 };
 
-// ✏️ Modifier un employé
-export const updateEmploye = async (req, res, next) => {
+// Mettre à jour un employé
+export const updateEmploye = async (req, res) => {
   try {
-    const employe = await employeService.updateEmploye(parseInt(req.params.id), req.body);
-    res.json(employe);
+    const employe = await employeService.updateEmploye(req.params.id, req.body);
+    if (!employe) return res.status(404).json({ message: 'Employé non trouvé' });
+    res.status(200).json(employe);
   } catch (error) {
-    next(error);
+    res.status(500).json({ message: error.message });
   }
 };
 
-// ❌ Supprimer un employé
-export const deleteEmploye = async (req, res, next) => {
+// Supprimer un employé
+export const deleteEmploye = async (req, res) => {
   try {
-    await employeService.deleteEmploye(parseInt(req.params.id));
-    res.json({ message: "Employé supprimé avec succès" });
+    const employe = await employeService.deleteEmploye(req.params.id);
+    if (!employe) return res.status(404).json({ message: 'Employé non trouvé' });
+    res.status(200).json({ message: 'Employé supprimé avec succès' });
   } catch (error) {
-    next(error);
+    res.status(500).json({ message: error.message });
   }
 };

@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
+// mongoose removed: using Prisma for DB access
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import cors from "cors";
@@ -9,6 +10,12 @@ import employeRoutes from "./src/routes/employeRoutes.js";
 dotenv.config(); // charge les variables d'environnement
 const app = express();
 const prisma = new PrismaClient();
+
+// Prisma est utilisé pour l'accès à la base de données (Postgres)
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Serveur démarré sur http://localhost:${PORT}`);
+});
 
 // Middleware
 app.use(express.json());
@@ -198,7 +205,4 @@ app.get ("/", (req, res) => {
   res.send("API GRH_CARSO (Prisma + Express) fonctionne 🚀");
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Serveur démarré sur http://localhost:${PORT}`);
-});
+// Le serveur démarre directement ; Prisma gère la connexion à la base quand nécessaire
