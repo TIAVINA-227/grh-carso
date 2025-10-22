@@ -6,6 +6,15 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import cors from "cors";
 import employeRoutes from "./src/routes/employeRoutes.js";
+import posteRoutes from "./src/routes/posteRoutes.js";
+import departementRoutes from "./src/routes/departementRoutes.js";
+import contratRoutes from "./src/routes/contratRoutes.js";
+import absenceRoutes from "./src/routes/absenceRoutes.js";
+import presenceRoutes from "./src/routes/presenceRoutes.js";
+import congeRoutes from "./src/routes/congeRoutes.js";
+import performanceRoutes from "./src/routes/performanceRoutes.js";
+import paiementRoutes from "./src/routes/paiementRoutes.js";
+import bulletinRoutes from "./src/routes/bulletinRoutes.js";
 
 dotenv.config(); // charge les variables d'environnement
 const app = express();
@@ -200,6 +209,17 @@ app.get("/api/dashboard", async (req, res) => {
 
 // Routes des employés
 app.use("/api/employes", employeRoutes);
+// Routes des postes
+app.use("/api/postes", posteRoutes);
+// autres routes
+app.use("/api/departements", departementRoutes);
+app.use("/api/contrats", contratRoutes);
+app.use("/api/absences", absenceRoutes);
+app.use("/api/presences", presenceRoutes);
+app.use("/api/conges", congeRoutes);
+app.use("/api/performances", performanceRoutes);
+app.use("/api/paiements", paiementRoutes);
+app.use("/api/bulletins", bulletinRoutes);
 
 app.get ("/", (req, res) => {
   res.send("API GRH_CARSO (Prisma + Express) fonctionne 🚀");

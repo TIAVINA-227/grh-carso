@@ -11,7 +11,7 @@ import Absences from "./pages/Absences";
 import Presences from "./pages/Presences"; 
 import Postes from "./pages/Postes";
 import Conges from "./pages/Conges";
-import Departements from "./pages/Presences";
+import Departements from "./pages/Departements";
 import Paiments from "./pages/Paiments";
 import Bulletins from "./pages/Bulletins";
 import Performances from "./pages/Performances";

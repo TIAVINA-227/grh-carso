@@ -5,13 +5,17 @@ import {
   getAllEmployes,
   getEmployeById,
   updateEmploye,
-  deleteEmploye
+  deleteEmploye,
+  getAllDepartements,
+  getAllPostes
 } from '../controllers/employeController.js';
 
 const router = express.Router();
 
 router.post('/', createEmploye);
 router.get('/', getAllEmployes);
+router.get('/departements', getAllDepartements);
+router.get('/postes', getAllPostes);
 router.get('/:id', getEmployeById);
 router.put('/:id', updateEmploye);
 router.delete('/:id', deleteEmploye);

@@ -7,6 +7,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "create-admin": "node scripts/createAdminPrisma.js",
+    "seed": "node scripts/seedData.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Tiavina",

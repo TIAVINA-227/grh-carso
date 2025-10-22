@@ -21,13 +21,11 @@ export default function Page() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
-        <div className="flex items-center justify-between p-0">
-          <div className="flex-1 flex-col min-h-svh">
-            <Topbar />
-            <Outlet />
-          </div>
-        </div>
+      <SidebarInset className="flex flex-col">
+        <Topbar />
+        <main className="flex-1 overflow-auto">
+          <Outlet />
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

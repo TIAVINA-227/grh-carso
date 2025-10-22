@@ -8,7 +8,7 @@ import { Label } from "../components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from "../components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogClose, DialogDescription, DialogTitle, DialogTrigger, DialogHeader, DialogOverlay, DialogPortal } from "../components/ui/dialog"
-import employeService, { getEmployes, createEmploye } from "../services/employeService"
+import { getEmployes, createEmploye, updateEmploye, deleteEmploye, getDepartements, getPostes } from "../services/employeService"
 
 
 // employees loaded from API
@@ -19,7 +19,9 @@ export default function EmployeeList() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState(null)
-  const [employees, setEmployees] = useState([])
+  const [employees, setEmployes] = useState([])
+  const [departements, setDepartements] = useState([])
+  const [postes, setPostes] = useState([])
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
     nom: "",
@@ -28,11 +30,25 @@ export default function EmployeeList() {
     telephone: "",
     date_naissance: "",
     date_embauche: "",
-    poste: "",
-    departement: "",
-    salaire: "",
-    statut: "actif",
+    adresse: "",
+    posteId: "",
+    departementId: "",
   })
+  const [editingId, setEditingId] = useState(null)
+    // helper: convert backend ISO -> yyyy-MM-dd for <input type="date">
+    const toInputDate = (iso) => {
+      if (!iso) return ''
+      try {
+        const d = new Date(iso)
+        if (isNaN(d.getTime())) return ''
+        const yyyy = d.getFullYear()
+        const mm = String(d.getMonth() + 1).padStart(2, '0')
+        const dd = String(d.getDate()).padStart(2, '0')
+        return `${yyyy}-${mm}-${dd}`
+      } catch {
+        return ''
+      }
+    }
     // Note: individual inputs use inline onChange handlers. Removed unused handleChange.
 
     const handleSubmit = async (e) => {
@@ -45,19 +61,26 @@ export default function EmployeeList() {
           prenom: formData.prenom,
           email: formData.email,
           telephone: formData.telephone,
-          date_embauche: formData.date_embauche || null,
-          date_naissance: formData.date_naissance || null,
-          poste: formData.poste,
-          departement: formData.departement,
-          salaire: formData.salaire ? Number(formData.salaire) : undefined,
-          statut: formData.statut?.toUpperCase?.() || 'ACTIF'
+          adresse: formData.adresse,
+          // convert yyyy-MM-dd (from inputs) to full ISO so Prisma accepts DateTime
+          date_embauche: formData.date_embauche ? new Date(formData.date_embauche).toISOString() : null,
+          date_naissance: formData.date_naissance ? new Date(formData.date_naissance).toISOString() : null,
+          posteId: formData.posteId ? Number(formData.posteId) : null,
+          departementId: formData.departementId ? Number(formData.departementId) : null,
         }
 
-  const res = await createEmploye(payload)
-  console.log('Employé créé', res)
+        let res
+        if (editingId) {
+          res = await updateEmploye(editingId, payload)
+          console.log('Employé mis à jour', res)
+        } else {
+          res = await createEmploye(payload)
+          console.log('Employé créé', res)
+        }
         setIsDialogOpen(false)
-  // refresh list
-  await loadEmployees()
+        setEditingId(null)
+        // refresh list
+        await loadEmployes()
         setFormData({
           nom: "",
           prenom: "",
@@ -65,10 +88,9 @@ export default function EmployeeList() {
           telephone: "",
           date_naissance: "",
           date_embauche: "",
-          poste: "",
-          departement: "",
-          salaire: "",
-          statut: "actif",
+          adresse: "",
+          posteId: "",
+          departementId: "",
         })
       } catch (err) {
         console.error(err)
@@ -79,12 +101,12 @@ export default function EmployeeList() {
       }
 
     // load employees (outside of submit)
-    const loadEmployees = async () => {
+    const loadEmployes = async () => {
       setLoading(true)
       try {
         const data = await getEmployes()
         // API returns either { data: [...] } or [...] depending on implementation
-        setEmployees(data.data || data || [])
+        setEmployes(data.data || data || [])
       } catch (err) {
         console.error('Erreur chargement employés', err)
         setErrorMessage('Impossible de charger les employés')
@@ -93,10 +115,71 @@ export default function EmployeeList() {
       }
     }
 
+    // load departements and postes
+    const loadDepartementsAndPostes = async () => {
+      try {
+        const [departementsData, postesData] = await Promise.all([
+          getDepartements(),
+          getPostes()
+        ])
+        setDepartements(departementsData || [])
+        setPostes(postesData || [])
+      } catch (err) {
+        console.error('Erreur chargement départements/postes', err)
+      }
+    }
+    // Update employees on mount
+      // (removed unused refresh helper)
+
+      // Delete employee (calls the service) - avoid naming collision with imported deleteEmploye
+      const handleDeleteEmploye = async (id) => {
+        setLoading(true)
+        try {
+          // call the named export from the service
+          await deleteEmploye(id)
+          await loadEmployes()
+        } catch (err) {
+          console.error('Erreur suppression employé', err)
+          setErrorMessage("Impossible de supprimer l'employé")
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      const handleEdit = (employee) => {
+        setFormData({
+          nom: employee.nom || '',
+          prenom: employee.prenom || '',
+          email: employee.email || '',
+          telephone: employee.telephone || '',
+          adresse: employee.adresse || '',
+          date_naissance: toInputDate(employee.date_naissance),
+          date_embauche: toInputDate(employee.date_embauche),
+          posteId: employee.posteId ? String(employee.posteId) : '',
+          departementId: employee.departementId ? String(employee.departementId) : '',
+        })
+        setEditingId(employee.id)
+        setIsDialogOpen(true)
+      }
+
+    // Filter employees based on search and department
+    const filteredEmployees = employees.filter(employee => {
+      const matchesSearch = searchQuery === "" || 
+        employee.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        employee.prenom.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        employee.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        employee.matricule.toLowerCase().includes(searchQuery.toLowerCase())
+      
+      const matchesDepartment = selectedDepartment === "Tous les départements" ||
+        employee.departement?.nom_departement === selectedDepartment
+      
+      return matchesSearch && matchesDepartment
+    })
+
     useEffect(() => {
-      loadEmployees()
+      loadEmployes()
+      loadDepartementsAndPostes()
     }, [])
-  
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -107,7 +190,7 @@ export default function EmployeeList() {
             <h1 className="text-3xl font-bold text-gray-900">Gestion des Employés</h1>
             <p className="mt-1 text-base text-gray-500">Gérez les informations de vos employés</p>
           </div>
-                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-black hover:bg-gray-800 text-white gap-2">
               <Plus className="h-4 w-4" />
@@ -117,13 +200,13 @@ export default function EmployeeList() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {employeService ? "Modifier l'employé" : "Nouvel employé"}
-          </DialogTitle>
-          <DialogDescription>
-            {employeService
-              ? "Modifiez les informations de l'employé"
-              : "Ajoutez un nouvel employé à l'entreprise"}
-          </DialogDescription>
+              {editingId ? "Modifier l'employé" : "Nouvel employé"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingId
+                ? "Modifiez les informations de l'employé"
+                : "Ajoutez un nouvel employé à l'entreprise"}
+            </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -201,67 +284,48 @@ export default function EmployeeList() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="departement">Département *</Label>
+              <Label htmlFor="departement">Département</Label>
               <Select
-                value={formData.departement}
-                onValueChange={(value) => setFormData({ ...formData, departement: value })}
+                value={formData.departementId}
+                onValueChange={(value) => setFormData({ ...formData, departementId: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner" />
+                  <SelectValue placeholder="Sélectionner un département" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Direction">Direction</SelectItem>
-                  <SelectItem value="Développement">Développement</SelectItem>
-                  <SelectItem value="Marketing">Marketing</SelectItem>
-                  <SelectItem value="Ventes">Ventes</SelectItem>
+                  {departements.map((dept) => (
+                    <SelectItem key={dept.id} value={String(dept.id)}>
+                      {dept.nom_departement}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="poste">Poste *</Label>
-              <Select value={formData.poste} onValueChange={(value) => setFormData({ ...formData, poste: value })}>
+              <Label htmlFor="poste">Poste</Label>
+              <Select value={formData.posteId} onValueChange={(value) => setFormData({ ...formData, posteId: value })}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner" />
+                  <SelectValue placeholder="Sélectionner un poste" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Directeur RH">Directeur RH</SelectItem>
-                  <SelectItem value="Chef de Projet">Chef de Projet</SelectItem>
-                  <SelectItem value="Développeur Frontend">Développeur Frontend</SelectItem>
-                  <SelectItem value="Marketing">Marketing</SelectItem>
-                  <SelectItem value="Ventes">Ventes</SelectItem>
+                  {postes.map((poste) => (
+                    <SelectItem key={poste.id} value={String(poste.id)}>
+                      {poste.intitule}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="salaire">Salaire Annuel (€) *</Label>
+              <Label htmlFor="adresse">Adresse</Label>
               <Input
-                id="salaire"
-                type="number"
-                value={formData.salaire}
-                onChange={(e) =>
-                  setFormData({ ...formData, salaire: e.target.value })
-                }
-                required
+                id="adresse"
+                value={formData.adresse}
+                onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
+                placeholder="Adresse complète"
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="statut">Statut *</Label>
-              <Select className="w-full border border-gray-300 rounded-md p-2"
-                id="statut"
-                value={formData.statut} onValueChange={(value) => setFormData({ ...formData, statut: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Statut" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="actif">Actif</SelectItem>
-                  <SelectItem value="inactif">Inactif</SelectItem>
-                  <SelectItem value="conge">En congé</SelectItem>
-                </SelectContent>
-                </Select>
-              
             </div>
           </div>
 
@@ -269,7 +333,7 @@ export default function EmployeeList() {
             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
               Annuler
             </Button>
-            <Button type="submit" disabled={submitting}>{getEmployes ? "Enregistrer" : "Ajouter"}</Button>
+            <Button type="submit" disabled={submitting}>{editingId ? "Enregistrer" : "Ajouter"}</Button>
           </div>
         </form>
       </DialogContent>
@@ -279,7 +343,7 @@ export default function EmployeeList() {
         <div className="rounded-2xl bg-white p-8 shadow-sm border border-gray-200">
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-gray-900">Liste des Employés</h2>
-            <p className="mt-1 text-sm text-gray-500">{employees.length} employé(s) trouvé(s)</p>
+            <p className="mt-1 text-sm text-gray-500">{filteredEmployees.length} employé(s) trouvé(s)</p>
           </div>
 
           {/* Search and Filters */}
@@ -307,12 +371,14 @@ export default function EmployeeList() {
                 <DropdownMenuItem onClick={() => setSelectedDepartment("Tous les départements")}>
                   Tous les départements
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedDepartment("Direction")}>Direction</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedDepartment("Développement")}>
-                  Développement
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedDepartment("Marketing")}>Marketing</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedDepartment("Ventes")}>Ventes</DropdownMenuItem>
+                {departements.map((dept) => (
+                  <DropdownMenuItem 
+                    key={dept.id} 
+                    onClick={() => setSelectedDepartment(dept.nom_departement)}
+                  >
+                    {dept.nom_departement}
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -343,13 +409,13 @@ export default function EmployeeList() {
                       </tr>
                     )}
 
-                    {!loading && employees.length === 0 && (
+                    {!loading && filteredEmployees.length === 0 && (
                       <tr>
                         <td colSpan={7} className="py-6 text-center">Aucun employé trouvé</td>
                       </tr>
                     )}
 
-                    {!loading && employees.length > 0 && employees.map((employee) => (
+                    {!loading && filteredEmployees.length > 0 && filteredEmployees.map((employee) => (
                       <tr key={employee.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -366,12 +432,12 @@ export default function EmployeeList() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900">{employee.matricule}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{employee.poste}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{employee.departement}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{employee.poste?.intitule || 'Non assigné'}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{employee.departement?.nom_departement || 'Non assigné'}</td>
                         <td className="px-6 py-4 text-sm text-gray-900">{employee.email}</td>
                         <td className="px-6 py-4">
-                          <span className="inline-flex items-center rounded-full bg-black px-3 py-1 text-xs font-medium text-white">
-                            {employee.statut || employee.status || 'ACTIF'}
+                          <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 px-3 py-1 text-xs font-medium">
+                            Actif
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -383,8 +449,8 @@ export default function EmployeeList() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem>Voir le profil</DropdownMenuItem>
-                              <DropdownMenuItem>Modifier</DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">Supprimer</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEdit(employee)}>Modifier</DropdownMenuItem>
+                              <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteEmploye(employee.id)}>Supprimer</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </td>

@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import {
   BadgeCheck,
   Bell,
@@ -28,11 +29,23 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-export function NavUser({
-  user
-}) {
-  const { isMobile } = useSidebar()
 
+
+export function NavUser({ user }) {
+  const { isMobile } = useSidebar()
+  const navigate = useNavigate()
+
+  // 👉 Fonction de déconnexion
+  const handleLogout = () => {
+    // 1. Supprimer le token du localStorage
+    localStorage.removeItem("token")
+
+    // 2. Optionnel : supprimer l'utilisateur en mémoire (si tu utilises un AuthContext)
+    // logoutUser();
+
+    // 3. Rediriger vers la page de connexion
+    navigate("/")
+  }
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -85,10 +98,12 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut />
+            <DropdownMenuItem
+            onClick={handleLogout}
+              className="cursor-pointer text-red-500 hover:text-red-600">
+              <LogOut className="mr-2"  />
               Log out
-            </DropdownMenuItem>
+            </DropdownMenuItem >
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
