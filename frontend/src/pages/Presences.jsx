@@ -6,11 +6,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { getPresences, createPresence, updatePresence, deletePresence } from "../services/presenceService";
+import { getEmployes } from "../services/employeService";
 import { CalendarDays, Clock, User, Plus, Download, Edit, Trash2, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 
 export default function Presences() {
   const [presences, setPresences] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [employes, setEmployes] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [form, setForm] = useState({ 
     employeId: "", 
@@ -28,6 +30,8 @@ export default function Presences() {
     try {
       const data = await getPresences();
       setPresences(data || []);
+      const empData = await getEmployes();
+      setEmployes(empData || []);
     } catch (err) {
       console.error(err);
       setError("Impossible de charger les présences");
@@ -247,7 +251,12 @@ export default function Presences() {
                           <User className="w-6 h-6 text-gray-600" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">Employé #{presence.employeId}</h3>
+                            <h3 className="font-semibold text-gray-900 text-lg">
+                        {(() => {
+                          const emp = employes.find(e => e.id === presence.employeId);
+                          return emp ? `${emp.nom} ${emp.prenom}` : `Employé #${presence.employeId}`;
+                        })()}
+                      </h3>
                           {presence.heures_travaillees && (
                             <p className="text-sm text-gray-600">
                               Heures travaillées: {presence.heures_travaillees}h
@@ -317,14 +326,16 @@ export default function Presences() {
               <Label htmlFor="employeId" className="text-sm font-medium text-gray-700">
                 ID Employé *
               </Label>
-              <Input 
+             <select
                 id="employeId"
-                type="number"
-                value={form.employeId} 
-                onChange={(e) => setForm({ ...form, employeId: e.target.value })} 
-                placeholder="Ex: 1"
-                required 
-              />
+                value={form.employeId}
+                onChange={(e) => setForm({ ...form, employeId: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                required
+              >
+                <option value="">-- Sélectionner un employé --</option>
+                {employes.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
+              </select>
             </div>
             
             <div className="space-y-2">

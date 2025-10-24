@@ -23,7 +23,7 @@ export const getAllDepartements = async (req, res) => {
 export const getDepartementById = async (req, res) => {
   try {
     const d = await departementService.getDepartementById(req.params.id);
-    if (!d) return res.status(404).json({ message: 'Departement non trouvé' });
+    if (!d) return res.status(404).json({ message: 'Département non trouvé' });
     res.json(d);
   } catch (err) {
     console.error(err);

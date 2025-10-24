@@ -1,11 +1,10 @@
-// src/services/employeService.js
+// backend/src/services/employeService.js
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Ajouter un employé (Prisma)
+// Ajouter un employé
 export const createEmploye = async (data) => {
-  // Map input fields to prisma schema fields
   const payload = {
     matricule: data.matricule || `EMP${Date.now()}`,
     nom: data.nom,
@@ -15,12 +14,11 @@ export const createEmploye = async (data) => {
     email: data.email,
     telephone: data.telephone,
     date_embauche: data.date_embauche ? new Date(data.date_embauche) : undefined,
-    // Gérer les relations avec départements et postes
     departementId: data.departementId || null,
     posteId: data.posteId || null,
   };
 
-  return await prisma.employe.create({ 
+  return await prisma.employe.create({
     data: payload,
     include: {
       departement: true,
@@ -32,7 +30,7 @@ export const createEmploye = async (data) => {
 
 // Récupérer tous les employés
 export const getAllEmployes = async () => {
-  return await prisma.employe.findMany({ 
+  return await prisma.employe.findMany({
     orderBy: { id: 'desc' },
     include: {
       departement: true,
@@ -45,7 +43,7 @@ export const getAllEmployes = async () => {
 // Récupérer un employé par ID
 export const getEmployeById = async (id) => {
   const intId = Number(id);
-  return await prisma.employe.findUnique({ 
+  return await prisma.employe.findUnique({
     where: { id: intId },
     include: {
       departement: true,
@@ -58,8 +56,7 @@ export const getEmployeById = async (id) => {
 // Mettre à jour un employé
 export const updateEmploye = async (id, data) => {
   const intId = Number(id);
-  
-  // Préparer les données pour la mise à jour
+
   const updateData = {
     nom: data.nom,
     prenom: data.prenom,
@@ -72,15 +69,14 @@ export const updateEmploye = async (id, data) => {
     posteId: data.posteId || null,
   };
 
-  // Supprimer les champs undefined
-  Object.keys(updateData).forEach(key => {
+  Object.keys(updateData).forEach((key) => {
     if (updateData[key] === undefined) {
       delete updateData[key];
     }
   });
 
-  return await prisma.employe.update({ 
-    where: { id: intId }, 
+  return await prisma.employe.update({
+    where: { id: intId },
     data: updateData,
     include: {
       departement: true,
@@ -90,23 +86,41 @@ export const updateEmploye = async (id, data) => {
   });
 };
 
-// Supprimer un employé
+// ✅ Supprimer un employé proprement
 export const deleteEmploye = async (id) => {
   const intId = Number(id);
-  await prisma.employe.delete({ where: { id: intId } });
-  return { success: true };
+
+  try {
+    // Supprimer toutes les dépendances
+    await prisma.contrat.deleteMany({ where: { employeId: intId } });
+    // TODO: ajouter les autres dépendances si nécessaire
+    // await prisma.tache.deleteMany({ where: { employeId: intId } });
+
+    // Supprimer l'employé
+    await prisma.employe.delete({ where: { id: intId } });
+
+    return { success: true, message: "Employé supprimé avec succès" };
+  } catch (error) {
+    console.error("Erreur suppression employé :", error);
+    if (error.code === "P2003") {
+      throw new Error(
+        "Impossible de supprimer cet employé car il est utilisé dans d'autres tables."
+      );
+    }
+    throw new Error("Erreur lors de la suppression de l'employé : " + error.message);
+  }
 };
 
 // Récupérer tous les départements
 export const getAllDepartements = async () => {
   return await prisma.departement.findMany({
-    orderBy: { nom_departement: 'asc' }
+    orderBy: { nom_departement: 'asc' },
   });
 };
 
 // Récupérer tous les postes
 export const getAllPostes = async () => {
   return await prisma.poste.findMany({
-    orderBy: { intitule: 'asc' }
+    orderBy: { intitule: 'asc' },
   });
 };

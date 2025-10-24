@@ -1,5 +1,11 @@
 import express from 'express';
-import { createDepartement, getAllDepartements, getDepartementById, updateDepartement, deleteDepartement } from '../controllers/departementController.js';
+import {
+  createDepartement,
+  getAllDepartements,
+  getDepartementById,
+  updateDepartement,
+  deleteDepartement
+} from '../controllers/departementController.js';
 
 const router = express.Router();
 

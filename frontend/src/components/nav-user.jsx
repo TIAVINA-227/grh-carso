@@ -28,12 +28,24 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useState } from "react";
 
 
 export function NavUser({ user }) {
   const { isMobile } = useSidebar()
   const navigate = useNavigate()
+  const [confirmDeconexion, setConfirmDeconexionOpen] = useState(false);
+  
 
   // 👉 Fonction de déconnexion
   const handleLogout = () => {
@@ -45,6 +57,8 @@ export function NavUser({ user }) {
 
     // 3. Rediriger vers la page de connexion
     navigate("/")
+
+
   }
   return (
     <SidebarMenu>
@@ -105,6 +119,21 @@ export function NavUser({ user }) {
               Log out
             </DropdownMenuItem >
           </DropdownMenuContent>
+
+          {/* AlertDialogs */}
+          <AlertDialog open={confirmDeconexion} onOpenChange={setConfirmDeconexionOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmer la deconexion</AlertDialogTitle>
+                <AlertDialogDescription>Voulez-vous vraiment vous deconecté ? Cette action est irréversible.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDeconexion} className="bg-red-600 text-white hover:bg-red-700">Deconecté</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>

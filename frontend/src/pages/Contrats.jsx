@@ -129,9 +129,7 @@ export default function Contrats() {
 
   const formatSalary = (salary) => new Intl.NumberFormat('fr-FR', {
     style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
+    currency: 'MGA',
   }).format(salary);
 
   return (
@@ -232,7 +230,10 @@ export default function Contrats() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 text-lg">
-                        {employes.find(e => e.id === contrat.employeId)?.nom || "Employé #" + contrat.employeId}
+                        {(() => {
+                          const emp = employes.find(e => e.id === contrat.employeId);
+                          return emp ? `${emp.nom} ${emp.prenom}` : `Employé #${contrat.employeId}`;
+                        })()}
                       </h3>
                       <p className="text-sm text-gray-500">Contrat de travail</p>
                     </div>
@@ -255,7 +256,7 @@ export default function Contrats() {
                   )}
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <DollarSign className="w-4 h-4" />
-                    <span>Salaire: {formatSalary(contrat.salaire_base)}/an</span>
+                    <span>Salaire: {formatSalary(contrat.salaire_base)}/mois</span>
                   </div>
                 </div>
                 

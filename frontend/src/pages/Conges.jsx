@@ -6,18 +6,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { getConges, createConge, updateConge, deleteConge } from "../services/congeService";
+import { getEmployes } from "../services/employeService";
 import { CalendarDays, User, Plus, Edit, Trash2, CheckCircle, XCircle, Clock, Umbrella, Filter } from "lucide-react";
 
 export default function Conges() {
+  // Récupérer l'utilisateur connecté
+  const currentUser = JSON.parse(localStorage.getItem("user")) || {};
+
   const [conges, setConges] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [employes, setEmployes] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [form, setForm] = useState({ 
     employeId: "", 
     type_conge: "Congés payés", 
     date_debut: new Date().toISOString().split('T')[0], 
     date_fin: new Date().toISOString().split('T')[0], 
-    statut: "SOUMIS"
+    statut: "SOUMIS",
+    utilisateurId: currentUser.id || null,
   });
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
@@ -28,6 +34,8 @@ export default function Conges() {
     try {
       const data = await getConges();
       setConges(data || []);
+      const empData = await getEmployes();
+      setEmployes(empData || []);
     } catch (err) {
       console.error(err);
       setError("Impossible de charger les congés");
@@ -45,7 +53,8 @@ export default function Conges() {
       type_conge: "Congés payés", 
       date_debut: new Date().toISOString().split('T')[0], 
       date_fin: new Date().toISOString().split('T')[0], 
-      statut: "SOUMIS"
+      statut: "SOUMIS",
+      utilisateurId: currentUser.id || null,
     });
     setIsDialogOpen(true);
   };
@@ -57,7 +66,8 @@ export default function Conges() {
       type_conge: c.type_conge || "Congés payés", 
       date_debut: c.date_debut ? new Date(c.date_debut).toISOString().split('T')[0] : new Date().toISOString().split('T')[0], 
       date_fin: c.date_fin ? new Date(c.date_fin).toISOString().split('T')[0] : new Date().toISOString().split('T')[0], 
-      statut: c.statut || "SOUMIS"
+      statut: c.statut || "SOUMIS",
+      utilisateurId: currentUser.id || null,
     });
     setIsDialogOpen(true);
   };
@@ -65,6 +75,17 @@ export default function Conges() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+
+    if (!form.utilisateurId) {
+      setError("Utilisateur non connecté.");
+      return;
+    }
+
+    if (!form.employeId) {
+      setError("Veuillez sélectionner un employé.");
+      return;
+    }
+
     try {
       if (editingId) {
         await updateConge(editingId, form);
@@ -75,7 +96,7 @@ export default function Conges() {
       await load();
     } catch (err) {
       console.error(err);
-      setError(err.message || "Erreur");
+      setError(err.response?.data?.message || err.message || "Erreur");
     }
   };
 
@@ -110,7 +131,7 @@ export default function Conges() {
     }
   };
 
-  // Calculer les statistiques
+  // Statistiques
   const stats = {
     total: conges.length,
     attente: conges.filter(c => c.statut === "SOUMIS").length,
@@ -167,7 +188,7 @@ export default function Conges() {
     return diffDays;
   };
 
-  // Filtrer les congés selon le statut
+  // Filtrer les congés
   const filteredConges = filterStatus === "Tous les statuts" 
     ? conges 
     : conges.filter(c => c.statut === filterStatus.toUpperCase());
@@ -192,6 +213,7 @@ export default function Conges() {
 
         {/* Statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {/* Total */}
           <Card className="bg-white rounded-lg shadow-sm border-0">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -205,6 +227,7 @@ export default function Conges() {
             </CardContent>
           </Card>
 
+          {/* En attente */}
           <Card className="bg-white rounded-lg shadow-sm border-0">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -218,6 +241,7 @@ export default function Conges() {
             </CardContent>
           </Card>
 
+          {/* Approuvés */}
           <Card className="bg-white rounded-lg shadow-sm border-0">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -231,6 +255,7 @@ export default function Conges() {
             </CardContent>
           </Card>
 
+          {/* Jours totaux */}
           <Card className="bg-white rounded-lg shadow-sm border-0">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -296,7 +321,12 @@ export default function Conges() {
                           <User className="w-6 h-6 text-gray-600" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">Employé #{conge.employeId}</h3>
+                          <h3 className="font-semibold text-gray-900">
+                            {(() => {
+                              const emp = employes.find(e => e.id === conge.employeId);
+                              return emp ? `${emp.nom} ${emp.prenom}` : `Employé #${conge.employeId}`;
+                            })()}
+                          </h3>
                           <p className="text-sm text-gray-500 flex items-center gap-1">
                             <CalendarDays className="w-4 h-4" />
                             {formatDate(conge.date_debut)} - {formatDate(conge.date_fin)} 
@@ -387,14 +417,16 @@ export default function Conges() {
               <Label htmlFor="employeId" className="text-sm font-medium text-gray-700">
                 ID Employé *
               </Label>
-              <Input 
+              <select
                 id="employeId"
-                type="number"
-                value={form.employeId} 
-                onChange={(e) => setForm({ ...form, employeId: e.target.value })} 
-                placeholder="Ex: 1"
-                required 
-              />
+                value={form.employeId}
+                onChange={(e) => setForm({ ...form, employeId: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                required
+              >
+                <option value="">-- Sélectionner un employé --</option>
+                {employes.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
+              </select>
             </div>
             
             <div className="space-y-2">

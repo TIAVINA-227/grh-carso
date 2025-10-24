@@ -6,10 +6,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { getAbsences, createAbsence, updateAbsence, deleteAbsence } from "../services/absenceService";
+import { getEmployes } from "../services/employeService"; // <- nouveau
 import { CalendarDays, User, Plus, Edit, Trash2, CheckCircle, XCircle, Clock, FileText, Filter } from "lucide-react";
+import { Select } from "react-day-picker";
 
 export default function Absences() {
   const [absences, setAbsences] = useState([]);
+  const [employes, setEmployes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [form, setForm] = useState({ 
@@ -29,6 +32,8 @@ export default function Absences() {
     try {
       const data = await getAbsences();
       setAbsences(data || []);
+      const empData = await getEmployes();
+            setEmployes(empData || []);
     } catch (err) {
       console.error(err);
       setError("Impossible de charger les absences");
@@ -289,7 +294,12 @@ export default function Absences() {
                           <User className="w-6 h-6 text-gray-600" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">Employé #{absence.employeId}</h3>
+                          <h3 className="font-semibold text-gray-900">
+                            {(() => {
+                              const emp = employes.find(e => e.id === absence.employeId);
+                              return emp ? `${emp.nom} ${emp.prenom}` : `Employé #${absence.employeId}`;
+                            })()}
+                            </h3>
                           <p className="text-sm text-gray-600">{absence.justification}</p>
                           <p className="text-sm text-gray-500 flex items-center gap-1">
                             <CalendarDays className="w-4 h-4" />
@@ -387,14 +397,17 @@ export default function Absences() {
               <Label htmlFor="employeId" className="text-sm font-medium text-gray-700">
                 ID Employé *
               </Label>
-              <Input 
+              <select
                 id="employeId"
-                type="number"
-                value={form.employeId} 
-                onChange={(e) => setForm({ ...form, employeId: e.target.value })} 
-                placeholder="Ex: 1"
-                required 
-              />
+                value={form.employeId}
+                onChange={(e) => setForm({ ...form, employeId: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                required
+              >
+                <option value="">-- Sélectionner un employé --</option>
+                {employes.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
+              </select>
+              
             </div>
             
             <div className="grid grid-cols-2 gap-4">

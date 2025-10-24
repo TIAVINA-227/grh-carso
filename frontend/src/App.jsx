@@ -18,6 +18,7 @@ import Performances from "./pages/Performances";
 
 
 
+
 function AppContainer() {
   const location = useLocation();
   const isAuthPage =
@@ -43,7 +44,7 @@ function AppContainer() {
               <Route path="contrats" element={<Contrats />} />
               <Route path="absences" element={<Absences />} />
               <Route path="presences" element={<Presences />} />
-              <Route path="performances" element={<Performances />} />
+              <Route path ="performances" element={<Performances />} />
               <Route path="postes" element={<Postes />} />
               <Route path="conges" element={<Conges />} />
               <Route path="departements" element={<Departements />} />
