@@ -276,7 +276,7 @@ export default function Absences() {
               <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune absence trouvée</h3>
               <p className="text-gray-500 mb-4">Commencez par déclarer une absence</p>
-              <Button onClick={openCreate} className="bg-black text-white">
+              <Button onClick={openCreate} className="bg-blue-700 hover:bg-blue-900 text-white">
                 <Plus className="w-4 h-4 mr-2" />
                 Déclarer une absence
               </Button>

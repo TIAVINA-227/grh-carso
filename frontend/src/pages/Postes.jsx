@@ -102,7 +102,7 @@ export default function Postes() {
             <p className="text-sm text-gray-600 mt-1">Consultez et gérez les postes de l'entreprise</p>
           </div>
           <Button 
-            className="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors" 
+            className="bg-blue-700 hover:bg-blue-900 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors" 
             onClick={openCreate}
           >
             <Plus className="w-4 h-4" />

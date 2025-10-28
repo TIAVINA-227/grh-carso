@@ -6,24 +6,17 @@ import {
   FileText,
   Calendar,
   CheckSquare,
-  TrendingUp,
   Briefcase,
   Umbrella,
   Grid,
-  DollarSign,
   File,
   AudioWaveform,
-  BookOpen,
-  Bot,
   Command,
-  Frame,
   GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Settings2,
-  SquareTerminal,
   LayoutDashboard,
   Wallet,
+  UserCog,
+  ChartColumnIncreasing
 } from "lucide-react"
 
 import SidebarItem from "@/components/ui/sidebar-item"
@@ -78,14 +71,15 @@ export function AppSidebar({
             <SidebarItem to="/dashboard" icon={LayoutDashboard } label="Dashboard" />
             <SidebarItem to="/dashboard/employes" icon={Users} label="Employés" />
             <SidebarItem to="/dashboard/contrats" icon={FileText} label="Contrats" />
-            <SidebarItem to="/dashboard/absences" icon={Calendar} label="Absences" />
             <SidebarItem to="/dashboard/presences" icon={CheckSquare} label="Présences" />
-            <SidebarItem to="/dashboard/performances" icon={TrendingUp} label="Performances" />
-            <SidebarItem to="/dashboard/postes" icon={Briefcase} label="Postes" />
+            <SidebarItem to="/dashboard/absences" icon={Calendar} label="Absences" />
             <SidebarItem to="/dashboard/conges" icon={Umbrella} label="Congés" />
+            <SidebarItem to="/dashboard/postes" icon={Briefcase} label="Postes" />
             <SidebarItem to="/dashboard/departements" icon={Grid} label="Départements" />
             <SidebarItem to="/dashboard/paiements" icon={Wallet} label="Paiements" />
             <SidebarItem to="/dashboard/bulletins" icon={File} label="Bulletins" />
+            <SidebarItem to="/dashboard/performances" icon={ChartColumnIncreasing} label="Performances" />
+            <SidebarItem to="/dashboard/utilisateurs" icon={UserCog} label="Utilisateurs" />
           </ul>
         </div>
         

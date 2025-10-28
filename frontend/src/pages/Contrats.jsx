@@ -142,7 +142,7 @@ export default function Contrats() {
             <p className="text-sm text-gray-600 mt-1">Consultez et gérez les contrats de travail</p>
           </div>
           <Button 
-            className="bg-black hover:bg-gray-800 text-white flex items-center gap-2" 
+            className="bg-blue-700 hover:bg-blue-900 text-white flex items-center gap-2" 
             onClick={openCreate}
           >
             <Plus className="w-4 h-4" />

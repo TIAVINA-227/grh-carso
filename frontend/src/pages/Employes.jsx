@@ -5,39 +5,11 @@ import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "../components/ui/dropdown-menu"
-import {
-  Dialog, 
-  DialogContent, 
-  DialogTrigger, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription 
-} from "../components/ui/dialog"
-import { 
-  getEmployes, 
-  createEmploye, 
-  updateEmploye, 
-  deleteEmploye, 
-  getDepartements, 
-  getPostes 
-} from "../services/employeService"
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle 
-} from "../components/ui/alert-dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "../components/ui/dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog"
 import { toast } from "sonner"
+import { getEmployes, createEmploye, updateEmploye, deleteEmploye, getDepartements, getPostes } from "../services/employeService"
 
 export default function EmployeeList() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -50,22 +22,15 @@ export default function EmployeeList() {
   const [postes, setPostes] = useState([])
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
-    nom: "",
-    prenom: "",
-    email: "",
-    telephone: "",
-    date_naissance: "",
-    date_embauche: "",
-    adresse: "",
-    posteId: "",
-    departementId: "",
+    nom: "", prenom: "", email: "", telephone: "", date_naissance: "",
+    date_embauche: "", adresse: "", posteId: "", departementId: "",
   })
   const [editingId, setEditingId] = useState(null)
-
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null)
-  const [confirmEditOpen, setConfirmEditOpen] = useState(false)
-  const [selectedEmployeeEdit, setSelectedEmployeeEdit] = useState(null)
+
+  const [selectedEmployee, setSelectedEmployee] = useState(null)
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false)
 
   const toInputDate = (iso) => {
     if (!iso) return ''
@@ -96,10 +61,7 @@ export default function EmployeeList() {
 
   const loadDepartementsAndPostes = async () => {
     try {
-      const [departementsData, postesData] = await Promise.all([
-        getDepartements(),
-        getPostes()
-      ])
+      const [departementsData, postesData] = await Promise.all([getDepartements(), getPostes()])
       setDepartements(departementsData || [])
       setPostes(postesData || [])
     } catch (err) {
@@ -118,11 +80,8 @@ export default function EmployeeList() {
     setErrorMessage(null)
     try {
       const payload = {
-        nom: formData.nom,
-        prenom: formData.prenom,
-        email: formData.email,
-        telephone: formData.telephone,
-        adresse: formData.adresse,
+        nom: formData.nom, prenom: formData.prenom, email: formData.email,
+        telephone: formData.telephone, adresse: formData.adresse,
         date_embauche: formData.date_embauche ? new Date(formData.date_embauche).toISOString() : null,
         date_naissance: formData.date_naissance ? new Date(formData.date_naissance).toISOString() : null,
         posteId: formData.posteId ? Number(formData.posteId) : null,
@@ -131,26 +90,19 @@ export default function EmployeeList() {
 
       if (editingId) {
         await updateEmploye(editingId, payload)
+        toast.success("Employé modifié avec succès")
       } else {
         await createEmploye(payload)
+        toast.success("Nouvel employé ajouté avec succès")
       }
+
       setIsDialogOpen(false)
       setEditingId(null)
-      setFormData({
-        nom: "",
-        prenom: "",
-        email: "",
-        telephone: "",
-        date_naissance: "",
-        date_embauche: "",
-        adresse: "",
-        posteId: "",
-        departementId: "",
-      })
+      setFormData({ nom: "", prenom: "", email: "", telephone: "", date_naissance: "", date_embauche: "", adresse: "", posteId: "", departementId: "" })
       await loadEmployes()
     } catch (err) {
       console.error(err)
-      setErrorMessage(err.message || 'Erreur lors de la création')
+      setErrorMessage(err.message || 'Erreur lors de la création/modification')
     } finally {
       setSubmitting(false)
     }
@@ -160,25 +112,20 @@ export default function EmployeeList() {
     setLoading(true)
     try {
       await deleteEmploye(id)
+      toast.success("L'employé a été supprimé avec succès")
       await loadEmployes()
     } catch (err) {
       console.error('Erreur suppression employé', err)
-      setErrorMessage("Impossible de supprimer l'employé")
+      toast.error("Impossible de supprimer l'employé")
     } finally {
       setLoading(false)
     }
-    localStorage.removeItem("editingEmployeeId")
-    toast.success("L'employé a été supprimé avec succès")
-    
   }
 
   const handleEdit = (employee) => {
     setFormData({
-      nom: employee.nom || '',
-      prenom: employee.prenom || '',
-      email: employee.email || '',
-      telephone: employee.telephone || '',
-      adresse: employee.adresse || '',
+      nom: employee.nom || '', prenom: employee.prenom || '', email: employee.email || '',
+      telephone: employee.telephone || '', adresse: employee.adresse || '',
       date_naissance: toInputDate(employee.date_naissance),
       date_embauche: toInputDate(employee.date_embauche),
       posteId: employee.posteId ? String(employee.posteId) : '',
@@ -186,8 +133,6 @@ export default function EmployeeList() {
     })
     setEditingId(employee.id)
     setIsDialogOpen(true)
-
-    localStorage.setItem("editingEmployeeId", employee.id)
     toast.success("Les informations de l'employé sont prêtes à être modifiées")
   }
 
@@ -203,16 +148,9 @@ export default function EmployeeList() {
     setSelectedEmployeeId(null)
   }
 
-  const requestEdit = (employee) => {
-    setSelectedEmployeeEdit(employee)
-    setConfirmEditOpen(true)
-  }
-
-  const confirmEdit = () => {
-    if (!selectedEmployeeEdit) return
-    handleEdit(selectedEmployeeEdit)
-    setConfirmEditOpen(false)
-    setSelectedEmployeeEdit(null)
+  const viewProfile = (employee) => {
+    setSelectedEmployee(employee)
+    setProfileDialogOpen(true)
   }
 
   const filteredEmployees = employees.filter(employee => {
@@ -220,7 +158,7 @@ export default function EmployeeList() {
       employee.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
       employee.prenom.toLowerCase().includes(searchQuery.toLowerCase()) ||
       employee.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.matricule.toLowerCase().includes(searchQuery.toLowerCase())
+      (employee.matricule || '').toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesDepartment = selectedDepartment === "Tous les départements" ||
       employee.departement?.nom_departement === selectedDepartment
@@ -231,7 +169,7 @@ export default function EmployeeList() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
-        {/* Header */}
+        {/* Header et bouton Ajouter */}
         <div className="mb-6 flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Gestion des Employés</h1>
@@ -239,9 +177,8 @@ export default function EmployeeList() {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-black hover:bg-gray-800 text-white gap-2">
-                <Plus className="h-4 w-4" />
-                Nouvel Employé
+              <Button className="bg-blue-700 hover:bg-blue-900 text-white gap-2">
+                <Plus className="h-4 w-4" /> Nouvel Employé
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -249,55 +186,32 @@ export default function EmployeeList() {
                 <DialogTitle>{editingId ? "Modifier l'employé" : "Nouvel employé"}</DialogTitle>
                 <DialogDescription>{editingId ? "Modifiez les informations de l'employé" : "Ajoutez un nouvel employé à l'entreprise"}</DialogDescription>
               </DialogHeader>
-
               <form onSubmit={handleSubmit} className="space-y-4">
                 {errorMessage && <div className="text-sm text-red-600">{errorMessage}</div>}
                 <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2"><Label htmlFor="prenom">Prénom *</Label><Input id="prenom" value={formData.prenom} onChange={e => setFormData({ ...formData, prenom: e.target.value })} required /></div>
+                  <div className="space-y-2"><Label htmlFor="nom">Nom *</Label><Input id="nom" value={formData.nom} onChange={e => setFormData({ ...formData, nom: e.target.value })} required /></div>
+                  <div className="space-y-2"><Label htmlFor="email">Email *</Label><Input id="email" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required /></div>
+                  <div className="space-y-2"><Label htmlFor="telephone">Téléphone *</Label><Input id="telephone" value={formData.telephone} onChange={e => setFormData({ ...formData, telephone: e.target.value })} required /></div>
+                  <div className="space-y-2"><Label htmlFor="date_naissance">Date de Naissance *</Label><Input id="date_naissance" type="date" value={formData.date_naissance} onChange={e => setFormData({ ...formData, date_naissance: e.target.value })} required /></div>
+                  <div className="space-y-2"><Label htmlFor="date_embauche">Date d'Embauche *</Label><Input id="date_embauche" type="date" value={formData.date_embauche} onChange={e => setFormData({ ...formData, date_embauche: e.target.value })} required /></div>
                   <div className="space-y-2">
-                    <Label htmlFor="prenom">Prénom *</Label>
-                    <Input id="prenom" value={formData.prenom} onChange={(e) => setFormData({ ...formData, prenom: e.target.value })} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="nom">Nom *</Label>
-                    <Input id="nom" value={formData.nom} onChange={(e) => setFormData({ ...formData, nom: e.target.value })} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="telephone">Téléphone *</Label>
-                    <Input id="telephone" value={formData.telephone} onChange={(e) => setFormData({ ...formData, telephone: e.target.value })} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="date_naissance">Date de Naissance *</Label>
-                    <Input id="date_naissance" type="date" value={formData.date_naissance} onChange={(e) => setFormData({ ...formData, date_naissance: e.target.value })} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="date_embauche">Date d'Embauche *</Label>
-                    <Input id="date_embauche" type="date" value={formData.date_embauche} onChange={(e) => setFormData({ ...formData, date_embauche: e.target.value })} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="departement">Département</Label>
-                    <Select value={formData.departementId} onValueChange={(value) => setFormData({ ...formData, departementId: value })}>
+                    <Label>Département</Label>
+                    <Select value={formData.departementId} onValueChange={v => setFormData({ ...formData, departementId: v })}>
                       <SelectTrigger><SelectValue placeholder="Sélectionner un département" /></SelectTrigger>
-                      <SelectContent>
-                        {departements.map((dept) => <SelectItem key={dept.id} value={String(dept.id)}>{dept.nom_departement}</SelectItem>)}
-                      </SelectContent>
+                      <SelectContent>{departements.map(d => <SelectItem key={d.id} value={String(d.id)}>{d.nom_departement}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="poste">Poste</Label>
-                    <Select value={formData.posteId} onValueChange={(value) => setFormData({ ...formData, posteId: value })}>
+                    <Label>Poste</Label>
+                    <Select value={formData.posteId} onValueChange={v => setFormData({ ...formData, posteId: v })}>
                       <SelectTrigger><SelectValue placeholder="Sélectionner un poste" /></SelectTrigger>
-                      <SelectContent>
-                        {postes.map((poste) => <SelectItem key={poste.id} value={String(poste.id)}>{poste.intitule}</SelectItem>)}
-                      </SelectContent>
+                      <SelectContent>{postes.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.intitule}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="adresse">Adresse</Label>
-                    <Input id="adresse" value={formData.adresse} onChange={(e) => setFormData({ ...formData, adresse: e.target.value })} placeholder="Adresse complète" />
+                  <div className="space-y-2 col-span-2">
+                    <Label>Adresse</Label>
+                    <Input value={formData.adresse} onChange={e => setFormData({ ...formData, adresse: e.target.value })} placeholder="Adresse complète" />
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
@@ -319,30 +233,23 @@ export default function EmployeeList() {
           <div className="mb-6 flex items-center gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-              <Input type="text" placeholder="Rechercher par nom, email, matricule..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-12 pl-10 pr-4 text-base" />
+              <Input type="text" placeholder="Rechercher par nom, email, matricule..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="h-12 pl-10 pr-4 text-base" />
             </div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="h-12 gap-2 px-4 bg-transparent">
-                  <Filter className="h-4 w-4" />
-                  {selectedDepartment}
-                  <ChevronDown className="h-4 w-4" />
+                  <Filter className="h-4 w-4" /> {selectedDepartment} <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem onClick={() => setSelectedDepartment("Tous les départements")}>Tous les départements</DropdownMenuItem>
-                {departements.map((dept) => (
-                  <DropdownMenuItem key={dept.id} onClick={() => setSelectedDepartment(dept.nom_departement)}>
-                    {dept.nom_departement}
-                  </DropdownMenuItem>
-                ))}
+                {departements.map(d => <DropdownMenuItem key={d.id} onClick={() => setSelectedDepartment(d.nom_departement)}>{d.nom_departement}</DropdownMenuItem>)}
               </DropdownMenuContent>
             </DropdownMenu>
 
             <Button variant="outline" className="h-12 gap-2 px-4 bg-transparent">
-              <Download className="h-4 w-4" />
-              Exporter
+              <Download className="h-4 w-4" /> Exporter
             </Button>
           </div>
 
@@ -362,13 +269,13 @@ export default function EmployeeList() {
               <tbody className="divide-y divide-gray-200 bg-white">
                 {loading && <tr><td colSpan={7} className="py-6 text-center">Chargement...</td></tr>}
                 {!loading && filteredEmployees.length === 0 && <tr><td colSpan={7} className="py-6 text-center">Aucun employé trouvé</td></tr>}
-                {!loading && filteredEmployees.length > 0 && filteredEmployees.map((employee) => (
+                {!loading && filteredEmployees.length > 0 && filteredEmployees.map(employee => (
                   <tr key={employee.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
                           <AvatarImage src={employee.avatar || "/placeholder.svg"} alt={`${employee.nom} ${employee.prenom}`} />
-                          <AvatarFallback>{`${employee.nom || ''} ${employee.prenom || ''}`.trim().split(" ").map((n) => n[0]).join("")}</AvatarFallback>
+                          <AvatarFallback>{`${employee.nom || ''} ${employee.prenom || ''}`.trim().split(" ").map(n => n[0]).join("")}</AvatarFallback>
                         </Avatar>
                         <div>
                           <div className="font-medium text-gray-900">{`${employee.nom || ''} ${employee.prenom || ''}`}</div>
@@ -380,19 +287,15 @@ export default function EmployeeList() {
                     <td className="px-6 py-4 text-sm text-gray-900">{employee.poste?.intitule || 'Non assigné'}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{employee.departement?.nom_departement || 'Non assigné'}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{employee.email}</td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 px-3 py-1 text-xs font-medium">Actif</span>
-                    </td>
+                    <td className="px-6 py-4"><span className="inline-flex items-center rounded-full bg-green-100 text-green-800 px-3 py-1 text-xs font-medium">Actif</span></td>
                     <td className="px-6 py-4">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Voir le profil</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => requestEdit(employee)}>Modifier</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => viewProfile(employee)}>Voir le profil</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(employee)}>Modifier</DropdownMenuItem>
                           <DropdownMenuItem className="text-red-600" onClick={() => requestDelete(employee.id)}>Supprimer</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -404,33 +307,57 @@ export default function EmployeeList() {
           </div>
         </div>
 
-        {/* AlertDialogs */}
+        {/* Dialog Profil Employé */}
+        <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Profil de l'employé</DialogTitle>
+              <DialogDescription>Informations détaillées de l'employé sélectionné</DialogDescription>
+            </DialogHeader>
+
+            {selectedEmployee && (
+              <div className="space-y-4 mt-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={selectedEmployee.avatar || "/placeholder.svg"} />
+                    <AvatarFallback>{`${selectedEmployee.nom || ''} ${selectedEmployee.prenom || ''}`.trim().split(" ").map(n => n[0]).join("")}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="text-xl font-bold">{`${selectedEmployee.nom} ${selectedEmployee.prenom}`}</h3>
+                    <p className="text-sm text-gray-500">{selectedEmployee.poste?.intitule || 'Non assigné'}</p>
+                    <p className="text-sm text-gray-500">{selectedEmployee.departement?.nom_departement || 'Non assigné'}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div><p className="text-sm text-gray-500">Email</p><p className="text-gray-900">{selectedEmployee.email}</p></div>
+                  <div><p className="text-sm text-gray-500">Téléphone</p><p className="text-gray-900">{selectedEmployee.telephone}</p></div>
+                  <div><p className="text-sm text-gray-500">Date de naissance</p><p className="text-gray-900">{selectedEmployee.date_naissance ? new Date(selectedEmployee.date_naissance).toLocaleDateString() : '-'}</p></div>
+                  <div><p className="text-sm text-gray-500">Date d'embauche</p><p className="text-gray-900">{selectedEmployee.date_embauche ? new Date(selectedEmployee.date_embauche).toLocaleDateString() : '-'}</p></div>
+                  <div className="col-span-2"><p className="text-sm text-gray-500">Adresse</p><p className="text-gray-900">{selectedEmployee.adresse || '-'}</p></div>
+                </div>
+
+                <div className="flex justify-end mt-4">
+                  <Button variant="outline" onClick={() => setProfileDialogOpen(false)}>Fermer</Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirmation de suppression */}
         <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-              <AlertDialogDescription>Voulez-vous vraiment supprimer cet employé ? Cette action est irréversible.</AlertDialogDescription>
+              <AlertDialogDescription>Êtes-vous sûr de vouloir supprimer cet employé ? Cette action est irréversible.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete} className="bg-red-600 text-white hover:bg-red-700">Supprimer</AlertDialogAction>
+              <AlertDialogAction onClick={confirmDelete}>Supprimer</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
-        <AlertDialog open={confirmEditOpen} onOpenChange={setConfirmEditOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmer la modification</AlertDialogTitle>
-              <AlertDialogDescription>Voulez-vous modifier les informations de cet employé ?</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmEdit} className="bg-black text-white hover:bg-gray-800">Modifier</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
       </div>
     </div>
   )

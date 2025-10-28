@@ -15,6 +15,7 @@ import congeRoutes from "./src/routes/congeRoutes.js";
 import performanceRoutes from "./src/routes/performanceRoutes.js";
 import paiementRoutes from "./src/routes/paiementRoutes.js";
 import bulletinRoutes from "./src/routes/bulletinRoutes.js";
+import utilisateurRoutes from "./src/routes/utilisateurRoutes.js";
 
 dotenv.config(); // charge les variables d'environnement
 const app = express();
@@ -109,7 +110,7 @@ app.post("/api/auth/login", async (req, res) => {
         role: utilisateur.role,
       },
       process.env.JWT_SECRET || "votre_secret_jwt",
-      { expiresIn: "10min" }
+      { expiresIn: "1min" }
     );
 
     // 🕒 Mise à jour dernière connexion
@@ -205,6 +206,13 @@ app.get("/api/dashboard", async (req, res) => {
     console.error("Erreur /api/dashboard:", error);
     return res.status(500).json({ message: "Erreur interne du serveur" });
   }
+});
+
+// Routes principales
+app.use("/api/utilisateurs", utilisateurRoutes);
+
+app.get("/", (req, res) => {
+  res.send("✅ API Utilisateurs opérationnelle !");
 });
 
 // Routes des employés

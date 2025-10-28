@@ -11,7 +11,8 @@ export default function Topbar({ user = { name: "Jean Dupont", avatar: "/avatars
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-4 flex-1">
-          <SidebarTrigger />
+          <SidebarTrigger variant="outline" 
+          className=" bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200"/>
           <div className="w-full max-w-lg">
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">

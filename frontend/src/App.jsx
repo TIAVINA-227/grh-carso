@@ -4,6 +4,7 @@ import { Routes, Route, BrowserRouter, useLocation } from "react-router-dom";
 import { LoginForm } from "@/components/login-form";
 import { SignupForm } from "@/components/signup-form";
 import { Toaster } from "sonner";
+import { AuthProvider } from "./hooks/useAuth";
 import Page from "./pages/Dashboard";
 import EmployesPage from "./pages/Employes";
 import Contrats from "./pages/Contrats";
@@ -15,6 +16,7 @@ import Departements from "./pages/Departements";
 import Paiments from "./pages/Paiments";
 import Bulletins from "./pages/Bulletins";
 import Performances from "./pages/Performances";
+import Utilisateurs from "./pages/Utilisateurs";
 
 
 
@@ -50,6 +52,7 @@ function AppContainer() {
               <Route path="departements" element={<Departements />} />
               <Route path="paiements" element={<Paiments />} />
               <Route path="bulletins" element={<Bulletins />} />
+              <Route path="utilisateurs" element={<Utilisateurs />} />
             </Route>
         </Routes>
       </div>
