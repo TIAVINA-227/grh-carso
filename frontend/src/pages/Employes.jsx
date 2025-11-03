@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Search, Download, Filter, MoreHorizontal, ChevronDown, Plus } from "lucide-react"
+import { Search, Download, Filter, MoreHorizontal, ChevronDown, Plus, Trash2 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
@@ -7,9 +7,10 @@ import { Label } from "../components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "../components/ui/dialog"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog"
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../components/ui/alert-dialog";
 import { toast } from "sonner"
 import { getEmployes, createEmploye, updateEmploye, deleteEmploye, getDepartements, getPostes } from "../services/employeService"
+import { Checkbox } from "../components/ui/checkbox";
 
 export default function EmployeeList() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -28,6 +29,7 @@ export default function EmployeeList() {
   const [editingId, setEditingId] = useState(null)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null)
+  const [selectedEmployees, setSelectedEmployees] = useState(new Set());
 
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [profileDialogOpen, setProfileDialogOpen] = useState(false)
@@ -142,11 +144,24 @@ export default function EmployeeList() {
   }
 
   const confirmDelete = async () => {
-    if (!selectedEmployeeId) return
-    setConfirmDeleteOpen(false)
-    await handleDeleteEmploye(selectedEmployeeId)
-    setSelectedEmployeeId(null)
-  }
+    setConfirmDeleteOpen(false);
+    setLoading(true);
+    try {
+      if (selectedEmployeeId) {
+        await deleteEmploye(selectedEmployeeId);
+        toast.success("L'employé a été supprimé avec succès");
+      } else if (selectedEmployees.size > 0) {
+        await Promise.all(Array.from(selectedEmployees).map(id => deleteEmploye(id)));
+        toast.success(`${selectedEmployees.size} employé(s) supprimé(s)`);
+        setSelectedEmployees(new Set());
+      }
+      await loadEmployes();
+    } catch (err) {
+      toast.error("Impossible de supprimer");
+    }
+    setLoading(false);
+    setSelectedEmployeeId(null);
+  };
 
   const viewProfile = (employee) => {
     setSelectedEmployee(employee)
@@ -165,6 +180,33 @@ export default function EmployeeList() {
 
     return matchesSearch && matchesDepartment
   })
+
+  const handleSelectEmployee = (id) => {
+    setSelectedEmployees(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(id)) {
+        newSelection.delete(id);
+      } else {
+        newSelection.add(id);
+      }
+      return newSelection;
+    });
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedEmployees(new Set(filteredEmployees.map(item => item.id)));
+    } else {
+      setSelectedEmployees(new Set());
+    }
+  };
+
+  const requestDeleteSelected = () => {
+    if (selectedEmployees.size > 0) {
+      setSelectedEmployeeId(null);
+      setConfirmDeleteOpen(true);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -230,6 +272,23 @@ export default function EmployeeList() {
             <p className="mt-1 text-sm text-gray-500">{filteredEmployees.length} employé(s) trouvé(s)</p>
           </div>
 
+          {selectedEmployees.size > 0 && (
+            <div className="mb-4 flex items-center justify-between rounded-md bg-blue-50 p-3 border border-blue-200">
+              <div className="text-sm font-medium text-blue-800">
+                {selectedEmployees.size} employé(s) sélectionné(s).
+              </div>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={requestDeleteSelected}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Supprimer la sélection
+              </Button>
+            </div>
+          )}
+
           <div className="mb-6 flex items-center gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -257,6 +316,13 @@ export default function EmployeeList() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-4 py-4 w-12">
+                    <Checkbox
+                      checked={selectedEmployees.size === filteredEmployees.length && filteredEmployees.length > 0}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </th>
                   <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Employé</th>
                   <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Matricule</th>
                   <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Poste</th>
@@ -267,10 +333,17 @@ export default function EmployeeList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {loading && <tr><td colSpan={7} className="py-6 text-center">Chargement...</td></tr>}
-                {!loading && filteredEmployees.length === 0 && <tr><td colSpan={7} className="py-6 text-center">Aucun employé trouvé</td></tr>}
+                {loading && <tr><td colSpan={8} className="py-6 text-center">Chargement...</td></tr>}
+                {!loading && filteredEmployees.length === 0 && <tr><td colSpan={8} className="py-6 text-center">Aucun employé trouvé</td></tr>}
                 {!loading && filteredEmployees.length > 0 && filteredEmployees.map(employee => (
-                  <tr key={employee.id} className="hover:bg-gray-50">
+                  <tr key={employee.id} className={`hover:bg-gray-50 ${selectedEmployees.has(employee.id) ? 'bg-blue-50' : ''}`}>
+                    <td className="px-4 py-4">
+                      <Checkbox
+                        checked={selectedEmployees.has(employee.id)}
+                        onCheckedChange={() => handleSelectEmployee(employee.id)}
+                        aria-label="Select employee"
+                      />
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
@@ -350,7 +423,11 @@ export default function EmployeeList() {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-              <AlertDialogDescription>Êtes-vous sûr de vouloir supprimer cet employé ? Cette action est irréversible.</AlertDialogDescription>
+              <AlertDialogDescription>
+                {selectedEmployees.size > 0
+                  ? `Êtes-vous sûr de vouloir supprimer ${selectedEmployees.size} employé(s) ? Cette action est irréversible.`
+                  : "Êtes-vous sûr de vouloir supprimer cet employé ? Cette action est irréversible."}
+              </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Annuler</AlertDialogCancel>

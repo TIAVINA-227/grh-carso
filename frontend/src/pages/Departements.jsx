@@ -28,6 +28,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter
  } from "../components/ui/alert-dialog"; // ✅ Composants pour le modal de confirmation
+import { Checkbox } from "../components/ui/checkbox";
 
 export default function Departements() {
   const [departements, setDepartements] = useState([]);
@@ -41,6 +42,7 @@ export default function Departements() {
   const [error, setError] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const { toast } = useToast(); // ✅ gestion des toasts
+  const [selectedDepartements, setSelectedDepartements] = useState(new Set());
 
   // Charger les départements
   const load = async () => {
@@ -115,8 +117,14 @@ export default function Departements() {
   // Supprimer un département
   const confirmDelete = async () => {
     try {
-      await deleteDepartement(deleteId);
-      toast({ title: "Suppression effectuée avec succès", variant: "success" });
+      if (deleteId) {
+        await deleteDepartement(deleteId);
+        toast({ title: "Suppression effectuée avec succès", variant: "success" });
+      } else if (selectedDepartements.size > 0) {
+        await Promise.all(Array.from(selectedDepartements).map(id => deleteDepartement(id)));
+        toast({ title: `${selectedDepartements.size} département(s) supprimé(s)`, variant: "success" });
+        setSelectedDepartements(new Set());
+      }
       await load();
     } catch (err) {
       console.error(err);
@@ -124,6 +132,33 @@ export default function Departements() {
     } finally {
       setConfirmDeleteOpen(false);
       setDeleteId(null);
+    }
+  };
+
+  const handleSelectDepartement = (id) => {
+    setSelectedDepartements(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(id)) {
+        newSelection.delete(id);
+      } else {
+        newSelection.add(id);
+      }
+      return newSelection;
+    });
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedDepartements(new Set(departements.map(item => item.id)));
+    } else {
+      setSelectedDepartements(new Set());
+    }
+  };
+
+  const requestDeleteSelected = () => {
+    if (selectedDepartements.size > 0) {
+      setDeleteId(null);
+      setConfirmDeleteOpen(true);
     }
   };
 
@@ -142,7 +177,37 @@ export default function Departements() {
           </Button>
         </div>
 
+        {selectedDepartements.size > 0 && (
+          <div className="mb-4 flex items-center justify-between rounded-md bg-blue-50 p-3 border border-blue-200">
+            <div className="text-sm font-medium text-blue-800">
+              {selectedDepartements.size} département(s) sélectionné(s).
+            </div>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={requestDeleteSelected}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Supprimer la sélection
+            </Button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {!loading && departements.length > 0 && (
+            <div className="col-span-full flex items-center p-2 rounded-md hover:bg-gray-50">
+              <Checkbox
+                id="select-all"
+                checked={selectedDepartements.size === departements.length && departements.length > 0}
+                onCheckedChange={handleSelectAll}
+                aria-label="Select all"
+              />
+              <label htmlFor="select-all" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">
+                Tout sélectionner
+              </label>
+            </div>
+          )}
           {loading && (
             <div className="col-span-full py-12 text-center text-gray-500">
               Chargement des départements...
@@ -167,11 +232,17 @@ export default function Departements() {
               return (
                 <Card
                   key={d.id}
-                  className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border-0"
+                  className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border-0 ${selectedDepartements.has(d.id) ? 'ring-2 ring-blue-500' : ''}`}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={selectedDepartements.has(d.id)}
+                          onCheckedChange={() => handleSelectDepartement(d.id)}
+                          aria-label="Select departement"
+                          className="mt-1"
+                        />
                         <div className="p-2 bg-gray-100 rounded-lg">
                           <Building2 className="w-5 h-5 text-gray-600" />
                         </div>
@@ -326,16 +397,14 @@ export default function Departements() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer ce département ?
+              {selectedDepartements.size > 0
+                ? `Êtes-vous sûr de vouloir supprimer ${selectedDepartements.size} département(s) ? Cette action est irréversible.`
+                : "Êtes-vous sûr de vouloir supprimer ce département ? Cette action est irréversible."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)}>
-              Annuler
-            </Button>
-            <Button className="bg-red-600 text-white" onClick={confirmDelete}>
-              Supprimer
-            </Button>
+            <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)}>Annuler</Button>
+            <Button className="bg-red-600 text-white" onClick={confirmDelete}>Supprimer</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

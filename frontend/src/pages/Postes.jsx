@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Badge } from "../components/ui/badge";
 import { getPostes, createPoste, updatePoste, deletePoste } from "../services/posteService";
 import { Plus, Briefcase, Edit, Trash2, Eye } from "lucide-react";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../components/ui/alert-dialog";
+import { toast } from "sonner";
+import { Checkbox } from "../components/ui/checkbox";
 
 export default function Postes() {
   const [postes, setPostes] = useState([]);
@@ -15,6 +18,9 @@ export default function Postes() {
   const [form, setForm] = useState({ intitule: "", description: "", niveau: "" });
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+  const [selectedPostes, setSelectedPostes] = useState(new Set());
 
   const load = async () => {
     setLoading(true);
@@ -60,14 +66,52 @@ export default function Postes() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Confirmer la suppression ?")) return;
+  const requestDelete = (id) => {
+    setDeleteId(id);
+    setConfirmDeleteOpen(true);
+  };
+  const confirmDelete = async () => {
+    setConfirmDeleteOpen(false);
     try {
-      await deletePoste(id);
+      if (deleteId) {
+        await deletePoste(deleteId);
+        toast.success("Poste supprimé avec succès");
+      } else if (selectedPostes.size > 0) {
+        await Promise.all(Array.from(selectedPostes).map(id => deletePoste(id)));
+        toast.success(`${selectedPostes.size} poste(s) supprimé(s)`);
+        setSelectedPostes(new Set());
+      }
       await load();
     } catch (err) {
-      console.error(err);
-      setError("Impossible de supprimer le poste");
+      toast.error("Erreur lors de la suppression du poste.");
+    }
+    setDeleteId(null);
+  };
+
+  const handleSelectPoste = (id) => {
+    setSelectedPostes(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(id)) {
+        newSelection.delete(id);
+      } else {
+        newSelection.add(id);
+      }
+      return newSelection;
+    });
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedPostes(new Set(postes.map(item => item.id)));
+    } else {
+      setSelectedPostes(new Set());
+    }
+  };
+
+  const requestDeleteSelected = () => {
+    if (selectedPostes.size > 0) {
+      setDeleteId(null);
+      setConfirmDeleteOpen(true);
     }
   };
 
@@ -110,6 +154,23 @@ export default function Postes() {
           </Button>
         </div>
 
+        {selectedPostes.size > 0 && (
+          <div className="mb-4 flex items-center justify-between rounded-md bg-blue-50 p-3 border border-blue-200">
+            <div className="text-sm font-medium text-blue-800">
+              {selectedPostes.size} poste(s) sélectionné(s).
+            </div>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={requestDeleteSelected}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Supprimer la sélection
+            </Button>
+          </div>
+        )}
+
         {/* Loading State */}
         {loading && (
           <div className="flex justify-center items-center py-12">
@@ -133,11 +194,28 @@ export default function Postes() {
         {/* Cards Grid */}
         {!loading && postes.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="col-span-full flex items-center p-2 rounded-md hover:bg-gray-50">
+              <Checkbox
+                id="select-all"
+                checked={selectedPostes.size === postes.length && postes.length > 0}
+                onCheckedChange={handleSelectAll}
+                aria-label="Select all"
+              />
+              <label htmlFor="select-all" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">
+                Tout sélectionner
+              </label>
+            </div>
             {postes.map((poste) => (
-              <Card key={poste.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border-0">
+              <Card key={poste.id} className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border-0 ${selectedPostes.has(poste.id) ? 'ring-2 ring-blue-500' : ''}`}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={selectedPostes.has(poste.id)}
+                        onCheckedChange={() => handleSelectPoste(poste.id)}
+                        aria-label="Select poste"
+                        className="mt-1"
+                      />
                       <div className="p-2 bg-gray-100 rounded-lg">
                         <Briefcase className="w-5 h-5 text-gray-600" />
                       </div>
@@ -173,7 +251,7 @@ export default function Postes() {
                       variant="outline" 
                       size="sm" 
                       className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200"
-                      onClick={() => handleDelete(poste.id)}
+                      onClick={() => requestDelete(poste.id)}
                     >
                       <Trash2 className="w-4 h-4 mr-1" />
                       Supprimer
@@ -269,6 +347,23 @@ export default function Postes() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedPostes.size > 0
+                ? `Êtes-vous sûr de vouloir supprimer ${selectedPostes.size} poste(s) ? Cette action est irréversible.`
+                : "Êtes-vous sûr de vouloir supprimer ce poste ? Cette action est irréversible."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

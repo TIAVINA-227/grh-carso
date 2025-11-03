@@ -4,7 +4,6 @@ import { Routes, Route, BrowserRouter, useLocation } from "react-router-dom";
 import { LoginForm } from "@/components/login-form";
 import { SignupForm } from "@/components/signup-form";
 import { Toaster } from "sonner";
-import { AuthProvider } from "./hooks/useAuth";
 import Page from "./pages/Dashboard";
 import EmployesPage from "./pages/Employes";
 import Contrats from "./pages/Contrats";
@@ -17,8 +16,7 @@ import Paiments from "./pages/Paiments";
 import Bulletins from "./pages/Bulletins";
 import Performances from "./pages/Performances";
 import Utilisateurs from "./pages/Utilisateurs";
-
-
+import { AuthProvider } from "./hooks/useAuth";
 
 
 function AppContainer() {
@@ -63,8 +61,10 @@ function AppContainer() {
 function App() {
   return (
     <BrowserRouter>
-      <AppContainer />
-      <Toaster />
+      <AuthProvider>
+        <AppContainer />
+        <Toaster />
+      </AuthProvider>
     </BrowserRouter>
   );
 }

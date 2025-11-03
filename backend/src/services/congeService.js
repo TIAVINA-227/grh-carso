@@ -1,50 +1,42 @@
-// // backend/src/services/congeService.js
-// import { PrismaClient } from '@prisma/client';
-// const prisma = new PrismaClient();
-
-// export const createConge = async (data) => {
-//   const payload = {
-//     type_conge: data.type_conge || null,
-//     date_debut: data.date_debut ? new Date(data.date_debut) : undefined,
-//     date_fin: data.date_fin ? new Date(data.date_fin) : undefined,
-//     statut: data.statut || undefined,
-//     utilisateurId: data.utilisateurId ? Number(data.utilisateurId) : undefined,
-//     employeId: data.employeId ? Number(data.employeId) : undefined,
-//   };
-//   return await prisma.conge.create({ data: payload });
-// };
-
-// export const getAllConges = async () => await prisma.conge.findMany({ orderBy: { id: 'desc' } });
-// export const getCongeById = async (id) => await prisma.conge.findUnique({ where: { id: Number(id) } });
-// export const updateConge = async (id, data) => await prisma.conge.update({ where: { id: Number(id) }, data });
-// export const deleteConge = async (id) => { await prisma.conge.delete({ where: { id: Number(id) } }); return { success: true }; };
 // backend/src/services/congeService.js
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // Créer un congé
 export const createConge = async (data) => {
-  // Vérification obligatoire des champs requis
-  if (!data.utilisateurId) {
-    throw new Error("L'identifiant de l'utilisateur (utilisateurId) est requis.");
-  }
-  if (!data.employeId) {
-    throw new Error("L'identifiant de l'employé (employeId) est requis.");
-  }
-  if (!data.date_debut || !data.date_fin) {
-    throw new Error("Les dates de début et de fin sont requises.");
+  const { utilisateurId, employeId } = data;
+
+  if (!utilisateurId) {
+    throw new Error("⚠️ L'identifiant de l'utilisateur est manquant !");
   }
 
-  const payload = {
-    type_conge: data.type_conge || null,
-    date_debut: new Date(data.date_debut),
-    date_fin: new Date(data.date_fin),
-    statut: data.statut || 'SOUMIS', // Valeur par défaut si non fournie
-    utilisateurId: Number(data.utilisateurId),
-    employeId: Number(data.employeId),
-  };
+  if (!employeId) {
+    throw new Error("⚠️ L'identifiant de l'employé est manquant !");
+  }
 
-  return await prisma.conge.create({ data: payload });
+  const utilisateurExiste = await prisma.utilisateur.findUnique({
+    where: { id: Number(utilisateurId) },
+  });
+
+  const employeExiste = await prisma.employe.findUnique({
+    where: { id: Number(employeId) },
+  });
+
+  if (!utilisateurExiste)
+    throw new Error(`❌ Aucun utilisateur avec id=${utilisateurId}`);
+  if (!employeExiste)
+    throw new Error(`❌ Aucun employé avec id=${employeId}`);
+
+  return await prisma.conge.create({
+    data: {
+      type_conge: data.type_conge || null,
+      date_debut: new Date(data.date_debut),
+      date_fin: new Date(data.date_fin),
+      statut: data.statut || "SOUMIS",
+      utilisateurId: Number(utilisateurId),
+      employeId: Number(employeId),
+    },
+  });
 };
 
 // Récupérer tous les congés

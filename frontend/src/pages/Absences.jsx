@@ -9,6 +9,9 @@ import { getAbsences, createAbsence, updateAbsence, deleteAbsence } from "../ser
 import { getEmployes } from "../services/employeService"; // <- nouveau
 import { CalendarDays, User, Plus, Edit, Trash2, CheckCircle, XCircle, Clock, FileText, Filter } from "lucide-react";
 import { Select } from "react-day-picker";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../components/ui/alert-dialog";
+import { toast } from "sonner";
+import { Checkbox } from "../components/ui/checkbox";
 
 export default function Absences() {
   const [absences, setAbsences] = useState([]);
@@ -26,6 +29,9 @@ export default function Absences() {
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
   const [filterStatus, setFilterStatus] = useState("Tous les statuts");
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+  const [selectedAbsences, setSelectedAbsences] = useState(new Set());
 
   const load = async () => {
     setLoading(true);
@@ -87,15 +93,26 @@ export default function Absences() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Confirmer la suppression ?")) return;
+  const requestDelete = (id) => {
+    setDeleteId(id);
+    setConfirmDeleteOpen(true);
+  };
+  const confirmDelete = async () => {
+    setConfirmDeleteOpen(false);
     try {
-      await deleteAbsence(id);
+      if (deleteId) {
+        await deleteAbsence(deleteId);
+        toast.success("Absence supprimée avec succès");
+      } else if (selectedAbsences.size > 0) {
+        await Promise.all(Array.from(selectedAbsences).map(id => deleteAbsence(id)));
+        toast.success(`${selectedAbsences.size} absence(s) supprimée(s)`);
+        setSelectedAbsences(new Set());
+      }
       await load();
     } catch (err) {
-      console.error(err);
-      setError("Impossible de supprimer l'absence");
+      toast.error("Erreur lors de la suppression de l'absence.");
     }
+    setDeleteId(null);
   };
 
   const handleApprove = async (id) => {
@@ -170,6 +187,33 @@ export default function Absences() {
     ? absences 
     : absences.filter(a => a.statut === filterStatus.toUpperCase());
 
+  const handleSelectAbsence = (id) => {
+    setSelectedAbsences(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(id)) {
+        newSelection.delete(id);
+      } else {
+        newSelection.add(id);
+      }
+      return newSelection;
+    });
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedAbsences(new Set(filteredAbsences.map(item => item.id)));
+    } else {
+      setSelectedAbsences(new Set());
+    }
+  };
+
+  const requestDeleteSelected = () => {
+    if (selectedAbsences.size > 0) {
+      setDeleteId(null);
+      setConfirmDeleteOpen(true);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
@@ -243,6 +287,23 @@ export default function Absences() {
           </Card>
         </div>
 
+        {selectedAbsences.size > 0 && (
+            <div className="mb-4 flex items-center justify-between rounded-md bg-blue-50 p-3 border border-blue-200">
+              <div className="text-sm font-medium text-blue-800">
+                {selectedAbsences.size} absence(s) sélectionnée(s).
+              </div>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={requestDeleteSelected}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Supprimer la sélection
+              </Button>
+            </div>
+          )}
+
         {/* Liste des absences */}
         <div className="bg-white rounded-lg shadow-sm border-0 p-6">
           <div className="mb-6 flex items-center justify-between">
@@ -285,11 +346,27 @@ export default function Absences() {
 
           {!loading && filteredAbsences.length > 0 && (
             <div className="space-y-4">
+              <div className="flex items-center p-2 rounded-md hover:bg-gray-50">
+                <Checkbox
+                  id="select-all"
+                  checked={selectedAbsences.size === filteredAbsences.length && filteredAbsences.length > 0}
+                  onCheckedChange={handleSelectAll}
+                  aria-label="Select all"
+                />
+                <label htmlFor="select-all" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">
+                  Tout sélectionner
+                </label>
+              </div>
               {filteredAbsences.map((absence) => (
-                <Card key={absence.id} className="bg-gray-50 rounded-lg border-0">
+                <Card key={absence.id} className={`bg-gray-50 rounded-lg border-0 ${selectedAbsences.has(absence.id) ? 'ring-2 ring-blue-500' : ''}`}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
+                        <Checkbox
+                          checked={selectedAbsences.has(absence.id)}
+                          onCheckedChange={() => handleSelectAbsence(absence.id)}
+                          aria-label="Select absence"
+                        />
                         <div className="p-2 bg-gray-200 rounded-full">
                           <User className="w-6 h-6 text-gray-600" />
                         </div>
@@ -358,7 +435,7 @@ export default function Absences() {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            onClick={() => handleDelete(absence.id)}
+                            onClick={() => requestDelete(absence.id)}
                             className="text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -502,6 +579,23 @@ export default function Absences() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedAbsences.size > 0
+                ? `Êtes-vous sûr de vouloir supprimer ${selectedAbsences.size} absence(s) ? Cette action est irréversible.`
+                : "Êtes-vous sûr de vouloir supprimer cette absence ? Cette action est irréversible."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

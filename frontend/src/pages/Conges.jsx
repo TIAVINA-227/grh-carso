@@ -1,3 +1,4 @@
+// frontend/src/pages/Conges.jsx
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -7,11 +8,22 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { getConges, createConge, updateConge, deleteConge } from "../services/congeService";
 import { getEmployes } from "../services/employeService";
-import { CalendarDays, User, Plus, Edit, Trash2, CheckCircle, XCircle, Clock, Umbrella, Filter } from "lucide-react";
+import { CalendarDays, User, Plus, Edit, Trash2, CheckCircle, XCircle, Clock, Umbrella, Filter, AlertCircle } from "lucide-react";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../components/ui/alert-dialog";
+import { toast } from "sonner";
+import { Checkbox } from "../components/ui/checkbox";
 
 export default function Conges() {
-  // Récupérer l'utilisateur connecté
-  const currentUser = JSON.parse(localStorage.getItem("user")) || {};
+  // Récupérer l'utilisateur connecté avec vérification
+  const currentUser = (() => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      return user || {};
+    } catch {
+      console.warn("Impossible de récupérer l'utilisateur depuis localStorage");
+      return {};
+    }
+  })();
 
   const [conges, setConges] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,26 +40,33 @@ export default function Conges() {
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
   const [filterStatus, setFilterStatus] = useState("Tous les statuts");
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+  const [selectedConges, setSelectedConges] = useState(new Set());
 
   const load = async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await getConges();
       setConges(data || []);
       const empData = await getEmployes();
       setEmployes(empData || []);
     } catch (err) {
-      console.error(err);
-      setError("Impossible de charger les congés");
+      console.error("Erreur de chargement:", err);
+      setError(`Impossible de charger les congés: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { 
+    load(); 
+  }, []);
 
   const openCreate = () => {
     setEditingId(null);
+    setError(null);
     setForm({ 
       employeId: "", 
       type_conge: "Congés payés", 
@@ -61,6 +80,7 @@ export default function Conges() {
 
   const openEdit = (c) => {
     setEditingId(c.id);
+    setError(null);
     setForm({ 
       employeId: c.employeId || "", 
       type_conge: c.type_conge || "Congés payés", 
@@ -76,13 +96,19 @@ export default function Conges() {
     e.preventDefault();
     setError(null);
 
+    // Validation frontend
     if (!form.utilisateurId) {
-      setError("Utilisateur non connecté.");
+      setError("❌ Utilisateur non connecté. Veuillez vous reconnecter.");
       return;
     }
 
     if (!form.employeId) {
-      setError("Veuillez sélectionner un employé.");
+      setError("❌ Veuillez sélectionner un employé.");
+      return;
+    }
+
+    if (new Date(form.date_fin) < new Date(form.date_debut)) {
+      setError("❌ La date de fin doit être après la date de début.");
       return;
     }
 
@@ -95,39 +121,53 @@ export default function Conges() {
       setIsDialogOpen(false);
       await load();
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || err.message || "Erreur");
+      console.error("Erreur lors de la soumission:", err);
+      setError(`❌ ${err.message}`);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Confirmer la suppression ?")) return;
+  const requestDelete = (id) => {
+    setDeleteId(id);
+    setConfirmDeleteOpen(true);
+  };
+  const confirmDelete = async () => {
+    setConfirmDeleteOpen(false);
+    if (!deleteId && selectedConges.size === 0) return;
     try {
-      await deleteConge(id);
+      if (deleteId) {
+        await deleteConge(deleteId);
+        toast.success("Congé supprimé avec succès");
+      } else {
+        await Promise.all(Array.from(selectedConges).map(id => deleteConge(id)));
+        toast.success(`${selectedConges.size} congé(s) supprimé(s)`);
+        setSelectedConges(new Set());
+      }
       await load();
     } catch (err) {
-      console.error(err);
-      setError("Impossible de supprimer le congé");
+      toast.error("Erreur lors de la suppression du congé.");
     }
+    setDeleteId(null);
   };
 
   const handleApprove = async (id) => {
+    setError(null);
     try {
       await updateConge(id, { statut: "APPROUVE" });
       await load();
     } catch (err) {
-      console.error(err);
-      setError("Impossible d'approuver le congé");
+      console.error("Erreur d'approbation:", err);
+      setError(`❌ Impossible d'approuver: ${err.message}`);
     }
   };
 
   const handleReject = async (id) => {
+    setError(null);
     try {
       await updateConge(id, { statut: "REJETE" });
       await load();
     } catch (err) {
-      console.error(err);
-      setError("Impossible de refuser le congé");
+      console.error("Erreur de rejet:", err);
+      setError(`❌ Impossible de refuser: ${err.message}`);
     }
   };
 
@@ -188,10 +228,36 @@ export default function Conges() {
     return diffDays;
   };
 
-  // Filtrer les congés
   const filteredConges = filterStatus === "Tous les statuts" 
     ? conges 
     : conges.filter(c => c.statut === filterStatus.toUpperCase());
+
+  const handleSelectConge = (id) => {
+    setSelectedConges(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(id)) {
+        newSelection.delete(id);
+      } else {
+        newSelection.add(id);
+      }
+      return newSelection;
+    });
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedConges(new Set(filteredConges.map(item => item.id)));
+    } else {
+      setSelectedConges(new Set());
+    }
+  };
+
+  const requestDeleteSelected = () => {
+    if (selectedConges.size > 0) {
+      setDeleteId(null);
+      setConfirmDeleteOpen(true);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -211,9 +277,34 @@ export default function Conges() {
           </Button>
         </div>
 
+        {/* Alerte d'erreur globale */}
+        {error && !isDialogOpen && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm text-red-800 font-medium">{error}</p>
+            </div>
+            <button 
+              onClick={() => setError(null)}
+              className="text-red-600 hover:text-red-800"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Alerte si utilisateur non connecté */}
+        {!currentUser.id && (
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-yellow-800">
+              ⚠️ Aucun utilisateur connecté détecté. Vous devez être connecté pour créer des congés.
+            </p>
+          </div>
+        )}
+
         {/* Statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          {/* Total */}
           <Card className="bg-white rounded-lg shadow-sm border-0">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -227,7 +318,6 @@ export default function Conges() {
             </CardContent>
           </Card>
 
-          {/* En attente */}
           <Card className="bg-white rounded-lg shadow-sm border-0">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -241,7 +331,6 @@ export default function Conges() {
             </CardContent>
           </Card>
 
-          {/* Approuvés */}
           <Card className="bg-white rounded-lg shadow-sm border-0">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -255,7 +344,6 @@ export default function Conges() {
             </CardContent>
           </Card>
 
-          {/* Jours totaux */}
           <Card className="bg-white rounded-lg shadow-sm border-0">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -292,9 +380,26 @@ export default function Conges() {
             </div>
           </div>
 
+          {selectedConges.size > 0 && (
+            <div className="mb-4 flex items-center justify-between rounded-md bg-blue-50 p-3 border border-blue-200">
+              <div className="text-sm font-medium text-blue-800">
+                {selectedConges.size} congé(s) sélectionné(s).
+              </div>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={requestDeleteSelected}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Supprimer la sélection
+              </Button>
+            </div>
+          )}
+
           {loading && (
             <div className="flex justify-center items-center py-12">
-              <div className="text-gray-500">Chargement des congés...</div>
+              <div className="text-gray-500">⏳ Chargement des congés...</div>
             </div>
           )}
 
@@ -312,11 +417,27 @@ export default function Conges() {
 
           {!loading && filteredConges.length > 0 && (
             <div className="space-y-4">
+               <div className="flex items-center p-2 rounded-md hover:bg-gray-50">
+                <Checkbox
+                  id="select-all"
+                  checked={selectedConges.size === filteredConges.length && filteredConges.length > 0}
+                  onCheckedChange={handleSelectAll}
+                  aria-label="Select all"
+                />
+                <label htmlFor="select-all" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">
+                  Tout sélectionner
+                </label>
+              </div>
               {filteredConges.map((conge) => (
-                <Card key={conge.id} className="bg-gray-50 rounded-lg border-0">
+                <Card key={conge.id} className={`bg-gray-50 rounded-lg border-0 ${selectedConges.has(conge.id) ? 'ring-2 ring-blue-500' : ''}`}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
+                        <Checkbox
+                          checked={selectedConges.has(conge.id)}
+                          onCheckedChange={() => handleSelectConge(conge.id)}
+                          aria-label="Select conge"
+                        />
                         <div className="p-2 bg-gray-200 rounded-full">
                           <User className="w-6 h-6 text-gray-600" />
                         </div>
@@ -378,7 +499,7 @@ export default function Conges() {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            onClick={() => handleDelete(conge.id)}
+                            onClick={() => requestDelete(conge.id)}
                             className="text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -408,14 +529,15 @@ export default function Conges() {
           
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
                 <div className="text-sm text-red-600">{error}</div>
               </div>
             )}
             
             <div className="space-y-2">
               <Label htmlFor="employeId" className="text-sm font-medium text-gray-700">
-                ID Employé *
+                Employé *
               </Label>
               <select
                 id="employeId"
@@ -497,7 +619,10 @@ export default function Conges() {
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => setIsDialogOpen(false)}
+                onClick={() => {
+                  setIsDialogOpen(false);
+                  setError(null);
+                }}
                 className="flex-1"
               >
                 Annuler
@@ -505,6 +630,7 @@ export default function Conges() {
               <Button 
                 type="submit" 
                 className="flex-1 bg-black hover:bg-gray-800 text-white"
+                disabled={!currentUser.id}
               >
                 {editingId ? 'Enregistrer' : 'Demander le congé'}
               </Button>
@@ -512,6 +638,23 @@ export default function Conges() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedConges.size > 0
+                  ? `Êtes-vous sûr de vouloir supprimer ${selectedConges.size} congé(s) ? Cette action est irréversible.`
+                  : "Êtes-vous sûr de vouloir supprimer ce congé ? Cette action est irréversible."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -151,6 +151,7 @@ model Conge {
   date_debut     DateTime
   date_fin       DateTime
   statut         StatutConge @default(SOUMIS)
+  motif         String? 
 
   // Relations
   utilisateur    Utilisateur @relation(fields: [utilisateurId], references: [id])

@@ -9,6 +9,7 @@ import { useToast } from "../components/ui/use-toast"; // ✅ Import toast
 import { getPresences, createPresence, updatePresence, deletePresence } from "../services/presenceService";
 import { getEmployes } from "../services/employeService";
 import { CalendarDays, Clock, User, Plus, Download, Edit, Trash2, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Checkbox } from "../components/ui/checkbox";
 
 export default function Presences() {
   const [presences, setPresences] = useState([]);
@@ -29,6 +30,7 @@ export default function Presences() {
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString());
   const { toast } = useToast(); // ✅ Hook toast
+  const [selectedPresences, setSelectedPresences] = useState(new Set());
 
   // Met à jour automatiquement la date + heure toutes les secondes
   useEffect(() => {
@@ -132,27 +134,61 @@ export default function Presences() {
     setConfirmDialogOpen(true);
   };
 
-  // ✅ Suppression réelle
   const handleDelete = async () => {
-    if (!presenceToDelete) return;
     try {
-      await deletePresence(presenceToDelete);
-      toast({
-        title: "Présence supprimée ✅",
-        description: "L'enregistrement a été supprimé avec succès.",
-        className: "bg-green-600 text-white",
-      });
+      if (presenceToDelete) {
+        await deletePresence(presenceToDelete);
+        toast({
+          title: "Présence supprimée ✅",
+          description: "L'enregistrement a été supprimé avec succès.",
+          className: "bg-green-600 text-white",
+        });
+      } else if (selectedPresences.size > 0) {
+        await Promise.all(Array.from(selectedPresences).map(id => deletePresence(id)));
+        toast({
+          title: `${selectedPresences.size} présence(s) supprimée(s) ✅`,
+          className: "bg-green-600 text-white",
+        });
+        setSelectedPresences(new Set());
+      }
       await load();
     } catch (err) {
       console.error(err);
       toast({
         title: "Erreur ❌",
-        description: "Impossible de supprimer la présence.",
+        description: "Impossible de supprimer.",
         className: "bg-red-600 text-white",
       });
     } finally {
       setConfirmDialogOpen(false);
       setPresenceToDelete(null);
+    }
+  };
+
+  const handleSelectPresence = (id) => {
+    setSelectedPresences(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(id)) {
+        newSelection.delete(id);
+      } else {
+        newSelection.add(id);
+      }
+      return newSelection;
+    });
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedPresences(new Set(presences.map(item => item.id)));
+    } else {
+      setSelectedPresences(new Set());
+    }
+  };
+
+  const requestDeleteSelected = () => {
+    if (selectedPresences.size > 0) {
+      setPresenceToDelete(null);
+      setConfirmDialogOpen(true);
     }
   };
 
@@ -227,6 +263,23 @@ export default function Presences() {
           </div>
         </div>
 
+        {selectedPresences.size > 0 && (
+          <div className="mb-4 flex items-center justify-between rounded-md bg-blue-50 p-3 border border-blue-200">
+            <div className="text-sm font-medium text-blue-800">
+              {selectedPresences.size} présence(s) sélectionnée(s).
+            </div>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={requestDeleteSelected}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Supprimer la sélection
+            </Button>
+          </div>
+        )}
+
         {/* Liste des présences */}
         <div className="bg-white rounded-lg shadow-sm border-0 p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
@@ -249,10 +302,26 @@ export default function Presences() {
             </div>
           ) : (
             <div className="space-y-4">
+              <div className="flex items-center p-2 rounded-md hover:bg-gray-50">
+                <Checkbox
+                  id="select-all"
+                  checked={selectedPresences.size === presences.length && presences.length > 0}
+                  onCheckedChange={handleSelectAll}
+                  aria-label="Select all"
+                />
+                <label htmlFor="select-all" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">
+                  Tout sélectionner
+                </label>
+              </div>
               {presences.map((presence) => (
-                <Card key={presence.id} className="bg-gray-50 rounded-lg border-0">
+                <Card key={presence.id} className={`bg-gray-50 rounded-lg border-0 ${selectedPresences.has(presence.id) ? 'ring-2 ring-blue-500' : ''}`}>
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
+                      <Checkbox
+                        checked={selectedPresences.has(presence.id)}
+                        onCheckedChange={() => handleSelectPresence(presence.id)}
+                        aria-label="Select presence"
+                      />
                       <div className="p-2 bg-gray-200 rounded-full">
                         <User className="w-6 h-6 text-gray-600" />
                       </div>
@@ -411,8 +480,9 @@ export default function Presences() {
               Confirmation de suppression
             </DialogTitle>
             <DialogDescription className="text-gray-600">
-              Êtes-vous sûr de vouloir supprimer cette présence ? 
-              Cette action est irréversible.
+              {selectedPresences.size > 0
+                ? `Êtes-vous sûr de vouloir supprimer ${selectedPresences.size} présence(s) ? Cette action est irréversible.`
+                : "Êtes-vous sûr de vouloir supprimer cette présence ? Cette action est irréversible."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex justify-end gap-3 pt-4">

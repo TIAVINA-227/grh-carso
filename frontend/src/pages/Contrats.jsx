@@ -9,6 +9,9 @@ import { Label } from "../components/ui/label";
 import { getContrats, createContrat, updateContrat, deleteContrat } from "../services/contratService";
 import { getEmployes } from "../services/employeService"; // <- nouveau
 import { FileText, User, Plus, Edit, Trash2, Calendar, DollarSign, Eye } from "lucide-react";
+import { useToast } from "../components/ui/use-toast";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../components/ui/alert-dialog";
+import { Checkbox } from "../components/ui/checkbox";
 
 export default function Contrats() {
   const [contrats, setContrats] = useState([]);
@@ -25,6 +28,10 @@ export default function Contrats() {
   });
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
+  const { toast } = useToast(); // pour notifications
+  const [deleteId, setDeleteId] = useState(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [selectedContrats, setSelectedContrats] = useState(new Set());
 
   const load = async () => {
     setLoading(true);
@@ -87,14 +94,52 @@ export default function Contrats() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Confirmer la suppression ?")) return;
+  const requestDelete = (id) => {
+    setDeleteId(id);
+    setConfirmDeleteOpen(true);
+  };
+  const confirmDelete = async () => {
+    setConfirmDeleteOpen(false);
     try {
-      await deleteContrat(id);
+      if (deleteId) {
+        await deleteContrat(deleteId);
+        toast({ title: "Contrat supprimé avec succès !", variant: "success" });
+      } else if (selectedContrats.size > 0) {
+        await Promise.all(Array.from(selectedContrats).map(id => deleteContrat(id)));
+        toast({ title: `${selectedContrats.size} contrat(s) supprimé(s) !`, variant: "success" });
+        setSelectedContrats(new Set());
+      }
       await load();
     } catch (err) {
-      console.error(err);
-      setError("Impossible de supprimer le contrat");
+      toast({ title: "Erreur lors de la suppression du contrat", variant: "destructive" });
+    }
+    setDeleteId(null);
+  };
+
+  const handleSelectContrat = (id) => {
+    setSelectedContrats(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(id)) {
+        newSelection.delete(id);
+      } else {
+        newSelection.add(id);
+      }
+      return newSelection;
+    });
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedContrats(new Set(contrats.map(item => item.id)));
+    } else {
+      setSelectedContrats(new Set());
+    }
+  };
+
+  const requestDeleteSelected = () => {
+    if (selectedContrats.size > 0) {
+      setDeleteId(null);
+      setConfirmDeleteOpen(true);
     }
   };
 
@@ -202,29 +247,54 @@ export default function Contrats() {
           </Card>
         </div>
 
+        {selectedContrats.size > 0 && (
+          <div className="mb-4 flex items-center justify-between rounded-md bg-blue-50 p-3 border border-blue-200">
+            <div className="text-sm font-medium text-blue-800">
+              {selectedContrats.size} contrat(s) sélectionné(s).
+            </div>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={requestDeleteSelected}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Supprimer la sélection
+            </Button>
+          </div>
+        )}
+
         {/* Liste des contrats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {!loading && contrats.length > 0 && (
+            <div className="col-span-full flex items-center p-2 rounded-md hover:bg-gray-50">
+              <Checkbox
+                id="select-all"
+                checked={selectedContrats.size === contrats.length && contrats.length > 0}
+                onCheckedChange={handleSelectAll}
+                aria-label="Select all"
+              />
+              <label htmlFor="select-all" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">
+                Tout sélectionner
+              </label>
+            </div>
+          )}
           {loading && (
             <div className="col-span-full flex justify-center items-center py-12">
               <div className="text-gray-500">Chargement des contrats...</div>
             </div>
           )}
-          {!loading && contrats.length === 0 && (
-            <div className="col-span-full text-center py-12">
-              <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun contrat trouvé</h3>
-              <p className="text-gray-500 mb-4">Commencez par créer un nouveau contrat</p>
-              <Button onClick={openCreate} className="bg-black text-white">
-                <Plus className="w-4 h-4 mr-2" />
-                Créer un contrat
-              </Button>
-            </div>
-          )}
           {!loading && contrats.length > 0 && contrats.map((contrat) => (
-            <Card key={contrat.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border-0">
+            <Card key={contrat.id} className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border-0 ${selectedContrats.has(contrat.id) ? 'ring-2 ring-blue-500' : ''}`}>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
+                    <Checkbox
+                      checked={selectedContrats.has(contrat.id)}
+                      onCheckedChange={() => handleSelectContrat(contrat.id)}
+                      aria-label="Select contrat"
+                      className="mt-1"
+                    />
                     <div className="p-2 bg-gray-100 rounded-lg">
                       <User className="w-5 h-5 text-gray-600" />
                     </div>
@@ -271,7 +341,7 @@ export default function Contrats() {
                     <Button variant="outline" size="sm" onClick={() => openEdit(contrat)}>
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleDelete(contrat.id)} className="text-red-600 hover:text-red-700">
+                    <Button variant="outline" size="sm" onClick={() => requestDelete(contrat.id)} className="text-red-600 hover:text-red-700">
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
@@ -321,7 +391,7 @@ export default function Contrats() {
                 <option value="CDI">CDI</option>
                 <option value="CDD">CDD</option>
                 <option value="Stage">Stage</option>
-                <option value="Freelance">Freelance</option>
+                <option value="Freelance">Consultant</option>
               </select>
             </div>
 
@@ -356,6 +426,23 @@ export default function Contrats() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedContrats.size > 0
+                ? `Es-tu sûr de vouloir supprimer ${selectedContrats.size} contrat(s) ? Cette action est irréversible.`
+                : "Es-tu sûr de vouloir supprimer ce contrat ? Cette action est irréversible."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 text-white">Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

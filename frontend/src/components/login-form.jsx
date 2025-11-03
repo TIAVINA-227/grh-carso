@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Link, useNavigate } from "react-router-dom"
 import CarsoLogo from "../assets/carso1.png"
 import { toast } from "sonner"
+import { useAuth } from "../hooks/useAuth"
 
 
 export function LoginForm({ className, ...props }) {
@@ -22,6 +23,7 @@ export function LoginForm({ className, ...props }) {
   const [mot_de_passe, setmot_de_passe] = useState("")
   const [error, setError] = useState("")
 
+  const { setUser } = useAuth();
   const navigate = useNavigate()
 // Connexion avec email + mot de passe
   const handleLogin = async (e) => {
@@ -44,10 +46,9 @@ export function LoginForm({ className, ...props }) {
         setError(data.message || "Email ou mot de passe incorrect")
         return
       }
-
-      localStorage.setItem("token", data.token)
-
-
+      localStorage.setItem("token", data.token);
+      // Utilise le context
+      setUser(data.user);
       navigate("/dashboard")
       toast.success("Bienvenu, vous êtes connecté avec succès")
     } catch (err) {

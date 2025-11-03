@@ -16,12 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
-import {
-  Trash2,
-  Pencil,
-  Plus,
-  RefreshCw,
-} from "lucide-react";
+import { Trash2, Pencil, Plus, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -41,25 +36,41 @@ import {
 } from "../components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import utilisateurService from "../services/utilisateurService";
-import { useToast } from "@/components/ui/use-toast"; // ✅ Import du système de toasts
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "../hooks/useAuth";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../components/ui/alert-dialog";
+import { toast } from "sonner";
+import { Checkbox } from "../components/ui/checkbox";
 
 export default function UtilisateursPage() {
+  const { user } = useAuth();
   const [utilisateurs, setUtilisateurs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [open, setOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState(null); // ✅ Pour gérer la confirmation
-  const { toast } = useToast(); // ✅ Hook pour les notifications
+  const [openAdd, setOpenAdd] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
+  const [userToEdit, setUserToEdit] = useState(null);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const { toast } = useToast();
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+  const [selectedUsers, setSelectedUsers] = useState(new Set());
 
   const [newUser, setNewUser] = useState({
     nom: "",
     prenom: "",
     email: "",
-    password: "",
+    mot_de_passe: "changeme123",
+    nom_utilisateur: "",
     role: "employe",
   });
 
-  // 🔄 Charger les utilisateurs
+  // Protection accès selon le rôle
+  if (!user || (user.role !== "admin" && user.role !== "superadmin")) {
+    return <div className="p-10 text-center text-lg text-red-700">Vous n'avez pas accès à la gestion des utilisateurs.</div>;
+  }
+
+  // ✅ Charger la liste
   const chargerUtilisateurs = async () => {
     try {
       setLoading(true);
@@ -76,52 +87,111 @@ export default function UtilisateursPage() {
     chargerUtilisateurs();
   }, []);
 
-  // 🗑️ Supprimer un utilisateur (après confirmation)
-  const confirmerSuppression = async () => {
-    if (!userToDelete) return;
+  // ✅ Ajouter
+  const ajouterUtilisateur = async (e) => {
+    e.preventDefault();
     try {
-      await utilisateurService.deleteUtilisateur(userToDelete.id);
-      setUtilisateurs((prev) => prev.filter((u) => u.id !== userToDelete.id));
-      setUserToDelete(null);
+      const payload = {
+        ...newUser,
+        nom_utilisateur:
+          newUser.nom_utilisateur?.trim() || newUser.email.trim().toLowerCase(),
+        mot_de_passe: newUser.mot_de_passe?.trim() || "changeme123",
+      };
+      const user = await utilisateurService.createUtilisateur(payload);
+      setUtilisateurs((prev) => [...prev, user]);
+      setOpenAdd(false);
+      setNewUser({ nom: "", prenom: "", email: "", mot_de_passe: "changeme123", nom_utilisateur: "", role: "employe" });
       toast({
-        title: "✅ Suppression réussie",
-        description: "L’utilisateur a été supprimé avec succès.",
-        duration: 3000,
+        title: "✅ Utilisateur ajouté",
+        description: `${user.prenom} ${user.nom} a été ajouté avec succès.`,
       });
     } catch (err) {
       toast({
         title: "❌ Erreur",
-        description: "Une erreur est survenue lors de la suppression.",
+        description: err.message ?? "Impossible d’ajouter l’utilisateur.",
         variant: "destructive",
       });
     }
   };
 
-  // ➕ Ajouter un utilisateur
-  const ajouterUtilisateur = async (e) => {
+  // ✅ Préparer modification
+  const ouvrirModaleModification = (user) => {
+    setUserToEdit(user);
+    setOpenEdit(true);
+  };
+
+  // ✅ Modifier un utilisateur
+  const modifierUtilisateur = async (e) => {
     e.preventDefault();
     try {
-      const user = await utilisateurService.createUtilisateur(newUser);
-      setUtilisateurs((prev) => [...prev, user]);
-      setOpen(false);
-      setNewUser({
-        nom: "",
-        prenom: "",
-        email: "",
-        password: "",
-        role: "employe",
-      });
+      const updated = await utilisateurService.updateUtilisateur(
+        userToEdit.id,
+        userToEdit
+      );
+      setUtilisateurs((prev) =>
+        prev.map((u) => (u.id === updated.id ? updated : u))
+      );
+      setOpenEdit(false);
       toast({
-        title: "✅ Utilisateur ajouté",
-        description: `${user.prenom} ${user.nom} a été ajouté avec succès.`,
-        duration: 3000,
+        title: "✅ Mise à jour réussie",
+        description: `${updated.prenom} ${updated.nom} a été modifié.`,
       });
     } catch (err) {
       toast({
-        title: "❌ Erreur de suppression",
-        description: "Impossible d’ajouter l’utilisateur.",
+        title: "❌ Erreur de mise à jour",
+        description: "Impossible de modifier l’utilisateur.",
         variant: "destructive",
       });
+    }
+  };
+
+  const requestDelete = (id) => {
+    setDeleteId(id);
+    setConfirmDeleteOpen(true);
+  };
+  const confirmDelete = async () => {
+    setConfirmDeleteOpen(false);
+    try {
+      if (deleteId) {
+        await utilisateurService.deleteUtilisateur(deleteId);
+        toast.success("Utilisateur supprimé avec succès");
+        setUtilisateurs(prev => prev.filter(u => u.id !== deleteId));
+      } else if (selectedUsers.size > 0) {
+        await Promise.all(Array.from(selectedUsers).map(id => utilisateurService.deleteUtilisateur(id)));
+        toast.success(`${selectedUsers.size} utilisateur(s) supprimé(s)`);
+        setUtilisateurs(prev => prev.filter(u => !selectedUsers.has(u.id)));
+        setSelectedUsers(new Set());
+      }
+    } catch (err) {
+      toast.error("Erreur lors de la suppression.");
+    }
+    setDeleteId(null);
+  };
+
+  const handleSelectUser = (id) => {
+    setSelectedUsers(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(id)) {
+        newSelection.delete(id);
+      } else {
+        newSelection.add(id);
+      }
+      return newSelection;
+    });
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedUsers(new Set(utilisateurs.map(item => item.id)));
+    } else {
+      setSelectedUsers(new Set());
+    }
+  };
+
+  const requestDeleteSelected = () => {
+    if (selectedUsers.size > 0) {
+      setDeleteId(null);
+      setConfirmDeleteOpen(true);
     }
   };
 
@@ -139,8 +209,8 @@ export default function UtilisateursPage() {
               <RefreshCw className="w-4 h-4 mr-1" /> Actualiser
             </Button>
 
-            {/* ➕ Bouton d’ajout */}
-            <Dialog open={open} onOpenChange={setOpen}>
+            {/* ➕ Bouton Ajout */}
+            <Dialog open={openAdd} onOpenChange={setOpenAdd}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="w-4 h-4 mr-1" /> Ajouter
@@ -150,85 +220,47 @@ export default function UtilisateursPage() {
               <DialogContent className="bg-gray-50 text-black border-gray-800">
                 <DialogHeader>
                   <DialogTitle>Ajouter un utilisateur</DialogTitle>
-                  <DialogDescription>
-                    Remplissez les informations ci-dessous.
-                  </DialogDescription>
                 </DialogHeader>
 
-                <form
-                  onSubmit={ajouterUtilisateur}
-                  className="flex flex-col gap-3 mt-3"
-                >
-                  <div>
-                    <Label>Nom</Label>
-                    <Input
-                      value={newUser.nom}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, nom: e.target.value })
-                      }
-                      placeholder="Nom"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label>Prénom</Label>
-                    <Input
-                      value={newUser.prenom}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, prenom: e.target.value })
-                      }
-                      placeholder="Prénom"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label>Email</Label>
-                    <Input
-                      type="email"
-                      value={newUser.email}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, email: e.target.value })
-                      }
-                      placeholder="exemple@mail.com"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label>Mot de passe</Label>
-                    <Input
-                      type="password"
-                      value={newUser.password}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, password: e.target.value })
-                      }
-                      placeholder="Mot de passe"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label>Rôle</Label>
-                    <Select
-                      value={newUser.role}
-                      onValueChange={(value) =>
-                        setNewUser({ ...newUser, role: value })
-                      }
-                    >
-                      <SelectTrigger className="bg-gray-200">
-                        <SelectValue placeholder="Sélectionner un rôle" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="superadmin">Super Admin</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="employe">Employé</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex justify-end mt-4">
-                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                      Ajouter
-                    </Button>
-                  </div>
+                <form onSubmit={ajouterUtilisateur} className="flex flex-col gap-3 mt-3">
+                  <Label>Nom</Label>
+                  <Input
+                    value={newUser.nom}
+                    onChange={(e) => setNewUser({ ...newUser, nom: e.target.value })}
+                    required
+                  />
+                  <Label>Prénom</Label>
+                  <Input
+                    value={newUser.prenom}
+                    onChange={(e) => setNewUser({ ...newUser, prenom: e.target.value })}
+                    required
+                  />
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    required
+                  />
+                  <Label>Identifiant (login)</Label>
+                  <Input value={newUser.nom_utilisateur} onChange={e => setNewUser({...newUser, nom_utilisateur: e.target.value})} placeholder={newUser.email} />
+                  <Label>Mot de passe initial</Label>
+                  <Input type="text" value={newUser.mot_de_passe} onChange={e => setNewUser({...newUser, mot_de_passe: e.target.value})} />
+                  <Label>Rôle</Label>
+                  <Select
+                    value={newUser.role}
+                    onValueChange={(v) => setNewUser({ ...newUser, role: v })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="superadmin">Super Admin</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="employe">Employé</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button type="submit" className="mt-3 bg-blue-600 hover:bg-blue-700">
+                    Ajouter
+                  </Button>
                 </form>
               </DialogContent>
             </Dialog>
@@ -236,19 +268,37 @@ export default function UtilisateursPage() {
         </CardHeader>
 
         <CardContent>
+          {selectedUsers.size > 0 && (
+            <div className="mb-4 flex items-center justify-between rounded-md bg-blue-50 p-3 border border-blue-200">
+              <div className="text-sm font-medium text-blue-800">
+                {selectedUsers.size} utilisateur(s) sélectionné(s).
+              </div>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={requestDeleteSelected}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Supprimer la sélection
+              </Button>
+            </div>
+          )}
           {loading ? (
-            <p className="text-muted-foreground flex items-center gap-2">
-              <Spinner className="w-5 h-5 animate-spin" />
-              Chargement des utilisateurs...
+            <p className="flex items-center gap-2 text-gray-500">
+              <Spinner className="w-5 h-5 animate-spin" /> Chargement...
             </p>
-          ) : error ? (
-            <p className="text-red-500">Erreur : {error}</p>
-          ) : utilisateurs.length === 0 ? (
-            <p className="text-muted-foreground">Aucun utilisateur trouvé.</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedUsers.size === utilisateurs.length && utilisateurs.length > 0}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
                   <TableHead>ID</TableHead>
                   <TableHead>Nom complet</TableHead>
                   <TableHead>Email</TableHead>
@@ -258,42 +308,35 @@ export default function UtilisateursPage() {
               </TableHeader>
               <TableBody>
                 {utilisateurs.map((u) => (
-                  <TableRow key={u.id}>
+                  <TableRow key={u.id} data-state={selectedUsers.has(u.id) && "selected"}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedUsers.has(u.id)}
+                        onCheckedChange={() => handleSelectUser(u.id)}
+                        aria-label="Select user"
+                      />
+                    </TableCell>
                     <TableCell>{u.id}</TableCell>
                     <TableCell className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={u.avatar || "/avatars/shadcn.jpg"} />
                         <AvatarFallback>
-                          {u.prenom?.[0]}
-                          {u.nom?.[0]}
+                          {u.prenom?.[0]}{u.nom?.[0]}
                         </AvatarFallback>
                       </Avatar>
-                      {u.employe?.prenom || "—"} {u.employe?.nom || ""}
-
+                      {u.prenom} {u.nom}
                     </TableCell>
                     <TableCell>{u.email}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          u.role === "superadmin"
-                            ? "destructive"
-                            : u.role === "admin"
-                            ? "default"
-                            : "outline"
-                        }
-                      >
+                      <Badge variant={u.role === "superadmin" ? "destructive" : u.role === "admin" ? "default" : "outline"}>
                         {u.role}
                       </Badge>
                     </TableCell>
                     <TableCell className="flex gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => ouvrirModaleModification(u)}>
                         <Pencil className="w-4 h-4" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => setUserToDelete(u)}
-                      >
+                      <Button size="sm" variant="destructive" onClick={() => requestDelete(u.id)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </TableCell>
@@ -305,30 +348,68 @@ export default function UtilisateursPage() {
         </CardContent>
       </Card>
 
-      {/* 🧱 Modale de confirmation de suppression */}
-      <Dialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
-        <DialogContent>
+      {/* 🧱 Modale de modification */}
+      <Dialog open={openEdit} onOpenChange={setOpenEdit}>
+        <DialogContent className="bg-gray-50 text-black border-gray-800">
           <DialogHeader>
-            <DialogTitle>Confirmer la suppression</DialogTitle>
-            <DialogDescription>
-              Êtes-vous sûr de vouloir supprimer{" "}
-              <span className="font-semibold">
-                {userToDelete?.prenom} {userToDelete?.nom}
-              </span>{" "}
-              ?
-            </DialogDescription>
+            <DialogTitle>Modifier un utilisateur</DialogTitle>
           </DialogHeader>
 
-          <div className="flex justify-end gap-3 mt-4">
-            <Button variant="outline" onClick={() => setUserToDelete(null)}>
-              Annuler
-            </Button>
-            <Button variant="destructive" onClick={confirmerSuppression}>
-              Supprimer
-            </Button>
-          </div>
+          {userToEdit && (
+            <form onSubmit={modifierUtilisateur} className="flex flex-col gap-3 mt-3">
+              <Label>Nom</Label>
+              <Input
+                value={userToEdit.nom}
+                onChange={(e) => setUserToEdit({ ...userToEdit, nom: e.target.value })}
+              />
+              <Label>Prénom</Label>
+              <Input
+                value={userToEdit.prenom}
+                onChange={(e) => setUserToEdit({ ...userToEdit, prenom: e.target.value })}
+              />
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={userToEdit.email}
+                onChange={(e) => setUserToEdit({ ...userToEdit, email: e.target.value })}
+              />
+              <Label>Rôle</Label>
+              <Select
+                value={userToEdit.role}
+                onValueChange={(v) => setUserToEdit({ ...userToEdit, role: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="superadmin">Super Admin</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="employe">Employé</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button type="submit" className="mt-3 bg-green-600 hover:bg-green-700">
+                Sauvegarder
+              </Button>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
+
+      {/* 🧱 Modale de confirmation de suppression */}
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedUsers.size > 0
+                ? `Êtes-vous sûr de vouloir supprimer ${selectedUsers.size} utilisateur(s) ? Cette action est irréversible.`
+                : "Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

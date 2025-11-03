@@ -1,13 +1,28 @@
+// frontend/src/services/congeService.js
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+
+// Gestion d'erreur améliorée
+const handleResponse = async (res) => {
+  if (!res.ok) {
+    let errorMessage = `Erreur ${res.status}`;
+    try {
+      const errorData = await res.json();
+      errorMessage = errorData.message || errorMessage;
+    } catch {
+      const text = await res.text();
+      errorMessage = text || errorMessage;
+    }
+    throw new Error(errorMessage);
+  }
+  return await res.json();
+};
 
 export async function getConges() {
   const url = `${API_BASE}/api/conges`;
-  const res = await fetch(url, { headers: { "Content-Type": "application/json" } });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Erreur API: ${res.status} ${text}`);
-  }
-  return await res.json();
+  const res = await fetch(url, { 
+    headers: { "Content-Type": "application/json" } 
+  });
+  return handleResponse(res);
 }
 
 export async function createConge(payload) {
@@ -17,11 +32,7 @@ export async function createConge(payload) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Erreur API: ${res.status} ${text}`);
-  }
-  return await res.json();
+  return handleResponse(res);
 }
 
 export async function updateConge(id, payload) {
@@ -31,11 +42,7 @@ export async function updateConge(id, payload) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Erreur API: ${res.status} ${text}`);
-  }
-  return await res.json();
+  return handleResponse(res);
 }
 
 export async function deleteConge(id) {
@@ -44,11 +51,7 @@ export async function deleteConge(id) {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
   });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Erreur API: ${res.status} ${text}`);
-  }
-  return await res.json();
+  return handleResponse(res);
 }
 
-export default { getConges };
+export default { getConges, createConge, updateConge, deleteConge };
