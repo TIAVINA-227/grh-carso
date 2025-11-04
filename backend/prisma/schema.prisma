@@ -54,12 +54,19 @@ enum StatutPaiement {
 model Utilisateur {
   id                 Int        @id @default(autoincrement())
   nom_utilisateur    String     @unique
+  prenom_utilisateur String?    @unique
   mot_de_passe       String
   email              String     @unique
   role               RoleUtilisateur @default(EMPLOYE)
   statut             StatutUtilisateur @default(ACTIF)
   date_creation      DateTime   @default(now())
   derniere_connexion DateTime?
+
+  // NOUVEAUX CHAMPS pour gestion première connexion
+  premiere_connexion Boolean    @default(true)
+  mot_de_passe_temporaire String?
+  token_reset_password String?   @unique
+  token_expiration  DateTime?
 
   // Relation avec Employé (0,1)
   employe   Employe? @relation(fields: [employeId], references: [id])

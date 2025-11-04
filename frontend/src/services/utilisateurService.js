@@ -14,26 +14,34 @@ async function request(url, options = {}) {
 }
 
 export const getUtilisateurs = () => request(`${API_BASE}/api/utilisateurs`);
+
 export const createUtilisateur = (payload) =>
   request(`${API_BASE}/api/utilisateurs`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
+
 export const updateUtilisateur = (id, payload) =>
   request(`${API_BASE}/api/utilisateurs/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
+
 export const deleteUtilisateur = (id) =>
   request(`${API_BASE}/api/utilisateurs/${id}`, { method: "DELETE" });
+
 export const getUtilisateurById = (id) =>
   request(`${API_BASE}/api/utilisateurs/${id}`);
+
 export const getUtilisateursByRole = async (role) => {
   const all = await getUtilisateurs();
   return all.filter((u) => u.role === role);
 };
+
 export const getEmployes = () => getUtilisateursByRole("employe");
+
 export const getAdmins = () => getUtilisateursByRole("admin");
+
 export const getManagers = () => getUtilisateursByRole("manager");
 
 export default {

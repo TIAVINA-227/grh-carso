@@ -37,39 +37,61 @@ app.get("/", (req, res) => {
   res.send("Hello Express + Prisma 🚀");
 });
 
-// register a new user
-app.post("/api/auth/register",async (req, res) => {
-   try {
-      const { nom_utilisateur , email, mot_de_passe } = req.body;
-  
-      // Vérifier si l’utilisateur existe déjà
-      const existingUser = await prisma.utilisateur.findUnique({
-        where: { email },
-      });
-  
-      if (existingUser) {
-        return res.status(400).json({ error: "Email déjà utilisé !" });
-      }
-  
-      // Hasher le mot de passe
-      const salt = await bcrypt.genSalt(10)
-      const hashedPassword = await bcrypt.hash(mot_de_passe, salt);
-  
-      // Créer un nouvel utilisateur
-      const user = await prisma.utilisateur.create({
-        data: {
-          nom_utilisateur ,
-          email,
-          mot_de_passe: hashedPassword,
-        },
-      });
-  
-      res.status(201).json({ message: "Utilisateur créé avec succès !" });
-    } catch (err) {
-      console.error("Erreur signup :", err);
-      res.status(500).json({ error: "Erreur serveur lors de l'inscription." });
+// Route d'inscription (register)
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const { nom_utilisateur, email, mot_de_passe, role } = req.body;
+
+    // 🔍 Validation basique
+    if (!nom_utilisateur || !email || !mot_de_passe) {
+      return res.status(400).json({ error: "Tous les champs sont requis." });
     }
-})
+
+    // 🔒 Vérifier si l'utilisateur existe déjà
+    const existingUser = await prisma.utilisateur.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: "Cet email est déjà utilisé !" });
+    }
+
+    // 🔐 Hasher le mot de passe
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(mot_de_passe, salt);
+
+    // 🧩 Vérifier le rôle envoyé
+    const roleValide = ["SUPER_ADMIN", "ADMIN", "EMPLOYE"].includes(role)
+      ? role
+      : "EMPLOYE"; // par défaut
+
+    // ✅ Créer le nouvel utilisateur
+    const nouvelUtilisateur = await prisma.utilisateur.create({
+      data: {
+        nom_utilisateur: nom_utilisateur.trim(),
+        email: email.trim().toLowerCase(),
+        mot_de_passe: hashedPassword,
+        role: roleValide,
+        statut: "ACTIF", // statut par défaut
+      },
+    });
+
+    // 🚀 Réponse sans mot de passe
+    res.status(201).json({
+      message: "Compte créé avec succès.",
+      utilisateur: {
+        id: nouvelUtilisateur.id,
+        nom_utilisateur: nouvelUtilisateur.nom_utilisateur,
+        email: nouvelUtilisateur.email,
+        role: nouvelUtilisateur.role,
+        statut: nouvelUtilisateur.statut,
+      },
+    });
+  } catch (err) {
+    console.error("Erreur signup :", err);
+    res.status(500).json({ error: "Erreur serveur lors de l'inscription." });
+  }
+});
 
 // Route de login
 app.post("/api/auth/login", async (req, res) => {

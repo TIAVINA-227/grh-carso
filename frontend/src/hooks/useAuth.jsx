@@ -1,31 +1,96 @@
-// src/hooks/useAuth.jsx
-import { createContext, useContext, useState } from "react";
+// frontend/src/hooks/useAuth.jsx
+import React, { createContext, useContext, useState, useEffect } from "react";
 
+// 🧠 Création du contexte d'authentification
 const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
-  // Utilisateur actuellement connecté (Super Admin)
-  const [user, setUser] = useState({
-    prenom: "Andry",
-    nom: "Rasolo",
-    role: "superadmin",
-    avatar: "/avatars/shadcn.jpg",
-  });
+// ✅ Fonction pour décoder un JWT (sans vérifier la signature)
+const decodeJWT = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('❌ Erreur décodage JWT:', error);
+    return null;
+  }
+};
 
-  // Simulation de tous les utilisateurs
-  const [users, setUsers] = useState([
-    { id: 1, prenom: "Jean", nom: "Dupont", role: "admin", email: "jean@example.com" },
-    { id: 2, prenom: "Marie", nom: "Randria", role: "user", email: "marie@example.com" },
-    { id: 3, prenom: "David", nom: "Rakoto", role: "user", email: "david@example.com" },
-  ]);
+// ✅ Fournisseur global (wrapper dans App.jsx)
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 🔁 Charger l'utilisateur depuis le localStorage au démarrage
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    
+    if (token) {
+      const decoded = decodeJWT(token);
+      
+      if (decoded) {
+        console.log('✅ Utilisateur chargé depuis le token:', decoded);
+        setUser({
+          id: decoded.id || decoded.userId,
+          email: decoded.email,
+          role: decoded.role,
+          nom_utilisateur: decoded.nom_utilisateur,
+          prenom_utilisateur: decoded.prenom_utilisateur,
+          token: token
+        });
+      } else {
+        console.warn('⚠️ Token invalide, suppression');
+        localStorage.removeItem("token");
+      }
+    } else {
+      console.log('ℹ️ Aucun token trouvé');
+    }
+    
+    setIsLoading(false);
+  }, []);
+
+  // 🔄 Fonction de login (à appeler après authentification réussie)
+  const login = (token, userData) => {
+    localStorage.setItem("token", token);
+    const decoded = decodeJWT(token);
+    
+    const fullUser = {
+      ...userData,
+      ...decoded,
+      token: token
+    };
+    
+    console.log('✅ Login réussi:', fullUser);
+    setUser(fullUser);
+  };
+
+  // 🚪 Fonction de logout
+  const logout = () => {
+    console.log('🚪 Déconnexion');
+    localStorage.removeItem("token");
+    setUser(null);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, users, setUsers, setUser }}>
+    <AuthContext.Provider value={{ user, setUser, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
+// ✅ Hook d'accès au contexte
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  
+  if (!context) {
+    throw new Error('useAuth doit être utilisé dans un AuthProvider');
+  }
+  
+  return context;
 }
