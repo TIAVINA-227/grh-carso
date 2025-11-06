@@ -42,15 +42,15 @@ export const login = async (req, res) => {
 
     // 4. Générer le token JWT
     const token = jwt.sign(
-    {
+      {
         id: utilisateur.id,
         email: utilisateur.email,
-        role: utilisateur.role,  // ✅ Important !
+        role: utilisateur.role,
         nom_utilisateur: utilisateur.nom_utilisateur,
         prenom_utilisateur: utilisateur.prenom_utilisateur
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: '24h' }
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' } 
     );
 
     // 5. Mettre à jour la dernière connexion

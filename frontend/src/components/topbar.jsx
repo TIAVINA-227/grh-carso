@@ -1,3 +1,4 @@
+//frontend/src/components/topbar.jsx
 import React from "react";
 import { Sun, Bell, Search, Menu } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";

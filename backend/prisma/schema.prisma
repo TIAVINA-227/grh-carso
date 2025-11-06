@@ -52,28 +52,38 @@ enum StatutPaiement {
 // ================== MODELES ==================
 
 model Utilisateur {
-  id                 Int        @id @default(autoincrement())
-  nom_utilisateur    String     @unique
-  prenom_utilisateur String?    @unique
-  mot_de_passe       String
-  email              String     @unique
-  role               RoleUtilisateur @default(EMPLOYE)
-  statut             StatutUtilisateur @default(ACTIF)
-  date_creation      DateTime   @default(now())
-  derniere_connexion DateTime?
+  id                      Int                 @id @default(autoincrement())
+  nom_utilisateur         String              @unique
+  prenom_utilisateur      String?
+  mot_de_passe            String
+  email                   String              @unique
+  role                    RoleUtilisateur     @default(EMPLOYE)
+  statut                  StatutUtilisateur   @default(ACTIF)
+  date_creation           DateTime            @default(now())
+  derniere_connexion      DateTime?
 
-  // NOUVEAUX CHAMPS pour gestion première connexion
-  premiere_connexion Boolean    @default(true)
+  // Gestion première connexion
+  premiere_connexion      Boolean             @default(true)
   mot_de_passe_temporaire String?
-  token_reset_password String?   @unique
-  token_expiration  DateTime?
+  token_reset_password    String?             @unique
+  token_expiration        DateTime?
 
-  // Relation avec Employé (0,1)
-  employe   Employe? @relation(fields: [employeId], references: [id])
-  employeId Int? @unique
+  // Profil utilisateur
+  avatar                  String?             // URL ou base64 de la photo
+  photo_couverture        String?             @default("#3B82F6") // Couleur hex
+  bio                     String?             @db.Text // Biographie
+  telephone               String?             // Numéro de téléphone
+  date_naissance          DateTime?           // Date de naissance
+  adresse                 String?             // Adresse complète
+  ville                   String?             // Ville
+  pays                    String?             @default("Madagascar") // Pays
 
-  // Relation avec Congés
-  conges    Conge[]
+  // Relations
+  employe                 Employe?            @relation(fields: [employeId], references: [id])
+  employeId               Int?                @unique
+  conges                  Conge[]
+
+  @@map("utilisateurs")
 }
 
 model Employe {

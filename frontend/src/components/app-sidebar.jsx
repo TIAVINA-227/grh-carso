@@ -1,80 +1,4 @@
-
-// import * as React from "react"
-// import {
-//   Users,
-//   FileText,
-//   Calendar,
-//   CheckSquare,
-//   Briefcase,
-//   Umbrella,
-//   Grid,
-//   File,
-//   AudioWaveform,
-//   Command,
-//   GalleryVerticalEnd,
-//   LayoutDashboard,
-//   Wallet,
-//   UserCog,
-//   ChartColumnIncreasing
-// } from "lucide-react"
-
-// import SidebarItem from "@/components/ui/sidebar-item"
-// import { NavProjects } from "@/components/nav-projects"
-// import { NavUser } from "@/components/nav-user"
-// import { TeamSwitcher } from "@/components/team-switcher"
-// import {
-//   Sidebar,
-//   SidebarContent,
-//   SidebarFooter,
-//   SidebarHeader,
-//   SidebarRail,
-// } from "@/components/ui/sidebar"
-// import { useAuth } from "../hooks/useAuth"
-
-// export function AppSidebar({ ...props }) {
-//   const { user } = useAuth();
-//   // Pour la démo, simulate la team picker mais utilise le vrai user
-//   const teams = [
-//     { name: "Carso", logo: GalleryVerticalEnd, plan: "Enterprise" },
-//     { name: "Acme Corp.", logo: AudioWaveform, plan: "Startup" },
-//     { name: "Evil Corp.", logo: Command, plan: "Free" },
-//   ];
-
-//   return (
-//     <Sidebar collapsible="icon" className="border-r" variant="outline" {...props}>
-//       <SidebarHeader>
-//         <TeamSwitcher teams={teams} />
-//       </SidebarHeader>
-//       <SidebarContent>
-//         {/* Main navigation matching the provided design */}
-//         <div className="px-2">
-//           <ul className="flex flex-col gap-2">
-//             <SidebarItem to="/dashboard" icon={LayoutDashboard} label="Tableau de bords" />
-//             <SidebarItem to="/dashboard/employes" icon={Users} label="Employés" />
-//             <SidebarItem to="/dashboard/contrats" icon={FileText} label="Contrats" />
-//             <SidebarItem to="/dashboard/presences" icon={CheckSquare} label="Présences" />
-//             <SidebarItem to="/dashboard/absences" icon={Calendar} label="Absences" />
-//             <SidebarItem to="/dashboard/conges" icon={Umbrella} label="Congés" />
-//             <SidebarItem to="/dashboard/postes" icon={Briefcase} label="Postes" />
-//             <SidebarItem to="/dashboard/departements" icon={Grid} label="Volet" />
-//             <SidebarItem to="/dashboard/paiements" icon={Wallet} label="Paiements" />
-//             <SidebarItem to="/dashboard/bulletins" icon={File} label="Bulletins" />
-//             <SidebarItem to="/dashboard/performances" icon={ChartColumnIncreasing} label="Performances" />
-//             {user && (user.role === "admin" || user.role === "superadmin") && (
-//               <SidebarItem to="/dashboard/utilisateurs" icon={UserCog} label="Utilisateurs" />
-//             )}
-//           </ul>
-//         </div>
-//       </SidebarContent>
-//       <SidebarFooter>
-//         {/* Utilise le vrai user context */}
-//         <NavUser />
-//       </SidebarFooter>
-//       <SidebarRail />
-//     </Sidebar>
-//   );
-// }
-// frontend/src/components/app-sidebar.jsx
+//frontend/srrc/components/app-sidebar.jsx
 import * as React from "react"
 import {
   Users,
@@ -87,11 +11,12 @@ import {
   File,
   AudioWaveform,
   Command,
-  GalleryVerticalEnd,
   LayoutDashboard,
   Wallet,
   UserCog,
-  ChartColumnIncreasing
+  ChartColumnIncreasing,
+  MonitorCog,
+  Layers
 } from "lucide-react"
 
 import SidebarItem from "@/components/ui/sidebar-item"
@@ -120,12 +45,12 @@ export function AppSidebar({ ...props }) {
 
   // Configuration des équipes
   const teams = [
-    { name: "Carso", logo: GalleryVerticalEnd, plan: "Enterprise" },
+    { name: "Carso", logo: Layers, plan: "Enterprise" },
     { name: "Acme Corp.", logo: AudioWaveform, plan: "Startup" },
     { name: "Evil Corp.", logo: Command, plan: "Free" },
   ];
 
-  // ✅ Configuration des items de navigation avec permissions
+  // Configuration des items de navigation avec permissions
   const navItems = [
     {
       to: "/dashboard",
@@ -136,7 +61,7 @@ export function AppSidebar({ ...props }) {
     {
       to: "/dashboard/employes",
       icon: Users,
-      label: permissions.isEmploye ? "Mon profil" : "Employés",
+      label: permissions.isEmploye ? "Mon profil" : "Gérer Employés",
       show: permissions.canAccess('employes')
     },
     {
@@ -172,7 +97,7 @@ export function AppSidebar({ ...props }) {
     {
       to: "/dashboard/departements",
       icon: Grid,
-      label: "Départements",
+      label: "Volet",
       show: permissions.canAccess('departements')
     },
     {
@@ -195,13 +120,19 @@ export function AppSidebar({ ...props }) {
     },
     {
       to: "/dashboard/utilisateurs",
-      icon: UserCog,
-      label: "Utilisateurs",
+      icon:MonitorCog,
+      label: "Gérer Utilisateurs",
       show: permissions.canAccess('utilisateurs')
-    }
+    },
+    {
+      to: "/dashboard/profil",
+      icon: UserCog,
+      label: "Mon Profil",
+      show: true // Visible par tous
+    },
   ];
 
-  // ✅ Filtrer uniquement les items accessibles
+  // Filtrer uniquement les items accessibles
   const visibleNavItems = navItems.filter(item => item.show);
 
   return (
@@ -227,21 +158,21 @@ export function AppSidebar({ ...props }) {
         {/* Section info selon le rôle */}
         <div className="px-4 py-3 mt-4 border-t">
           {permissions.isSuperAdmin && (
-            <div className="flex items-center gap-2 text-xs text-red-600">
-              <span className="font-bold">👑 Super Admin</span>
-              <span>• Accès complet ✅</span>
+            <div className="flex items-center gap-2 text-xs text-red-100">
+              <span className="font-bold">Super Admin</span>
+              <span>• Accès complet </span>
             </div>
           )}
           {permissions.isAdmin && (
-            <div className="flex items-center gap-2 text-xs text-blue-600">
-              <span className="font-bold">🛡️ Admin</span>
-              <span>• Gestion complète ✅</span>
+            <div className="flex items-center gap-2 text-xs text-blue-300">
+              <span className="font-bold">Admin</span>
+              <span>• Gestion complète </span>
             </div>
           )}
           {permissions.isEmploye && (
-            <div className="flex items-center gap-2 text-xs text-green-600">
-              <span className="font-bold">👤 Employé</span>
-              <span>• Espace personnel 📋</span>
+            <div className="flex items-center gap-2 text-xs text-green-300">
+              <span className="font-bold">Employé</span>
+              <span>• Espace personnel </span>
             </div>
           )}
         </div>

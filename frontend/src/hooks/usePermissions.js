@@ -6,14 +6,14 @@ import { hasPermission, canAccessRoute, ROLES } from '../config/permissions';
 export const usePermissions = () => {
   const { user } = useAuth();
 
-  // ✅ RETOURNER DIRECTEMENT L'OBJET (pas {permissions: {...}})
+  // RETOURNER DIRECTEMENT L'OBJET (pas {permissions: {...}})
   return useMemo(() => {
     if (!user || !user.role) {
       return {
         canView: () => false,
         canCreate: () => false,
         canEdit: () => false,
-        canUpdate: () => false, // ✅ Ajouté
+        canUpdate: () => false,
         canDelete: () => false,
         canApprove: () => false,
         canViewOwn: () => false,
@@ -31,7 +31,7 @@ export const usePermissions = () => {
       canView: (module) => hasPermission(user.role, module, 'view'),
       canCreate: (module) => hasPermission(user.role, module, 'create'),
       canEdit: (module) => hasPermission(user.role, module, 'edit'),
-      canUpdate: (module) => hasPermission(user.role, module, 'edit'), // ✅ Alias pour canEdit
+      canUpdate: (module) => hasPermission(user.role, module, 'edit'),
       canDelete: (module) => hasPermission(user.role, module, 'delete'),
       canApprove: (module) => hasPermission(user.role, module, 'approve'),
       canViewOwn: (module) => hasPermission(user.role, module, 'viewOwn'),

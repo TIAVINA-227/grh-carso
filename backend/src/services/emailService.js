@@ -1,7 +1,7 @@
 // backend/src/services/emailService.js
 import nodemailer from 'nodemailer';
 
-// ✅ Configuration du transporteur email
+// Configuration du transporteur email
 const createTransporter = () => {
   // Vérifier si les variables d'environnement sont configurées
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
@@ -19,24 +19,10 @@ const createTransporter = () => {
   });
 };
 
-// ✅ Envoyer email de bienvenue
+// Envoyer email de bienvenue
 export const envoyerEmailBienvenue = async (utilisateur, motDePasseTemporaire) => {
   try {
-    const transporter = createTransporter();
-    
-    // Si pas de configuration email, on log juste les infos
-    if (!transporter) {
-      console.log('📧 EMAIL NON ENVOYÉ (configuration manquante)');
-      console.log('📋 Détails de connexion pour:', utilisateur.email);
-      console.log('   Email:', utilisateur.email);
-      console.log('   Mot de passe temporaire:', motDePasseTemporaire);
-      console.log('   Lien:', process.env.FRONTEND_URL || 'http://localhost:5173');
-      return { 
-        success: false, 
-        message: 'Configuration email manquante',
-        data: { email: utilisateur.email, password: motDePasseTemporaire }
-      };
-    }
+    const transporter = createTransporter()
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
@@ -66,7 +52,7 @@ export const envoyerEmailBienvenue = async (utilisateur, motDePasseTemporaire) =
             <div class="content">
               <p>Bonjour <strong>${utilisateur.prenom_utilisateur || utilisateur.nom_utilisateur}</strong>,</p>
               
-              <p>Votre compte administrateur a été créé. Vous pouvez maintenant accéder à l'application Carso.</p>
+              <p>Votre compte a été créé. Vous pouvez maintenant accéder à l'application Carso.</p>
               
               <div class="credentials">
                 <h3>📋 Vos identifiants de connexion</h3>
@@ -100,11 +86,11 @@ export const envoyerEmailBienvenue = async (utilisateur, motDePasseTemporaire) =
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Email envoyé avec succès:', info.messageId);
+    console.log('Email envoyé avec succès:', info.messageId);
     return { success: true, messageId: info.messageId };
 
   } catch (error) {
-    console.error('❌ Erreur envoi email:', error);
+    console.error('Erreur envoi email:', error);
     // Ne pas bloquer la création de l'utilisateur si l'email échoue
     return { 
       success: false, 
@@ -114,7 +100,7 @@ export const envoyerEmailBienvenue = async (utilisateur, motDePasseTemporaire) =
   }
 };
 
-// ✅ Envoyer email de réinitialisation de mot de passe
+// Envoyer email de réinitialisation de mot de passe
 export const envoyerEmailResetPassword = async (utilisateur, token) => {
   try {
     const transporter = createTransporter();
@@ -171,11 +157,11 @@ export const envoyerEmailResetPassword = async (utilisateur, token) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Email de reset envoyé:', info.messageId);
+    console.log('Email de reset envoyé:', info.messageId);
     return { success: true, messageId: info.messageId };
 
   } catch (error) {
-    console.error('❌ Erreur envoi email reset:', error);
+    console.error('Erreur envoi email reset:', error);
     return { success: false, error: error.message };
   }
 };

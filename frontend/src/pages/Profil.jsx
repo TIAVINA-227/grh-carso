@@ -1,0 +1,472 @@
+// frontend/src/pages/Profil.jsx
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../hooks/useAuth";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
+import { Badge } from "../components/ui/badge";
+import { toast } from "sonner";
+import { 
+  Camera, 
+  Palette, 
+  Save, 
+  Edit, 
+  Mail, 
+  Phone, 
+  Calendar, 
+  MapPin,
+  User,
+  Briefcase
+} from "lucide-react";
+
+const COULEURS_COUVERTURE = [
+  { nom: "Bleu", valeur: "#3B82F6" },
+  { nom: "Violet", valeur: "#8B5CF6" },
+  { nom: "Rose", valeur: "#EC4899" },
+  { nom: "Orange", valeur: "#F97316" },
+  { nom: "Vert", valeur: "#10B981" },
+  { nom: "Indigo", valeur: "#6366F1" },
+  { nom: "Rouge", valeur: "#EF4444" },
+  { nom: "Cyan", valeur: "#06B6D4" },
+];
+
+export default function ProfilPage() {
+  const { user, updateUser } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  
+  const [profil, setProfil] = useState({
+    nom_utilisateur: "",
+    prenom_utilisateur: "",
+    email: "",
+    telephone: "",
+    bio: "",
+    date_naissance: "",
+    adresse: "",
+    ville: "",
+    pays: "",
+    avatar: null,
+    photo_couverture: "#3B82F6"
+  });
+
+  // Charger les données du profil
+  useEffect(() => {
+    if (user) {
+      fetchProfil();
+    }
+  }, [user]);
+
+  const fetchProfil = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/utilisateurs/${user.id}`, {
+        headers: {
+          Authorization: `Bearer ${user.token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setProfil({
+          nom_utilisateur: data.nom_utilisateur || "",
+          prenom_utilisateur: data.prenom_utilisateur || "",
+          email: data.email || "",
+          telephone: data.telephone || "",
+          bio: data.bio || "",
+          date_naissance: data.date_naissance ? data.date_naissance.split('T')[0] : "",
+          adresse: data.adresse || "",
+          ville: data.ville || "",
+          pays: data.pays || "",
+          avatar: data.avatar || null,
+          photo_couverture: data.photo_couverture || "#3B82F6"
+        });
+      }
+    } catch (error) {
+      console.error("Erreur chargement profil:", error);
+      toast.error("Impossible de charger le profil");
+    }
+  };
+
+  const handleChange = (e) => {
+    setProfil({
+      ...profil,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Vérifier le type de fichier
+    if (!file.type.startsWith('image/')) {
+      toast.error("Veuillez sélectionner une image");
+      return;
+    }
+
+    // Vérifier la taille (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("L'image ne doit pas dépasser 5MB");
+      return;
+    }
+
+    // Convertir en base64 pour l'aperçu
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProfil(prev => ({
+        ...prev,
+        avatar: reader.result
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCouvertureChange = (couleur) => {
+    setProfil(prev => ({
+      ...prev,
+      photo_couverture: couleur
+    }));
+    setShowColorPicker(false);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/utilisateurs/${user.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`
+        },
+        body: JSON.stringify(profil)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Mettre à jour le contexte utilisateur
+        updateUser({
+          nom_utilisateur: data.utilisateur.nom_utilisateur,
+          prenom_utilisateur: data.utilisateur.prenom_utilisateur,
+          avatar: data.utilisateur.avatar
+        });
+
+        toast.success("✅ Profil mis à jour", {
+          description: "Vos informations ont été enregistrées"
+        });
+        
+        setIsEditing(false);
+        fetchProfil(); // Recharger pour être sûr
+      } else {
+        throw new Error("Erreur lors de la mise à jour");
+      }
+    } catch (error) {
+      console.error("Erreur mise à jour profil:", error);
+      toast.error("❌ Erreur", {
+        description: "Impossible de mettre à jour le profil"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initiales pour l'avatar
+  const getInitiales = () => {
+    const prenom = profil.prenom_utilisateur || "";
+    const nom = profil.nom_utilisateur || "";
+    return `${prenom[0] || ''}${nom[0] || ''}`.toUpperCase();
+  };
+
+  return (
+    <div className="p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      {/* En-tête avec photo de couverture */}
+      <div className="relative mb-8">
+        <div 
+          className="h-48 rounded-t-xl relative overflow-hidden"
+          style={{ backgroundColor: profil.photo_couverture }}
+        >
+          {/* Bouton changement de couleur */}
+          {isEditing && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="absolute top-4 right-4"
+              onClick={() => setShowColorPicker(!showColorPicker)}
+            >
+              <Palette className="w-4 h-4 mr-2" />
+              Changer la couleur
+            </Button>
+          )}
+
+          {/* Sélecteur de couleur */}
+          {showColorPicker && (
+            <div className="absolute top-16 right-4 bg-white rounded-lg shadow-lg p-4 grid grid-cols-4 gap-2">
+              {COULEURS_COUVERTURE.map((couleur) => (
+                <button
+                  key={couleur.valeur}
+                  className="w-10 h-10 rounded-full border-2 border-white shadow-md hover:scale-110 transition-transform"
+                  style={{ backgroundColor: couleur.valeur }}
+                  onClick={() => handleCouvertureChange(couleur.valeur)}
+                  title={couleur.nom}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Avatar et infos principales */}
+        <div className="px-8 -mt-16">
+          <div className="flex items-end gap-6">
+            {/* Avatar */}
+            <div className="relative">
+              <Avatar className="w-32 h-32 border-4 border-white shadow-xl">
+                {profil.avatar ? (
+                  <AvatarImage src={profil.avatar} alt="Photo de profil" />
+                ) : (
+                  <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                    {getInitiales()}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+
+              {/* Bouton upload photo */}
+              {isEditing && (
+                <label className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                  <Camera className="w-5 h-5 text-gray-600" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
+
+            {/* Nom et rôle */}
+            <div className="mb-0">
+              <h1 className="text-3xl font-bold text-gray-900">
+                {profil.prenom_utilisateur} {profil.nom_utilisateur}
+              </h1>
+              <div className="flex items-center gap-2 mt-2">
+                <Badge variant={user.role === "SUPER_ADMIN" ? "destructive" : user.role === "ADMIN" ? "default" : "outline"}>
+                  {user.role === "SUPER_ADMIN" ? "Super Admin" : user.role === "ADMIN" ? "Admin" : "Employé"}
+                </Badge>
+                {profil.email && (
+                  <span className="text-sm text-gray-500 flex items-center gap-1">
+                    <Mail className="w-4 h-4" />
+                    {profil.email}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Bouton édition */}
+            <div className="ml-auto mb-4">
+              {!isEditing ? (
+                <Button onClick={() => setIsEditing(true)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Modifier le profil
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => {
+                    setIsEditing(false);
+                    fetchProfil();
+                  }}>
+                    Annuler
+                  </Button>
+                  <Button onClick={handleSubmit} disabled={loading}>
+                    <Save className="w-4 h-4 mr-2" />
+                    {loading ? "Enregistrement..." : "Enregistrer"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Formulaire d'édition */}
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Colonne gauche - Informations personnelles */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Informations personnelles
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="prenom_utilisateur">Prénom</Label>
+                    <Input
+                      id="prenom_utilisateur"
+                      name="prenom_utilisateur"
+                      value={profil.prenom_utilisateur}
+                      onChange={handleChange}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="nom_utilisateur">Nom</Label>
+                    <Input
+                      id="nom_utilisateur"
+                      name="nom_utilisateur"
+                      value={profil.nom_utilisateur}
+                      onChange={handleChange}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="bio">Biographie</Label>
+                  <Textarea
+                    id="bio"
+                    name="bio"
+                    value={profil.bio}
+                    onChange={handleChange}
+                    disabled={!isEditing}
+                    placeholder="Parlez un peu de vous..."
+                    rows={4}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="telephone" className="flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      Téléphone
+                    </Label>
+                    <Input
+                      id="telephone"
+                      name="telephone"
+                      type="tel"
+                      value={profil.telephone}
+                      onChange={handleChange}
+                      disabled={!isEditing}
+                      placeholder="+261 34 00 000 00"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="date_naissance" className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Date de naissance
+                    </Label>
+                    <Input
+                      id="date_naissance"
+                      name="date_naissance"
+                      type="date"
+                      value={profil.date_naissance}
+                      onChange={handleChange}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5" />
+                  Adresse
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="adresse">Adresse complète</Label>
+                  <Input
+                    id="adresse"
+                    name="adresse"
+                    value={profil.adresse}
+                    onChange={handleChange}
+                    disabled={!isEditing}
+                    placeholder="123 Rue Example"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="ville">Ville</Label>
+                    <Input
+                      id="ville"
+                      name="ville"
+                      value={profil.ville}
+                      onChange={handleChange}
+                      disabled={!isEditing}
+                      placeholder="Antsirabe"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="pays">Pays</Label>
+                    <Input
+                      id="pays"
+                      name="pays"
+                      value={profil.pays}
+                      onChange={handleChange}
+                      disabled={!isEditing}
+                      placeholder="Madagascar"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Colonne droite - Statistiques et infos */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Briefcase className="w-5 h-5" />
+                  Informations du compte
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="text-sm text-gray-500">Email</Label>
+                  <p className="font-medium">{profil.email}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-500">Rôle</Label>
+                  <p className="font-medium">{user.role}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-500">Statut</Label>
+                  <Badge variant="outline" className="mt-1">
+                    Actif
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Actions rapides</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button variant="outline" className="w-full justify-start">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Changer le mot de passe
+                </Button>
+                <Button variant="outline" className="w-full justify-start">
+                  <Mail className="w-4 h-4 mr-2" />
+                  Notifications
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}

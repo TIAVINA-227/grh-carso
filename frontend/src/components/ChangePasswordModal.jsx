@@ -55,6 +55,12 @@ export function ChangePasswordModal({
     e.preventDefault();
     setErrors([]);
     
+    console.log('🔄 Tentative de changement de mot de passe...', {
+      userId,
+      hasAncienMdp: !!ancienMotDePasse,
+      hasNouveauMdp: !!nouveauMotDePasse
+    });
+    
     // Validation
     if (!ancienMotDePasse || !nouveauMotDePasse || !confirmMotDePasse) {
       setErrors(["Tous les champs sont requis"]);
@@ -89,6 +95,8 @@ export function ChangePasswordModal({
       
       const data = await response.json();
       
+      console.log('📥 Réponse serveur:', data);
+      
       if (!response.ok) {
         throw new Error(data.message || "Erreur lors du changement");
       }
@@ -108,7 +116,7 @@ export function ChangePasswordModal({
       }
       
     } catch (error) {
-      console.error("Erreur changement mot de passe:", error);
+      console.error("❌ Erreur changement mot de passe:", error);
       setErrors([error.message || "Erreur lors du changement de mot de passe"]);
       toast.error("❌ Échec du changement", {
         description: error.message,
@@ -204,10 +212,10 @@ export function ChangePasswordModal({
                       className={`h-1 flex-1 rounded ${
                         i < 5 - passwordStrength
                           ? passwordStrength === 0
-                            ? "bg-red-500"
+                            ? "bg-green-500"
                             : passwordStrength <= 2
                             ? "bg-orange-500"
-                            : "bg-green-500"
+                            : "bg-red-500"
                           : "bg-gray-200"
                       }`}
                     />

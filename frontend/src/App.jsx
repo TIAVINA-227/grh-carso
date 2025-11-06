@@ -88,6 +88,7 @@ import Paiments from "./pages/Paiments";
 import Bulletins from "./pages/Bulletins";
 import Performances from "./pages/Performances";
 import UtilisateursPage from "./pages/Utilisateurs";
+import ProfilPage from "./pages/Profil";
 import { AuthProvider } from "./hooks/useAuth";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -105,7 +106,7 @@ function AppContainer() {
     >
       <div className={isAuthPage ? "w-full max-w-sm md:max-w-4xl" : "w-full"}>
         <Routes>
-          {/* ✅ Route de connexion uniquement - PAS D'INSCRIPTION */}
+          {/* Route de connexion uniquement */}
           <Route path="/" element={<LoginForm />} />
 
           {/* Routes protégées */}
@@ -208,7 +209,10 @@ function AppContainer() {
                 </ProtectedRoute>
               }
             />
+            <Route path="profil" element={<ProfilPage />} />
+
           </Route>
+          
         </Routes>
       </div>
     </div>

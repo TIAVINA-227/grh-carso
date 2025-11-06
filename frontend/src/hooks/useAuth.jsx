@@ -1,10 +1,9 @@
 // frontend/src/hooks/useAuth.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 
-// 🧠 Création du contexte d'authentification
 const AuthContext = createContext();
 
-// ✅ Fonction pour décoder un JWT (sans vérifier la signature)
+// Fonction pour décoder un JWT
 const decodeJWT = (token) => {
   try {
     const base64Url = token.split('.')[1];
@@ -22,20 +21,37 @@ const decodeJWT = (token) => {
   }
 };
 
-// ✅ Fournisseur global (wrapper dans App.jsx)
+// ✅ Vérifier si le token est expiré
+const isTokenExpired = (decoded) => {
+  if (!decoded || !decoded.exp) return true;
+  const currentTime = Math.floor(Date.now() / 1000); // Timestamp en secondes
+  const isExpired = decoded.exp < currentTime;
+  
+  if (isExpired) {
+    console.warn('⚠️ Token expiré:', {
+      exp: new Date(decoded.exp * 1000).toLocaleString(),
+      now: new Date(currentTime * 1000).toLocaleString()
+    });
+  }
+  
+  return isExpired;
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 🔁 Charger l'utilisateur depuis le localStorage au démarrage
+  // Charger l'utilisateur au démarrage
   useEffect(() => {
+    console.log('🔄 useAuth - Initialisation...');
+    
     const token = localStorage.getItem("token");
     
     if (token) {
       const decoded = decodeJWT(token);
       
-      if (decoded) {
-        console.log('✅ Utilisateur chargé depuis le token:', decoded);
+      if (decoded && !isTokenExpired(decoded)) {
+        console.log('✅ Token valide, utilisateur restauré:', decoded.email);
         setUser({
           id: decoded.id || decoded.userId,
           email: decoded.email,
@@ -45,8 +61,9 @@ export function AuthProvider({ children }) {
           token: token
         });
       } else {
-        console.warn('⚠️ Token invalide, suppression');
+        console.warn('⚠️ Token expiré ou invalide, suppression');
         localStorage.removeItem("token");
+        setUser(null);
       }
     } else {
       console.log('ℹ️ Aucun token trouvé');
@@ -55,8 +72,10 @@ export function AuthProvider({ children }) {
     setIsLoading(false);
   }, []);
 
-  // 🔄 Fonction de login (à appeler après authentification réussie)
+  // Fonction de login
   const login = (token, userData) => {
+    console.log('🔐 Login appelé');
+    
     localStorage.setItem("token", token);
     const decoded = decodeJWT(token);
     
@@ -66,25 +85,44 @@ export function AuthProvider({ children }) {
       token: token
     };
     
-    console.log('✅ Login réussi:', fullUser);
+    console.log('Utilisateur connecté:', fullUser.email);
     setUser(fullUser);
   };
 
-  // 🚪 Fonction de logout
-  const logout = () => {
-    console.log('🚪 Déconnexion');
-    localStorage.removeItem("token");
-    setUser(null);
+// Fonction de logout
+const logout = () => {
+  console.log('🚪 Déconnexion - Suppression du token et du user');
+  
+  // 1. Supprimer le token du localStorage
+  localStorage.removeItem("token");
+  console.log('Token supprimé du localStorage');
+  
+  // 2. Mettre user à null dans le state
+  setUser(null);
+  console.log('User mis à null dans le state');
+  
+  // Note: La navigation est gérée par le composant qui appelle logout()
+};
+
+  // Fonction pour mettre à jour l'utilisateur
+  const updateUser = (updates) => {
+    setUser(prev => prev ? { ...prev, ...updates } : null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      setUser, 
+      login, 
+      logout, 
+      updateUser,
+      isLoading 
+    }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-// ✅ Hook d'accès au contexte
 export function useAuth() {
   const context = useContext(AuthContext);
   

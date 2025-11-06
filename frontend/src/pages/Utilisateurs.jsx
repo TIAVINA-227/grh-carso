@@ -675,7 +675,7 @@ export default function UtilisateursPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="flex gap-2">
-                      // ✅ CORRECT
+                      
                       {permissions.canEdit('utilisateurs') && (
                         <Button size="sm" variant="outline" onClick={() => ouvrirModaleModification(u)}>
                           <Pencil className="w-4 h-4" />

@@ -32,7 +32,7 @@ async function createSuperAdmin() {
         email: 'superadmin@carso.com',
         mot_de_passe: motDePasseHash,
         role: 'SUPER_ADMIN',
-        statut: 'ACTIF'
+        statut: 'ACTIF' 
       }
     });
 
