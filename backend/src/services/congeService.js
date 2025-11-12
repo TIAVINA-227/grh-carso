@@ -3,221 +3,226 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// ✅ Créer un congé
+/**
+ * ➕ Créer un congé
+ */
 export const createConge = async (data) => {
   try {
+    console.log('📝 Création congé avec données:', data);
+
     // Vérifier que l'utilisateur existe
-    if (data.utilisateurId) {
-      const utilisateur = await prisma.utilisateur.findUnique({
-        where: { id: Number(data.utilisateurId) }
-      });
-      
-      if (!utilisateur) {
-        throw new Error(`Utilisateur avec l'ID ${data.utilisateurId} n'existe pas`);
-      }
+    const utilisateur = await prisma.utilisateur.findUnique({
+      where: { id: Number(data.utilisateurId) }
+    });
+    
+    if (!utilisateur) {
+      throw new Error(`Utilisateur avec l'ID ${data.utilisateurId} n'existe pas`);
     }
 
-    // Vérifier que l'employé existe (si fourni)
-    if (data.employeId) {
-      const employe = await prisma.employe.findUnique({
-        where: { id: Number(data.employeId) }
-      });
-      
-      if (!employe) {
-        throw new Error(`Employé avec l'ID ${data.employeId} n'existe pas`);
-      }
+    // Vérifier que l'employé existe
+    const employe = await prisma.employe.findUnique({
+      where: { id: Number(data.employeId) }
+    });
+    
+    if (!employe) {
+      throw new Error(`Employé avec l'ID ${data.employeId} n'existe pas`);
     }
 
+    // Créer le congé
     const conge = await prisma.conge.create({
       data: {
-        type: data.type,
+        type_conge: data.type_conge || 'Congé annuel',
         date_debut: new Date(data.date_debut),
         date_fin: new Date(data.date_fin),
         motif: data.motif || null,
-        statut: data.statut || 'EN_ATTENTE',
-        utilisateurId: data.utilisateurId ? Number(data.utilisateurId) : null,
-        employeId: data.employeId ? Number(data.employeId) : null,
+        statut: data.statut || 'SOUMIS',
+        utilisateurId: Number(data.utilisateurId),
+        employeId: Number(data.employeId)
       },
       include: {
-        utilisateur: true,
-        employe: true
+        utilisateur: {
+          select: {
+            id: true,
+            email: true,
+            nom_utilisateur: true,
+            prenom_utilisateur: true
+          }
+        },
+        employe: {
+          select: {
+            id: true,
+            nom: true,
+            prenom: true,
+            matricule: true
+          }
+        }
+      }
+    });
+
+    console.log('✅ Congé créé:', conge.id);
+    return conge;
+
+  } catch (error) {
+    console.error('❌ Erreur createConge:', error.message);
+    throw error;
+  }
+};
+
+/**
+ * 📋 Récupérer tous les congés
+ */
+export const getAllConges = async () => {
+  try {
+    const conges = await prisma.conge.findMany({
+      include: {
+        utilisateur: {
+          select: {
+            id: true,
+            email: true,
+            nom_utilisateur: true,
+            prenom_utilisateur: true
+          }
+        },
+        employe: {
+          select: {
+            id: true,
+            nom: true,
+            prenom: true,
+            matricule: true
+          }
+        }
+      },
+      orderBy: {
+        date_debut: 'desc'
+      }
+    });
+
+    return conges;
+  } catch (error) {
+    console.error('❌ Erreur getAllConges:', error.message);
+    throw error;
+  }
+};
+
+/**
+ * 🔍 Récupérer un congé par ID
+ */
+export const getCongeById = async (id) => {
+  try {
+    const conge = await prisma.conge.findUnique({
+      where: { id: Number(id) },
+      include: {
+        utilisateur: {
+          select: {
+            id: true,
+            email: true,
+            nom_utilisateur: true,
+            prenom_utilisateur: true
+          }
+        },
+        employe: {
+          select: {
+            id: true,
+            nom: true,
+            prenom: true,
+            matricule: true
+          }
+        }
       }
     });
 
     return conge;
   } catch (error) {
-    console.error('❌ Erreur createConge:', error);
+    console.error('❌ Erreur getCongeById:', error.message);
     throw error;
   }
 };
 
-// ✅ Mettre à jour un congé
+/**
+ * ✏️ Mettre à jour un congé
+ */
 export const updateConge = async (id, data) => {
   try {
+    console.log('📝 Mise à jour congé ID:', id, 'avec:', data);
+
     // Vérifier que le congé existe
-    const congeExistant = await prisma.conge.findUnique({
+    const congeExiste = await prisma.conge.findUnique({
       where: { id: Number(id) }
     });
 
-    if (!congeExistant) {
+    if (!congeExiste) {
       throw new Error(`Congé avec l'ID ${id} n'existe pas`);
     }
 
-    // Préparer les données à mettre à jour
+    // Préparer les données de mise à jour
     const updateData = {};
-
-    if (data.type !== undefined) updateData.type = data.type;
+    
+    if (data.type_conge !== undefined) updateData.type_conge = data.type_conge;
     if (data.date_debut !== undefined) updateData.date_debut = new Date(data.date_debut);
     if (data.date_fin !== undefined) updateData.date_fin = new Date(data.date_fin);
     if (data.motif !== undefined) updateData.motif = data.motif;
     if (data.statut !== undefined) updateData.statut = data.statut;
+    if (data.employeId !== undefined) updateData.employeId = Number(data.employeId);
 
-    // ✅ Vérifier les clés étrangères avant mise à jour
-    if (data.utilisateurId !== undefined) {
-      if (data.utilisateurId === null) {
-        updateData.utilisateurId = null;
-      } else {
-        const utilisateur = await prisma.utilisateur.findUnique({
-          where: { id: Number(data.utilisateurId) }
-        });
-        
-        if (!utilisateur) {
-          throw new Error(`Utilisateur avec l'ID ${data.utilisateurId} n'existe pas`);
-        }
-        updateData.utilisateurId = Number(data.utilisateurId);
-      }
-    }
-
-    if (data.employeId !== undefined) {
-      if (data.employeId === null) {
-        updateData.employeId = null;
-      } else {
-        const employe = await prisma.employe.findUnique({
-          where: { id: Number(data.employeId) }
-        });
-        
-        if (!employe) {
-          throw new Error(`Employé avec l'ID ${data.employeId} n'existe pas`);
-        }
-        updateData.employeId = Number(data.employeId);
-      }
-    }
-
+    // Mettre à jour
     const conge = await prisma.conge.update({
       where: { id: Number(id) },
       data: updateData,
       include: {
-        utilisateur: true,
-        employe: true
+        utilisateur: {
+          select: {
+            id: true,
+            email: true,
+            nom_utilisateur: true,
+            prenom_utilisateur: true
+          }
+        },
+        employe: {
+          select: {
+            id: true,
+            nom: true,
+            prenom: true,
+            matricule: true
+          }
+        }
       }
     });
 
+    console.log('✅ Congé mis à jour:', conge.id);
     return conge;
+
   } catch (error) {
-    console.error('❌ Erreur updateConge:', error);
+    console.error('❌ Erreur updateConge:', error.message);
     throw error;
   }
 };
 
-// ✅ Supprimer un congé
+/**
+ * ❌ Supprimer un congé
+ */
 export const deleteConge = async (id) => {
   try {
+    console.log('🗑️ Suppression congé ID:', id);
+
+    // Vérifier que le congé existe
+    const congeExiste = await prisma.conge.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!congeExiste) {
+      throw new Error(`Congé avec l'ID ${id} n'existe pas`);
+    }
+
+    // Supprimer
     await prisma.conge.delete({
       where: { id: Number(id) }
     });
-    return { success: true };
-  } catch (error) {
-    console.error('❌ Erreur deleteConge:', error);
-    throw error;
-  }
-};
 
-// ✅ Récupérer tous les congés
-export const getAllConges = async () => {
-  try {
-    return await prisma.conge.findMany({
-      include: {
-        utilisateur: true,
-        employe: true
-      },
-      orderBy: { date_debut: 'desc' }
-    });
-  } catch (error) {
-    console.error('❌ Erreur getAllConges:', error);
-    throw error;
-  }
-};
+    console.log('✅ Congé supprimé');
+    return { success: true, message: 'Congé supprimé avec succès' };
 
-// ✅ Récupérer un congé par ID
-export const getCongeById = async (id) => {
-  try {
-    return await prisma.conge.findUnique({
-      where: { id: Number(id) },
-      include: {
-        utilisateur: true,
-        employe: true
-      }
-    });
   } catch (error) {
-    console.error('❌ Erreur getCongeById:', error);
-    throw error;
-  }
-};
-
-// ✅ Récupérer les congés d'un utilisateur
-export const getCongesByUtilisateur = async (utilisateurId) => {
-  try {
-    return await prisma.conge.findMany({
-      where: { utilisateurId: Number(utilisateurId) },
-      include: {
-        utilisateur: true,
-        employe: true
-      },
-      orderBy: { date_debut: 'desc' }
-    });
-  } catch (error) {
-    console.error('❌ Erreur getCongesByUtilisateur:', error);
-    throw error;
-  }
-};
-
-// ✅ Approuver un congé
-export const approuverConge = async (id, approbateurId) => {
-  try {
-    return await prisma.conge.update({
-      where: { id: Number(id) },
-      data: {
-        statut: 'APPROUVE',
-        // Si vous avez un champ approbateur dans votre schéma
-        // approbateurId: Number(approbateurId)
-      },
-      include: {
-        utilisateur: true,
-        employe: true
-      }
-    });
-  } catch (error) {
-    console.error('❌ Erreur approuverConge:', error);
-    throw error;
-  }
-};
-
-// ✅ Rejeter un congé
-export const rejeterConge = async (id, motifRejet) => {
-  try {
-    return await prisma.conge.update({
-      where: { id: Number(id) },
-      data: {
-        statut: 'REFUSE',
-        motif: motifRejet || null
-      },
-      include: {
-        utilisateur: true,
-        employe: true
-      }
-    });
-  } catch (error) {
-    console.error('❌ Erreur rejeterConge:', error);
+    console.error('❌ Erreur deleteConge:', error.message);
     throw error;
   }
 };

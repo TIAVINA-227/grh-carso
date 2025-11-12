@@ -2,10 +2,18 @@
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
 async function request(url, options = {}) {
-  const res = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
+  // Ajouter le token Authorization si présent dans localStorage
+  const token = localStorage.getItem('token');
+  const defaultHeaders = { "Content-Type": "application/json" };
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
+  // Si caller fournit des headers, les fusionner
+  const mergedOptions = { ...options };
+  mergedOptions.headers = { ...defaultHeaders, ...(options.headers || {}) };
+
+  const res = await fetch(url, mergedOptions);
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Erreur API: ${res.status} ${text}`);

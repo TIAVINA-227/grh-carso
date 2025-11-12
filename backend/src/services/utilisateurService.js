@@ -64,6 +64,7 @@ export const createUtilisateur = async (data) => {
 export const updateUtilisateur = async (id, data) => {
   const payload = {};
   
+  // Champs de base
   if (data.nom_utilisateur !== undefined) payload.nom_utilisateur = data.nom_utilisateur;
   if (data.prenom_utilisateur !== undefined || data.prenom !== undefined) {
     payload.prenom_utilisateur = data.prenom_utilisateur || data.prenom;
@@ -71,6 +72,14 @@ export const updateUtilisateur = async (id, data) => {
   if (data.email !== undefined) payload.email = data.email.toLowerCase();
   if (data.role !== undefined) payload.role = data.role;
   if (data.statut !== undefined) payload.statut = data.statut;
+  
+  // Champs du profil
+  if (data.telephone !== undefined) payload.telephone = data.telephone;
+  if (data.date_naissance !== undefined) payload.date_naissance = new Date(data.date_naissance);
+  if (data.bio !== undefined) payload.bio = data.bio;
+  
+  // Champs avatar
+  if (data.avatar !== undefined) payload.avatar = data.avatar;
   
   // Ne jamais mettre à jour le mot de passe via cette route
   // Utilisez la route dédiée au changement de mot de passe

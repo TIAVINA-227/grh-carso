@@ -9,7 +9,7 @@ import "./index.css";
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
  
-      <ToastProvider> {/* ✅ entoure l'application avec le provider */}
+      <ToastProvider> {/* entoure l'application avec le provider */}
       <App />
       </ToastProvider>
    

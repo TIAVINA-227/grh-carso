@@ -21,7 +21,7 @@ const decodeJWT = (token) => {
   }
 };
 
-// ✅ Vérifier si le token est expiré
+// Vérifier si le token est expiré
 const isTokenExpired = (decoded) => {
   if (!decoded || !decoded.exp) return true;
   const currentTime = Math.floor(Date.now() / 1000); // Timestamp en secondes

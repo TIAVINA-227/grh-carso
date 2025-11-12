@@ -1,15 +1,11 @@
-import { useEffect, useState } from "react";
-import { Button } from "../components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "../components/ui/dialog";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { Plus, Trash2 } from "lucide-react";
-import { toast } from "sonner";
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../components/ui/alert-dialog";
-import { getPerformances, createPerformance, deletePerformance } from "../services/performanceService";
-import { getEmployes } from "../services/employeService";
+//frontend/src/pages/Performances.jsx
+import { useEffect, useState, useCallback } from "react";
+import { Plus, Edit, Trash2, TrendingUp, Award, Calendar, User, Target, CheckCircle, MessageSquare, BarChart3, X } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../components/ui/select";
+import { getPerformances, createPerformance, updatePerformance, deletePerformance } from "../services/performanceService";
+import { getEmployes } from "../services/employeService";
+import { usePermissions } from "../hooks/usePermissions";
+import { useToast } from "../components/ui/use-toast";
 
 export default function Performances() {
   const [list, setList] = useState([]);
@@ -19,6 +15,7 @@ export default function Performances() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({
     employeId: '',
     note: '',
@@ -29,58 +26,81 @@ export default function Performances() {
     realisation: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const { toast } = useToast();
+  const permissions = usePermissions();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getPerformances();
       const emps = await getEmployes();
-      setList(data || []);
-      setEmployes(emps.data || emps || []);
-    } catch {
+      setList(Array.isArray(data) ? data : (data.performances || []));
+      setEmployes(Array.isArray(emps) ? emps : (emps || []));
+    } catch (err) {
+      console.error('Erreur chargement performances:', err);
+      toast({ title: 'Erreur ❌', description: 'Impossible de charger les évaluations.', className: 'bg-red-600 text-white' });
       setList([]);
       setEmployes([]);
     } finally {
       setLoading(false);
     }
-  };
-  useEffect(() => { load(); }, []);
+  }, [toast]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  useEffect(() => { load(); }, [load]);
+
+  const handleSubmit = async () => {
+    if (!form.employeId || !form.note || !form.date_eval) {
+      toast({ title: 'Erreur', description: 'Veuillez remplir tous les champs obligatoires', className: 'bg-red-600 text-white' });
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
-        ...form, note: parseInt(form.note), employeId: parseInt(form.employeId), date_eval: form.date_eval
+        employeId: parseInt(form.employeId),
+        note: parseInt(form.note),
+        date_eval: form.date_eval,
+        resultat: form.resultat,
+        commentaires: form.commentaires,
+        objectifs: form.objectifs,
+        realisation: form.realisation,
       };
-      await createPerformance(payload);
-      toast.success("Évaluation enregistrée !");
+      if (editingId) {
+        await updatePerformance(editingId, payload);
+        toast({ title: 'Évaluation modifiée ✅', className: 'bg-green-600 text-white' });
+      } else {
+        await createPerformance(payload);
+        toast({ title: 'Évaluation enregistrée ✅', className: 'bg-green-600 text-white' });
+      }
       setIsDialogOpen(false);
-      setForm({ employeId: '', note: '', date_eval: new Date().toISOString().split("T")[0], resultat: '', commentaires: '', objectifs: '', realisation: '', });
+      setEditingId(null);
+      setForm({ employeId: '', note: '', date_eval: new Date().toISOString().split("T")[0], resultat: '', commentaires: '', objectifs: '', realisation: '' });
       await load();
-    } catch {
-      toast.error("Erreur : Impossible d'ajouter");
+    } catch (err) {
+      console.error('Erreur création performance:', err);
+      toast({ title: 'Erreur ❌', description: 'Impossible d\'ajouter l\'évaluation', className: 'bg-red-600 text-white' });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const requestDelete = (id) => { setDeleteId(id); setConfirmDeleteOpen(true); };
   const confirmDelete = async () => {
     setConfirmDeleteOpen(false);
     setLoading(true);
     try {
       await deletePerformance(deleteId);
-      toast.success("Évaluation supprimée avec succès.");
+      toast({ title: 'Évaluation supprimée ✅', className: 'bg-green-600 text-white' });
       await load();
-    } catch {
-      toast.error("Erreur lors de la suppression.");
+    } catch (err) {
+      console.error('Erreur suppression performance:', err);
+      toast({ title: 'Erreur ❌', description: 'Impossible de supprimer.', className: 'bg-red-600 text-white' });
+    } finally {
+      setLoading(false);
+      setDeleteId(null);
     }
-    setLoading(false);
-    setDeleteId(null);
   };
 
-  // Préparer les données pour recharts
+  // Préparer les données pour le graphique
   let chartData = list
     .filter((perf) => selectedEmploye === '_all' || !selectedEmploye || `${perf.employeId}` === `${selectedEmploye}`)
     .map((perf, i) => {
@@ -91,119 +111,482 @@ export default function Performances() {
         nom: employe ? employe.nom + ' ' + employe.prenom : `Employé #${perf.employeId}`,
         date: perf.date_eval?.slice(0, 10),
       };
-    });
+    })
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  // Calculer les statistiques
+  const stats = {
+    total: chartData.length,
+    moyenne: chartData.length > 0 ? (chartData.reduce((sum, p) => sum + p.note, 0) / chartData.length).toFixed(1) : 0,
+    meilleure: chartData.length > 0 ? Math.max(...chartData.map(p => p.note)) : 0,
+    derniere: chartData.length > 0 ? chartData[chartData.length - 1].note : 0
+  };
+
+  const getPerformanceColor = (note) => {
+    if (note >= 16) return "text-green-600 bg-green-50 border-green-200";
+    if (note >= 12) return "text-blue-600 bg-blue-50 border-blue-200";
+    if (note >= 10) return "text-yellow-600 bg-yellow-50 border-yellow-200";
+    return "text-red-600 bg-red-50 border-red-200";
+  };
+
+  const getPerformanceLabel = (note) => {
+    if (note >= 16) return "Excellent";
+    if (note >= 12) return "Bien";
+    if (note >= 10) return "Satisfaisant";
+    return "À améliorer";
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <h1 className="text-2xl font-bold">Évaluations des Performances</h1>
-          <div className="flex items-center gap-4">
-            <Select value={selectedEmploye} onValueChange={setSelectedEmploye}>
-              <SelectTrigger className="w-60">
-                <SelectValue placeholder="Voir tout le monde" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_all">Tous les employés</SelectItem>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 p-4 md:p-8">
+      {/* Toast notification */}
+      {toast && (
+        <div className={`${
+          toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+        } text-white animate-[slideIn_0.3s_ease-out]`}>
+          {toast.message}
+        </div>
+      )}
+
+      <div className="mx-auto max-w-7xl space-y-6">
+        {/* En-tête */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg">
+              <BarChart3 className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">Évaluations des Performances</h1>
+              <p className="text-sm text-slate-500">Suivi et analyse des performances de l'équipe</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+            <div className="w-full sm:w-72">
+              <select 
+                value={selectedEmploye} 
+                onChange={(e) => setSelectedEmploye(e.target.value)}
+                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="_all">👥 Tous les employés</option>
                 {employes.map(e => (
-                  <SelectItem value={String(e.id)} key={e.id}>{e.nom} {e.prenom}</SelectItem>
+                  <option value={String(e.id)} key={e.id}>{e.nom} {e.prenom}</option>
                 ))}
-              </SelectContent>
-            </Select>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-blue-700 text-white gap-2"><Plus className="h-4 w-4" /> Nouvelle Évaluation</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{'Nouvelle Évaluation'}</DialogTitle>
-                  <DialogDescription>Saisissez l'évaluation annuelle (objectifs, commentaire...)</DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div><Label>Employé *</Label>
-                    <select required value={form.employeId} onChange={e => setForm(f => ({ ...f, employeId: e.target.value }))} className="w-full px-3 py-2 border rounded-md">
-                      <option value="">Sélectionnez un employé...</option>
-                      {employes.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
-                    </select>
-                  </div>
-                  <div><Label>Date *</Label><Input type="date" value={form.date_eval} onChange={e => setForm(f => ({ ...f, date_eval: e.target.value }))} required /></div>
-                  <div><Label>Note (0-20) *</Label><Input type="number" value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} min={0} max={20} required /></div>
-                  <div><Label>Objectifs</Label><Input value={form.objectifs} onChange={e => setForm(f => ({ ...f, objectifs: e.target.value }))} /></div>
-                  <div><Label>Réalisations</Label><Input value={form.realisation} onChange={e => setForm(f => ({ ...f, realisation: e.target.value }))} /></div>
-                  <div><Label>Résultat</Label><Input value={form.resultat} onChange={e => setForm(f => ({ ...f, resultat: e.target.value }))} /></div>
-                  <div><Label>Commentaires</Label><Input value={form.commentaires} onChange={e => setForm(f => ({ ...f, commentaires: e.target.value }))} /></div>
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
-                    <Button type="submit" className="bg-blue-700 text-white" disabled={submitting}>Ajouter</Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
+              </select>
+            </div>
+
+            {permissions.canCreate && permissions.canCreate('performances') ? (
+              <button
+                onClick={() => setIsDialogOpen(true)}
+                className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 flex items-center justify-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Nouvelle Évaluation
+              </button>
+            ) : null}
           </div>
         </div>
-        <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200 min-h-[400px]">
+
+        {/* Statistiques */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6">
+            <div className="text-sm font-medium text-slate-600 flex items-center gap-2 mb-3">
+              <BarChart3 className="h-4 w-4" />
+              Total Évaluations
+            </div>
+            <div className="text-3xl font-bold text-slate-900">{stats.total}</div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6">
+            <div className="text-sm font-medium text-slate-600 flex items-center gap-2 mb-3">
+              <TrendingUp className="h-4 w-4" />
+              Note Moyenne
+            </div>
+            <div className="flex items-baseline gap-2">
+              <div className="text-3xl font-bold text-blue-600">{stats.moyenne}</div>
+              <div className="text-sm text-slate-500">/20</div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6">
+            <div className="text-sm font-medium text-slate-600 flex items-center gap-2 mb-3">
+              <Award className="h-4 w-4" />
+              Meilleure Note
+            </div>
+            <div className="flex items-baseline gap-2">
+              <div className="text-3xl font-bold text-green-600">{stats.meilleure}</div>
+              <div className="text-sm text-slate-500">/20</div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6">
+            <div className="text-sm font-medium text-slate-600 flex items-center gap-2 mb-3">
+              <Calendar className="h-4 w-4" />
+              Dernière Note
+            </div>
+            <div className="flex items-baseline gap-2">
+              <div className="text-3xl font-bold text-slate-900">{stats.derniere}</div>
+              <div className="text-sm text-slate-500">/20</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Graphique */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-lg p-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold flex items-center gap-2 text-slate-900">
+              <TrendingUp className="h-5 w-5 text-blue-600" />
+              Évolution des Performances
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Visualisation de l'évolution des notes au fil du temps
+            </p>
+          </div>
+          
           {loading ? (
-            <div className='p-8 text-center text-gray-400'>Chargement...</div>
+            <div className='flex items-center justify-center h-[400px]'>
+              <div className="text-center space-y-3">
+                <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
+                <p className="text-slate-500">Chargement des données...</p>
+              </div>
+            </div>
           ) : chartData.length === 0 ? (
-            <div className='p-8 text-center text-gray-400'>Aucune donnée</div>
+            <div className='flex flex-col items-center justify-center h-[400px] text-center space-y-3'>
+              <BarChart3 className="h-16 w-16 text-slate-300" />
+              <div>
+                <p className="text-lg font-medium text-slate-600">Aucune évaluation</p>
+                <p className="text-sm text-slate-500 mt-1">Créez votre première évaluation pour voir les statistiques</p>
+              </div>
+            </div>
           ) : (
-            <ResponsiveContainer width="100%" height={350}>
-              <AreaChart data={chartData} margin={{ top: 20, right: 40, left: 0, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={400}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorNote" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#2563eb" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0.12} />
+                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0.1} />
                   </linearGradient>
                 </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis
                   dataKey="date"
                   angle={-30}
                   textAnchor='end'
-                  minTickGap={10}
-                  tick={{ fontSize: 13 }}
+                  tick={{ fontSize: 12, fill: '#64748b' }}
+                  height={60}
                 />
-                <YAxis dataKey="note" domain={[0, 20]} tick={{ fontSize: 13 }}/>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
-                <Tooltip wrapperStyle={{ zIndex: 9999 }} content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const d = payload[0].payload;
-                    return <div className="bg-white border rounded shadow p-2">
-                      <div><b>{d.nom}</b></div>
-                      <div>Note : <b>{d.note}</b> /20</div>
-                      <div>Date : {d.date}</div>
-                      {d.commentaires && <div className='text-xs text-gray-500'>"{d.commentaires}"</div>}
-                    </div>
-                  }
-                  return null;
-                }} />
-                <Legend verticalAlign="top" height={38} />
+                <YAxis 
+                  domain={[0, 20]} 
+                  tick={{ fontSize: 12, fill: '#64748b' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'white', 
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                  }}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const d = payload[0].payload;
+                      return (
+                        <div className="bg-white border border-slate-200 rounded-lg shadow-lg p-3 space-y-2">
+                          <div className="font-semibold text-slate-900 flex items-center gap-2">
+                            <User className="h-4 w-4 text-blue-600" />
+                            {d.nom}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <TrendingUp className="h-4 w-4 text-blue-600" />
+                            <span className="text-sm text-slate-600">Note :</span>
+                            <span className={`px-2 py-1 rounded text-xs font-medium border ${getPerformanceColor(d.note)}`}>
+                              {d.note}/20 - {getPerformanceLabel(d.note)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <Calendar className="h-4 w-4" />
+                            {d.date}
+                          </div>
+                          {d.commentaires && (
+                            <div className='text-xs text-slate-500 pt-2 border-t border-slate-100 italic'>
+                              "{d.commentaires}"
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                    return null;
+                  }} 
+                />
+                <Legend 
+                  verticalAlign="top" 
+                  height={36}
+                  iconType="line"
+                  wrapperStyle={{ paddingBottom: '20px' }}
+                />
                 <Area
                   type="monotone"
                   dataKey="note"
                   name="Note de performance"
                   stroke="#2563eb"
+                  strokeWidth={3}
                   fillOpacity={1}
                   fill="url(#colorNote)"
-                  activeDot={{ r: 6 }}
-                  strokeWidth={3}
+                  activeDot={{ r: 6, fill: '#2563eb', stroke: '#fff', strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           )}
         </div>
-        <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-              <AlertDialogDescription>Es-tu sûr de vouloir supprimer cette évaluation ? Cette opération est irréversible.</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete}>Supprimer</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        
+            {/* Liste des évaluations (détaillée) */}
+            <div className="mt-6 bg-white rounded-xl border border-slate-200 p-4">
+              <h3 className="text-lg font-semibold mb-3">Liste des évaluations</h3>
+              {chartData.length === 0 ? (
+                <div className="text-sm text-slate-500">Aucune évaluation trouvée.</div>
+              ) : (
+                <div className="space-y-2">
+                  {chartData.slice().reverse().map((p) => (
+                    <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-100">
+                      <div>
+                        <div className="font-medium text-slate-900">{p.nom}</div>
+                        <div className="text-sm text-slate-500">{p.date} — Note : <span className="font-semibold">{p.note}</span>/20</div>
+                        {p.commentaires && <div className="text-sm text-slate-600 italic mt-1">"{p.commentaires}"</div>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {permissions.canEdit && permissions.canEdit('performances') && (
+                          <button
+                            onClick={() => {
+                              // Préparer l'édition
+                              setEditingId(p.id);
+                              setForm({
+                                employeId: String(p.employeId || ''),
+                                note: String(p.note || ''),
+                                date_eval: p.date ? String(p.date) : new Date().toISOString().slice(0,10),
+                                resultat: p.resultat || '',
+                                commentaires: p.commentaires || '',
+                                objectifs: p.objectifs || '',
+                                realisation: p.realisation || '',
+                              });
+                              setIsDialogOpen(true);
+                            }}
+                            className="px-3 py-1 bg-green-50 border border-ygreen-200 text-green-700 rounded-md hover:bg-green-100"
+                          >
+                            <Edit/>
+                          </button>
+                        )}
+                        {permissions.canDelete && permissions.canDelete('performances') && (
+                          <button
+                            onClick={() => { setDeleteId(p.id); setConfirmDeleteOpen(true); }}
+                            className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded-md hover:bg-red-100"
+                          >
+                            <Trash2/>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
       </div>
+
+      {/* Modal d'ajout */}
+      {isDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-[fadeIn_0.2s_ease-out]">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-[slideUp_0.3s_ease-out]">
+            <div className="p-6 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold flex items-center gap-2 text-slate-900">
+                    <Award className="h-6 w-6 text-blue-600" />
+                    {editingId ? 'Modifier l\'Évaluation' : 'Nouvelle Évaluation de Performance'}
+                  </h2>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {editingId ? 'Modifiez les informations et enregistrez.' : 'Complétez tous les champs pour créer une nouvelle évaluation'}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => { setIsDialogOpen(false); setEditingId(null); }}
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <User className="h-4 w-4 text-blue-600" />
+                    Employé *
+                  </label>
+                  <select
+                    value={form.employeId}
+                    onChange={(e) => setForm(f => ({ ...f, employeId: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Sélectionnez un employé</option>
+                    {employes.map(e => (
+                      <option key={e.id} value={String(e.id)}>
+                        {e.nom} {e.prenom}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                    Date d'évaluation *
+                  </label>
+                  <input
+                    type="date"
+                    value={form.date_eval}
+                    onChange={e => setForm(f => ({ ...f, date_eval: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <TrendingUp className="h-4 w-4 text-blue-600" />
+                  Note de performance (0-20) *
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    value={form.note}
+                    onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+                    min={0}
+                    max={20}
+                    className="w-32 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {form.note && (
+                    <span className={`px-3 py-1 rounded-lg text-sm font-medium border ${getPerformanceColor(parseInt(form.note))}`}>
+                      {getPerformanceLabel(parseInt(form.note))}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <Target className="h-4 w-4 text-blue-600" />
+                  Objectifs fixés
+                </label>
+                <textarea
+                  value={form.objectifs}
+                  onChange={e => setForm(f => ({ ...f, objectifs: e.target.value }))}
+                  placeholder="Décrivez les objectifs définis pour cette période..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px] resize-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <CheckCircle className="h-4 w-4 text-blue-600" />
+                  Réalisations
+                </label>
+                <textarea
+                  value={form.realisation}
+                  onChange={e => setForm(f => ({ ...f, realisation: e.target.value }))}
+                  placeholder="Listez les principales réalisations..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px] resize-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <Award className="h-4 w-4 text-blue-600" />
+                  Résultat global
+                </label>
+                <input
+                  value={form.resultat}
+                  onChange={e => setForm(f => ({ ...f, resultat: e.target.value }))}
+                  placeholder="Ex: Objectifs atteints, Dépassement des attentes..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <MessageSquare className="h-4 w-4 text-blue-600" />
+                  Commentaires
+                </label>
+                <textarea
+                  value={form.commentaires}
+                  onChange={e => setForm(f => ({ ...f, commentaires: e.target.value }))}
+                  placeholder="Ajoutez vos commentaires et remarques..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] resize-none"
+                />
+              </div>
+            </div>
+
+              <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
+              <button
+                onClick={() => { setIsDialogOpen(false); setEditingId(null); }}
+                className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition-all disabled:opacity-50"
+              >
+                {submitting ? "Enregistrement..." : (editingId ? 'Enregistrer' : 'Enregistrer l\'évaluation')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmation de suppression */}
+      {confirmDeleteOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-[fadeIn_0.2s_ease-out]">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-[slideUp_0.3s_ease-out]">
+            <div className="p-6">
+              <h3 className="text-xl font-semibold flex items-center gap-2 text-slate-900 mb-2">
+                <Trash2 className="h-5 w-5 text-red-600" />
+                Confirmer la suppression
+              </h3>
+              <p className="text-sm text-slate-600">
+                Êtes-vous sûr de vouloir supprimer cette évaluation ? Cette action est irréversible et toutes les données associées seront perdues.
+              </p>
+            </div>
+            <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmDeleteOpen(false)}
+                className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }

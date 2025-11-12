@@ -168,18 +168,18 @@ export default function Departements() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-background dark:bg-slate-950 p-6">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">Gestion des Départements</h1>
-          <Button className="bg-blue-700 hover:bg-blue-900 flex items-center gap-2" onClick={openCreate}>
+          <h1 className="text-3xl font-bold text-foreground dark:text-white">Gestion des Départements</h1>
+          <Button className="bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 flex items-center gap-2" onClick={openCreate}>
             <Plus className="w-4 h-4" /> Nouveau Département
           </Button>
         </div>
 
         {selectedDepartements.size > 0 && (
-          <div className="mb-4 flex items-center justify-between rounded-md bg-blue-50 p-3 border border-blue-200">
-            <div className="text-sm font-medium text-blue-800">
+          <div className="mb-4 flex items-center justify-between rounded-md bg-primary/5 dark:bg-blue-900/20 p-3 border border-primary/20 dark:border-blue-800">
+            <div className="text-sm font-medium text-primary dark:text-blue-300">
               {selectedDepartements.size} département(s) sélectionné(s).
             </div>
             <Button
@@ -196,31 +196,31 @@ export default function Departements() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {!loading && departements.length > 0 && (
-            <div className="col-span-full flex items-center p-2 rounded-md hover:bg-gray-50">
+            <div className="col-span-full flex items-center p-2 rounded-md hover:bg-muted dark:hover:bg-slate-800">
               <Checkbox
                 id="select-all"
                 checked={selectedDepartements.size === departements.length && departements.length > 0}
                 onCheckedChange={handleSelectAll}
                 aria-label="Select all"
               />
-              <label htmlFor="select-all" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">
+              <label htmlFor="select-all" className="ml-3 text-sm font-medium text-foreground dark:text-white cursor-pointer">
                 Tout sélectionner
               </label>
             </div>
           )}
           {loading && (
-            <div className="col-span-full py-12 text-center text-gray-500">
+            <div className="col-span-full py-12 text-center text-muted-foreground dark:text-gray-400">
               Chargement des départements...
             </div>
           )}
 
           {!loading && departements.length === 0 && (
             <div className="col-span-full text-center py-12">
-              <Building2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <Building2 className="w-16 h-16 text-muted-foreground dark:text-gray-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground dark:text-white mb-2">
                 Aucun département trouvé
               </h3>
-              <Button onClick={openCreate} className="bg-black text-white">
+              <Button onClick={openCreate} className="bg-black dark:bg-white text-white dark:text-black">
                 <Plus className="w-4 h-4 mr-2" /> Créer un département
               </Button>
             </div>
@@ -232,7 +232,7 @@ export default function Departements() {
               return (
                 <Card
                   key={d.id}
-                  className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border-0 ${selectedDepartements.has(d.id) ? 'ring-2 ring-blue-500' : ''}`}
+                  className={`bg-card dark:bg-slate-900 rounded-lg shadow-sm hover:shadow-md transition-shadow border-border ${selectedDepartements.has(d.id) ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
@@ -243,11 +243,11 @@ export default function Departements() {
                           aria-label="Select departement"
                           className="mt-1"
                         />
-                        <div className="p-2 bg-gray-100 rounded-lg">
-                          <Building2 className="w-5 h-5 text-gray-600" />
+                        <div className="p-2 bg-muted dark:bg-slate-800 rounded-lg">
+                          <Building2 className="w-5 h-5 text-muted-foreground dark:text-gray-400" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900 text-lg">
+                          <h3 className="font-semibold text-foreground dark:text-white text-lg">
                             {d.nom_departement}
                           </h3>
                         </div>
@@ -255,8 +255,8 @@ export default function Departements() {
                       <Badge
                         className={`px-2 py-1 text-xs ${
                           pourcentage >= 80
-                            ? "bg-black text-white"
-                            : "bg-gray-100 text-gray-800"
+                            ? "bg-black dark:bg-white text-white dark:text-black"
+                            : "bg-muted dark:bg-slate-800 text-foreground dark:text-gray-300"
                         }`}
                       >
                         {pourcentage}% plein
@@ -265,16 +265,16 @@ export default function Departements() {
 
                     <div className="mb-4">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-gray-700">
+                        <span className="text-sm font-medium text-foreground dark:text-white">
                           Effectif
                         </span>
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-muted-foreground dark:text-gray-400">
                           {d.employes?.length || 0}
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-muted dark:bg-slate-700 rounded-full h-2">
                         <div
-                          className="bg-black h-2 rounded-full transition-all duration-300"
+                          className="bg-black dark:bg-white h-2 rounded-full transition-all duration-300"
                           style={{ width: `${pourcentage}%` }}
                         ></div>
                       </div>
@@ -282,8 +282,8 @@ export default function Departements() {
 
                     {d.responsable && (
                       <div className="mb-4">
-                        <span className="text-sm text-gray-600">Responsable: </span>
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-sm text-muted-foreground dark:text-gray-400">Responsable: </span>
+                        <span className="text-sm font-medium text-foreground dark:text-white">
                           {d.responsable}
                         </span>
                       </div>
@@ -293,7 +293,7 @@ export default function Departements() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200"
+                        className="flex-1 bg-muted dark:bg-slate-800 hover:bg-muted/80 dark:hover:bg-slate-700 text-foreground dark:text-white border-border"
                         onClick={() => openDetails(d)}
                       >
                         <Eye className="w-4 h-4 mr-1" /> Détails
@@ -323,37 +323,39 @@ export default function Departements() {
 
       {/* ✅ Modal Ajout / Modification */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] rounded-2xl">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-foreground dark:text-white">
               {editingId ? "Modifier le Département" : "Nouveau Département"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label>Nom du département</Label>
+              <Label className="text-foreground dark:text-white">Nom du département</Label>
               <Input
                 value={form.nom_departement}
                 onChange={(e) =>
                   setForm({ ...form, nom_departement: e.target.value })
                 }
+                className="bg-background dark:bg-slate-900 text-foreground dark:text-white border-border"
                 required
               />
             </div>
             <div>
-              <Label>Responsable</Label>
+              <Label className="text-foreground dark:text-white">Responsable</Label>
               <Input
                 value={form.responsable}
                 onChange={(e) =>
                   setForm({ ...form, responsable: e.target.value })
                 }
+                className="bg-background dark:bg-slate-900 text-foreground dark:text-white border-border"
               />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button type="submit" className="bg-black text-white">
+              <Button type="submit" className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-100">
                 {editingId ? "Enregistrer" : "Créer"}
               </Button>
             </DialogFooter>
@@ -363,10 +365,10 @@ export default function Departements() {
 
       {/* ✅ Modal Détails */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Détails du département</DialogTitle>
-              <DialogDescription>
+            <DialogTitle className="text-foreground dark:text-white">Détails du département</DialogTitle>
+              <DialogDescription className="text-muted-foreground dark:text-gray-400">
                 {editingId
                   ? "Modifiez les informations du département existant."
                   : "Remplissez le formulaire pour créer un nouveau département."}
@@ -374,17 +376,17 @@ export default function Departements() {
           </DialogHeader>
           {selectedDepartement && (
             <div className="space-y-3">
-              <p><strong>Nom :</strong> {selectedDepartement.nom_departement}</p>
-              <p><strong>Responsable :</strong> {selectedDepartement.responsable}</p>
-              <p><strong>Employés :</strong></p>
+              <p className="text-foreground dark:text-white"><strong>Nom :</strong> {selectedDepartement.nom_departement}</p>
+              <p className="text-foreground dark:text-white"><strong>Responsable :</strong> {selectedDepartement.responsable}</p>
+              <p className="text-foreground dark:text-white"><strong>Employés :</strong></p>
               {selectedDepartement.employes?.length > 0 ? (
-                <ul className="list-disc pl-6">
+                <ul className="list-disc pl-6 text-foreground dark:text-white">
                   {selectedDepartement.employes.map((emp) => (
                     <li key={emp.id}>{emp.nom} {emp.prenom}</li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-gray-500 text-sm">Aucun employé dans ce département.</p>
+                <p className="text-muted-foreground dark:text-gray-400 text-sm">Aucun employé dans ce département.</p>
               )}
             </div>
           )}
@@ -393,10 +395,10 @@ export default function Departements() {
 
       {/* ✅ Modal de confirmation suppression */}
       <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-foreground dark:text-white">Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground dark:text-gray-400">
               {selectedDepartements.size > 0
                 ? `Êtes-vous sûr de vouloir supprimer ${selectedDepartements.size} département(s) ? Cette action est irréversible.`
                 : "Êtes-vous sûr de vouloir supprimer ce département ? Cette action est irréversible."}

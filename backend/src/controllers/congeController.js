@@ -1,4 +1,4 @@
-// src/controllers/congeController.js
+// backend/src/controllers/congeController.js
 import * as congeService from "../services/congeService.js";
 import { PrismaClient } from "@prisma/client";
 
@@ -11,45 +11,91 @@ export const createConge = async (req, res) => {
   try {
     const { employeId, date_debut, date_fin, motif, statut, utilisateurId, type_conge } = req.body;
 
-    // ✅ Vérifier que utilisateurId est présent
+    console.log('📥 Requête création congé:', {
+      employeId,
+      utilisateurId,
+      type_conge,
+      date_debut,
+      date_fin
+    });
+
+    // ✅ Validation des champs requis
     if (!utilisateurId) {
-      return res
-        .status(400)
-        .json({ message: "L'identifiant de l'utilisateur (utilisateurId) est requis." });
+      return res.status(400).json({ 
+        message: "L'identifiant de l'utilisateur (utilisateurId) est requis." 
+      });
+    }
+
+    if (!employeId) {
+      return res.status(400).json({ 
+        message: "L'ID de l'employé (employeId) est requis." 
+      });
+    }
+
+    if (!date_debut || !date_fin) {
+      return res.status(400).json({ 
+        message: "Les dates de début et de fin sont requises." 
+      });
+    }
+
+    // ✅ Vérifier que l'utilisateur existe
+    const utilisateurExiste = await prisma.utilisateur.findUnique({
+      where: { id: parseInt(utilisateurId) }
+    });
+
+    if (!utilisateurExiste) {
+      const utilisateursDisponibles = await prisma.utilisateur.findMany({
+        select: { id: true, email: true }
+      });
+      
+      console.log('⚠️ Utilisateurs disponibles:', utilisateursDisponibles);
+      
+      return res.status(400).json({ 
+        message: `Utilisateur avec l'ID ${utilisateurId} n'existe pas.`,
+        utilisateursDisponibles: utilisateursDisponibles.map(u => ({ id: u.id, email: u.email }))
+      });
     }
 
     // ✅ Vérifier que l'employé existe
-    if (!employeId) {
-      return res
-        .status(400)
-        .json({ message: "L'ID de l'employé est requis pour créer un congé." });
-    }
-
     const employeExiste = await prisma.employe.findUnique({
-      where: { id: parseInt(employeId) },
+      where: { id: parseInt(employeId) }
     });
 
     if (!employeExiste) {
-      return res
-        .status(400)
-        .json({ message: `Aucun employé trouvé avec l'ID ${employeId}.` });
+      const employesDisponibles = await prisma.employe.findMany({
+        select: { id: true, nom: true, prenom: true }
+      });
+      
+      console.log('⚠️ Employés disponibles:', employesDisponibles);
+      
+      return res.status(400).json({ 
+        message: `Employé avec l'ID ${employeId} n'existe pas.`,
+        employesDisponibles: employesDisponibles.map(e => ({ 
+          id: e.id, 
+          nom: `${e.prenom} ${e.nom}` 
+        }))
+      });
     }
 
-    // ✅ Créer le congé via le service
+    // ✅ Créer le congé
     const nouveauConge = await congeService.createConge({
       employeId: parseInt(employeId),
       date_debut,
       date_fin,
-      motif,
-      statut,
+      motif: motif || null,
+      statut: statut || 'SOUMIS',
       utilisateurId: parseInt(utilisateurId),
-      type_conge,
+      type_conge: type_conge || 'Congé annuel'
     });
 
+    console.log('✅ Congé créé avec succès:', nouveauConge.id);
     res.status(201).json(nouveauConge);
-  } catch (e) {
-    console.error("Erreur création congé :", e);
-    res.status(500).json({ message: e.message });
+
+  } catch (error) {
+    console.error("❌ Erreur création congé:", error);
+    res.status(500).json({ 
+      message: error.message || "Erreur lors de la création du congé" 
+    });
   }
 };
 
@@ -58,11 +104,11 @@ export const createConge = async (req, res) => {
  */
 export const getAllConges = async (req, res) => {
   try {
-    const liste = await congeService.getAllConges();
-    res.json(liste);
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ message: e.message });
+    const conges = await congeService.getAllConges();
+    res.json(conges);
+  } catch (error) {
+    console.error("❌ Erreur récupération congés:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -72,12 +118,15 @@ export const getAllConges = async (req, res) => {
 export const getCongeById = async (req, res) => {
   try {
     const conge = await congeService.getCongeById(req.params.id);
-    if (!conge)
+    
+    if (!conge) {
       return res.status(404).json({ message: "Congé non trouvé." });
+    }
+    
     res.json(conge);
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ message: e.message });
+  } catch (error) {
+    console.error("❌ Erreur récupération congé:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -86,13 +135,17 @@ export const getCongeById = async (req, res) => {
  */
 export const updateConge = async (req, res) => {
   try {
-    const conge = await congeService.updateConge(req.params.id, req.body);
-    if (!conge)
+    const { id } = req.params;
+    const conge = await congeService.updateConge(id, req.body);
+    
+    if (!conge) {
       return res.status(404).json({ message: "Congé non trouvé." });
+    }
+    
     res.json(conge);
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ message: e.message });
+  } catch (error) {
+    console.error("❌ Erreur mise à jour congé:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -101,10 +154,10 @@ export const updateConge = async (req, res) => {
  */
 export const deleteConge = async (req, res) => {
   try {
-    await congeService.deleteConge(req.params.id);
-    res.json({ message: "Congé supprimé avec succès." });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ message: e.message });
+    const result = await congeService.deleteConge(req.params.id);
+    res.json(result);
+  } catch (error) {
+    console.error("❌ Erreur suppression congé:", error);
+    res.status(500).json({ message: error.message });
   }
 };

@@ -10,6 +10,7 @@ import { getPresences, createPresence, updatePresence, deletePresence } from "..
 import { getEmployes } from "../services/employeService";
 import { CalendarDays, Clock, User, Plus, Download, Edit, Trash2, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { Checkbox } from "../components/ui/checkbox";
+import { usePermissions } from "../hooks/usePermissions";
 
 export default function Presences() {
   const [presences, setPresences] = useState([]);
@@ -31,6 +32,7 @@ export default function Presences() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString());
   const { toast } = useToast(); // ✅ Hook toast
   const [selectedPresences, setSelectedPresences] = useState(new Set());
+  const permissions = usePermissions();
 
   // Met à jour automatiquement la date + heure toutes les secondes
   useEffect(() => {
@@ -231,7 +233,7 @@ export default function Presences() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-background dark:bg-slate-950 p-6">
       <div className="mx-auto max-w-7xl">
 
         {/* Header */}
@@ -253,13 +255,15 @@ export default function Presences() {
               <Download className="w-4 h-4" />
               Exporter
             </Button>
-            <Button 
-              className="bg-blue-700 hover:bg-blue-900 text-white flex items-center gap-2" 
-              onClick={openCreate}
-            >
-              <Plus className="w-4 h-4" />
-              Nouvelle Présence
-            </Button>
+           
+              <Button 
+                className="bg-blue-700 hover:bg-blue-900 text-white flex items-center gap-2" 
+                onClick={openCreate}
+              >
+                <Plus className="w-4 h-4" />
+                Nouvelle Présence
+              </Button>
+            
           </div>
         </div>
 
@@ -268,15 +272,17 @@ export default function Presences() {
             <div className="text-sm font-medium text-blue-800">
               {selectedPresences.size} présence(s) sélectionnée(s).
             </div>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={requestDeleteSelected}
-              className="flex items-center gap-2"
-            >
-              <Trash2 className="h-4 w-4" />
-              Supprimer la sélection
-            </Button>
+            {permissions.canDelete('presences') && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={requestDeleteSelected}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Supprimer la sélection
+              </Button>
+            )}
           </div>
         )}
 
@@ -317,11 +323,13 @@ export default function Presences() {
                 <Card key={presence.id} className={`bg-gray-50 rounded-lg border-0 ${selectedPresences.has(presence.id) ? 'ring-2 ring-blue-500' : ''}`}>
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <Checkbox
-                        checked={selectedPresences.has(presence.id)}
-                        onCheckedChange={() => handleSelectPresence(presence.id)}
-                        aria-label="Select presence"
-                      />
+                      {permissions.canDelete('presences') && (
+                        <Checkbox
+                          checked={selectedPresences.has(presence.id)}
+                          onCheckedChange={() => handleSelectPresence(presence.id)}
+                          aria-label="Select presence"
+                        />
+                      )}
                       <div className="p-2 bg-gray-200 rounded-full">
                         <User className="w-6 h-6 text-gray-600" />
                       </div>
@@ -355,17 +363,21 @@ export default function Presences() {
                         {presence.statut.toLowerCase()}
                       </Badge>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => openEdit(presence)}>
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => confirmDelete(presence.id)} // ✅ Modale
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {permissions.canEdit('presences') && (
+                          <Button variant="outline" size="sm" onClick={() => openEdit(presence)}>
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {permissions.canDelete('presences') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => confirmDelete(presence.id)} // ✅ Modale
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>

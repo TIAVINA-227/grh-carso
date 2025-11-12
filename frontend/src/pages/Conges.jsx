@@ -1,660 +1,712 @@
 // frontend/src/pages/Conges.jsx
-import { useEffect, useState } from "react";
-import { Card, CardContent } from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Badge } from "../components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../components/ui/dialog";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../hooks/useAuth";
 import { getConges, createConge, updateConge, deleteConge } from "../services/congeService";
+import { usePermissions } from "../hooks/usePermissions";
 import { getEmployes } from "../services/employeService";
-import { CalendarDays, User, Plus, Edit, Trash2, CheckCircle, XCircle, Clock, Umbrella, Filter, AlertCircle } from "lucide-react";
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../components/ui/alert-dialog";
 import { toast } from "sonner";
+import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "../components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import { Badge } from "../components/ui/badge";
 import { Checkbox } from "../components/ui/checkbox";
+import { 
+  Plus, 
+  Pencil, 
+  Trash2, 
+  Calendar,
+  Filter,
+  Search,
+  Download,
+  AlertCircle
+} from "lucide-react";
 
-export default function Conges() {
-  // Récupérer l'utilisateur connecté avec vérification
-  const currentUser = (() => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user"));
-      return user || {};
-    } catch {
-      console.warn("Impossible de récupérer l'utilisateur depuis localStorage");
-      return {};
-    }
-  })();
-
+export default function CongesPage() {
+  const { user } = useAuth();
+  const permissions = usePermissions();
+  
+  // États
   const [conges, setConges] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [employes, setEmployes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingEmployes, setLoadingEmployes] = useState(false);
+  const [error, setError] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [form, setForm] = useState({ 
-    employeId: "", 
-    type_conge: "Congés payés", 
-    date_debut: new Date().toISOString().split('T')[0], 
-    date_fin: new Date().toISOString().split('T')[0], 
-    statut: "SOUMIS",
-    utilisateurId: currentUser.id || null,
-  });
-  const [editingId, setEditingId] = useState(null);
-  const [error, setError] = useState(null);
-  const [filterStatus, setFilterStatus] = useState("Tous les statuts");
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [current, setCurrent] = useState(null);
   const [selectedConges, setSelectedConges] = useState(new Set());
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatut, setFilterStatut] = useState("tous");
+  
+  const [formData, setFormData] = useState({
+    type_conge: "",
+    date_debut: "",
+    date_fin: "",
+    motif: "",
+    statut: "SOUMIS",
+    employeId: ""
+  });
 
-  const load = async () => {
-    setLoading(true);
-    setError(null);
+  // Fonction pour charger les employés
+  const loadEmployes = async () => {
     try {
-      const data = await getConges();
-      setConges(data || []);
-      const empData = await getEmployes();
-      setEmployes(empData || []);
+      setLoadingEmployes(true);
+      const data = await getEmployes();
+      setEmployes(data);
+      console.log('Employés chargés:', data.length);
     } catch (err) {
-      console.error("Erreur de chargement:", err);
-      setError(`Impossible de charger les congés: ${err.message}`);
+      console.error("Erreur chargement employés:", err);
+      toast.error("Erreur", { 
+        description: "Impossible de charger les employés" 
+      });
+    } finally {
+      setLoadingEmployes(false);
+    }
+  };
+
+  // Fonction async pour charger les congés
+  const load = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const data = await getConges();
+      setConges(data);
+      console.log('Congés chargés:', data.length);
+    } catch (err) {
+      console.error("Erreur chargement:", err);
+      setError(err.message);
+      toast.error("Erreur de chargement", {
+        description: err.message
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { 
-    load(); 
+  // Charger au montage
+  useEffect(() => {
+    load();
+    loadEmployes();
   }, []);
 
-  const openCreate = () => {
-    setEditingId(null);
-    setError(null);
-    setForm({ 
-      employeId: "", 
-      type_conge: "Congés payés", 
-      date_debut: new Date().toISOString().split('T')[0], 
-      date_fin: new Date().toISOString().split('T')[0], 
-      statut: "SOUMIS",
-      utilisateurId: currentUser.id || null,
-    });
-    setIsDialogOpen(true);
-  };
-
-  const openEdit = (c) => {
-    setEditingId(c.id);
-    setError(null);
-    setForm({ 
-      employeId: c.employeId || "", 
-      type_conge: c.type_conge || "Congés payés", 
-      date_debut: c.date_debut ? new Date(c.date_debut).toISOString().split('T')[0] : new Date().toISOString().split('T')[0], 
-      date_fin: c.date_fin ? new Date(c.date_fin).toISOString().split('T')[0] : new Date().toISOString().split('T')[0], 
-      statut: c.statut || "SOUMIS",
-      utilisateurId: currentUser.id || null,
-    });
-    setIsDialogOpen(true);
-  };
-
+  // Fonction async de soumission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-
-    // Validation frontend
-    if (!form.utilisateurId) {
-      setError("❌ Utilisateur non connecté. Veuillez vous reconnecter.");
+    
+    if (!user || !user.id) {
+      toast.error("Erreur", { description: "Utilisateur non connecté" });
       return;
     }
 
-    if (!form.employeId) {
-      setError("❌ Veuillez sélectionner un employé.");
-      return;
-    }
-
-    if (new Date(form.date_fin) < new Date(form.date_debut)) {
-      setError("❌ La date de fin doit être après la date de début.");
+    if (!formData.employeId) {
+      toast.error("Erreur", { description: "Veuillez sélectionner un employé" });
       return;
     }
 
     try {
-      if (editingId) {
-        await updateConge(editingId, form);
+      const payload = {
+        ...formData,
+        utilisateurId: user.id,
+        employeId: parseInt(formData.employeId)
+      };
+
+      console.log('Payload envoyé:', payload);
+
+      if (editing && current) {
+        await updateConge(current.id, payload);
+        toast.success("Congé mis à jour");
       } else {
-        await createConge(form);
+        await createConge(payload);
+        toast.success("Congé créé avec succès");
       }
+      
       setIsDialogOpen(false);
+      resetForm();
       await load();
+      
     } catch (err) {
-      console.error("Erreur lors de la soumission:", err);
-      setError(`❌ ${err.message}`);
+      console.error("Erreur soumission:", err);
+      toast.error("Erreur", { description: err.message });
     }
   };
 
-  const requestDelete = (id) => {
-    setDeleteId(id);
-    setConfirmDeleteOpen(true);
-  };
-  const confirmDelete = async () => {
-    setConfirmDeleteOpen(false);
-    if (!deleteId && selectedConges.size === 0) return;
+  // Fonction async de suppression
+  const handleDelete = async (id) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce congé ?")) {
+      return;
+    }
+    
     try {
-      if (deleteId) {
-        await deleteConge(deleteId);
-        toast.success("Congé supprimé avec succès");
-      } else {
-        await Promise.all(Array.from(selectedConges).map(id => deleteConge(id)));
-        toast.success(`${selectedConges.size} congé(s) supprimé(s)`);
-        setSelectedConges(new Set());
-      }
+      await deleteConge(id);
+      toast.success("Congé supprimé");
       await load();
     } catch (err) {
-      toast.error("Erreur lors de la suppression du congé.");
+      console.error("Erreur suppression:", err);
+      toast.error("Erreur", { description: err.message });
     }
-    setDeleteId(null);
   };
 
-  const handleApprove = async (id) => {
-    setError(null);
+  // Suppression multiple
+  const handleDeleteSelected = async () => {
+    if (selectedConges.size === 0) {
+      toast.error("Aucun congé sélectionné");
+      return;
+    }
+
+    if (!window.confirm(`Supprimer ${selectedConges.size} congé(s) ?`)) {
+      return;
+    }
+
     try {
-      await updateConge(id, { statut: "APPROUVE" });
-      await load();
-    } catch (err) {
-      console.error("Erreur d'approbation:", err);
-      setError(`❌ Impossible d'approuver: ${err.message}`);
-    }
-  };
-
-  const handleReject = async (id) => {
-    setError(null);
-    try {
-      await updateConge(id, { statut: "REJETE" });
-      await load();
-    } catch (err) {
-      console.error("Erreur de rejet:", err);
-      setError(`❌ Impossible de refuser: ${err.message}`);
-    }
-  };
-
-  // Statistiques
-  const stats = {
-    total: conges.length,
-    attente: conges.filter(c => c.statut === "SOUMIS").length,
-    approuves: conges.filter(c => c.statut === "APPROUVE").length,
-    joursTotaux: conges.reduce((total, c) => {
-      if (c.date_debut && c.date_fin) {
-        const debut = new Date(c.date_debut);
-        const fin = new Date(c.date_fin);
-        const diffTime = Math.abs(fin - debut);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-        return total + diffDays;
+      for (const id of selectedConges) {
+        await deleteConge(id);
       }
-      return total;
-    }, 0),
-  };
-
-  const colorStatut = (statut) => {
-    switch (statut) {
-      case "APPROUVE": return "bg-yellow-400 text-black";
-      case "SOUMIS": return "bg-teal-500 text-white";
-      case "REJETE": return "bg-red-500 text-white";
-      default: return "bg-gray-300 text-black";
-    }
-  };
-
-  const getStatutIcon = (statut) => {
-    switch (statut) {
-      case "APPROUVE": return <CheckCircle className="w-4 h-4" />;
-      case "SOUMIS": return <Clock className="w-4 h-4" />;
-      case "REJETE": return <XCircle className="w-4 h-4" />;
-      default: return <Clock className="w-4 h-4" />;
-    }
-  };
-
-  const getTypeColor = (type) => {
-    switch (type) {
-      case "Congés payés": return "bg-orange-100 text-orange-800";
-      case "RTT": return "bg-blue-100 text-blue-800";
-      case "Congé maladie": return "bg-red-100 text-red-800";
-      case "Congé maternité": return "bg-pink-100 text-pink-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('fr-FR');
-  };
-
-  const calculateDays = (dateDebut, dateFin) => {
-    const debut = new Date(dateDebut);
-    const fin = new Date(dateFin);
-    const diffTime = Math.abs(fin - debut);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return diffDays;
-  };
-
-  const filteredConges = filterStatus === "Tous les statuts" 
-    ? conges 
-    : conges.filter(c => c.statut === filterStatus.toUpperCase());
-
-  const handleSelectConge = (id) => {
-    setSelectedConges(prev => {
-      const newSelection = new Set(prev);
-      if (newSelection.has(id)) {
-        newSelection.delete(id);
-      } else {
-        newSelection.add(id);
-      }
-      return newSelection;
-    });
-  };
-
-  const handleSelectAll = (checked) => {
-    if (checked) {
-      setSelectedConges(new Set(filteredConges.map(item => item.id)));
-    } else {
+      toast.success(`${selectedConges.size} congé(s) supprimé(s)`);
       setSelectedConges(new Set());
+      await load();
+    } catch (err) {
+      console.error("Erreur suppression multiple:", err);
+      toast.error("Erreur", { description: err.message });
     }
   };
 
-  const requestDeleteSelected = () => {
-    if (selectedConges.size > 0) {
-      setDeleteId(null);
-      setConfirmDeleteOpen(true);
+  // Réinitialiser le formulaire
+  const resetForm = () => {
+    setFormData({
+      type_conge: "",
+      date_debut: "",
+      date_fin: "",
+      motif: "",
+      statut: "SOUMIS",
+      employeId: ""
+    });
+    setEditing(false);
+    setCurrent(null);
+  };
+
+  // Ouvrir le dialog en mode édition
+  const openEditDialog = (conge) => {
+    setFormData({
+      type_conge: conge.type_conge || "",
+      date_debut: conge.date_debut?.split('T')[0] || "",
+      date_fin: conge.date_fin?.split('T')[0] || "",
+      motif: conge.motif || "",
+      statut: conge.statut || "SOUMIS",
+      employeId: conge.employeId?.toString() || ""
+    });
+    setCurrent(conge);
+    setEditing(true);
+    setIsDialogOpen(true);
+  };
+
+  // Ouvrir le dialog en mode création
+  const openCreateDialog = () => {
+    resetForm();
+    setIsDialogOpen(true);
+  };
+
+  // Gérer les changements de formulaire
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Sélection de congés
+  const handleSelectConge = (id) => {
+    const newSelected = new Set(selectedConges);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedConges(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedConges.size === filteredConges.length) {
+      setSelectedConges(new Set());
+    } else {
+      setSelectedConges(new Set(filteredConges.map(c => c.id)));
     }
   };
+
+  // Formater la date
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR');
+  };
+
+  // Badge de statut
+  const getStatusBadge = (statut) => {
+    const config = {
+      SOUMIS: { variant: "default", label: "Soumis" },
+      APPROUVE: { variant: "default", label: "Approuvé", className: "bg-green-500 text-white" },
+      REFUSE: { variant: "destructive", label: "Refusé" },
+      EN_ATTENTE: { variant: "secondary", label: "En attente" }
+    };
+    
+    const { label, className } = config[statut] || config.SOUMIS;
+    
+    return (
+      <Badge className={className}>
+        {label}
+      </Badge>
+    );
+  };
+
+  // Filtrage
+  const filteredConges = conges.filter(conge => {
+    const matchSearch = 
+      conge.type_conge?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      conge.employe?.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      conge.employe?.prenom?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchStatut = filterStatut === "tous" || conge.statut === filterStatut;
+    
+    return matchSearch && matchStatut;
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestion des Congés</h1>
-            <p className="text-sm text-gray-600 mt-1">Gérez les demandes de congés et suivez les soldes</p>
-          </div>
-          <Button 
-            className="bg-blue-700 hover:bg-blue-900 text-white flex items-center gap-2" 
-            onClick={openCreate}
-          >
-            <Plus className="w-4 h-4" />
-            Demander un Congé
-          </Button>
-        </div>
-
-        {/* Alerte d'erreur globale */}
-        {error && !isDialogOpen && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm text-red-800 font-medium">{error}</p>
+    <div className="p-8 bg-gradient-to-br from-background to-muted dark:from-slate-950 dark:to-slate-900 min-h-screen">
+      <Card className="bg-card dark:bg-slate-900 border-border shadow-lg">
+        <CardHeader className="border-b border-border bg-gradient-to-r from-card dark:from-slate-900">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-600 dark:bg-blue-700 p-3 rounded-lg">
+                <Calendar className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl font-bold text-foreground dark:text-white">
+                  Gestion des Congés
+                </CardTitle>
+                <p className="text-sm text-muted-foreground dark:text-gray-400 mt-1">
+                  {filteredConges.length} congé{filteredConges.length > 1 ? 's' : ''} 
+                  {filterStatut !== "tous" && ` (filtre: ${filterStatut})`}
+                </p>
+              </div>
             </div>
-            <button 
-              onClick={() => setError(null)}
-              className="text-red-600 hover:text-red-800"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-
-        {/* Alerte si utilisateur non connecté */}
-        {!currentUser.id && (
-          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-yellow-800">
-              ⚠️ Aucun utilisateur connecté détecté. Vous devez être connecté pour créer des congés.
-            </p>
-          </div>
-        )}
-
-        {/* Statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white rounded-lg shadow-sm border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Demandes</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
-                  <p className="text-xs text-gray-500">Ce mois</p>
-                </div>
-                <CalendarDays className="w-8 h-8 text-gray-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white rounded-lg shadow-sm border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">En Attente</p>
-                  <p className="text-3xl font-bold text-teal-500">{stats.attente}</p>
-                  <p className="text-xs text-gray-500">À traiter</p>
-                </div>
-                <Clock className="w-8 h-8 text-teal-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white rounded-lg shadow-sm border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Approuvées</p>
-                  <p className="text-3xl font-bold text-yellow-500">{stats.approuves}</p>
-                  <p className="text-xs text-gray-500">Validées</p>
-                </div>
-                <CheckCircle className="w-8 h-8 text-yellow-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white rounded-lg shadow-sm border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Jours Totaux</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.joursTotaux}</p>
-                  <p className="text-xs text-gray-500">Demandés</p>
-                </div>
-                <Umbrella className="w-8 h-8 text-gray-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Liste des congés */}
-        <div className="bg-white rounded-lg shadow-sm border-0 p-6">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Demandes de Congés</h2>
-              <p className="text-sm text-gray-600">{filteredConges.length} demande(s) trouvée(s)</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-500" />
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm"
-              >
-                <option value="Tous les statuts">Tous les statuts</option>
-                <option value="SOUMIS">En attente</option>
-                <option value="APPROUVE">Approuvées</option>
-                <option value="REJETE">Refusées</option>
-              </select>
+            <div className="flex gap-2">
+              {selectedConges.size > 0 && permissions.canDelete("conges") && (
+                <Button 
+                  variant="destructive"
+                  onClick={handleDeleteSelected}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Supprimer ({selectedConges.size})
+                </Button>
+              )}
+                <Button 
+                  onClick={openCreateDialog}
+                  className="flex items-center gap-2 bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nouveau Congé
+                </Button>
             </div>
           </div>
 
-          {selectedConges.size > 0 && (
-            <div className="mb-4 flex items-center justify-between rounded-md bg-blue-50 p-3 border border-blue-200">
-              <div className="text-sm font-medium text-blue-800">
-                {selectedConges.size} congé(s) sélectionné(s).
+          {/* Barre de recherche et filtres */}
+          <div className="flex gap-4 mt-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground dark:text-gray-500" />
+              <Input
+                placeholder="Rechercher par type ou employé..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-background dark:bg-slate-800 text-foreground dark:text-white border-border"
+              />
+            </div>
+            <Select value={filterStatut} onValueChange={setFilterStatut}>
+              <SelectTrigger className="w-[200px]">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filtrer par statut" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tous">Tous les statuts</SelectItem>
+                <SelectItem value="SOUMIS">Soumis</SelectItem>
+                <SelectItem value="APPROUVE">Approuvé</SelectItem>
+                <SelectItem value="REFUSE">Refusé</SelectItem>
+                <SelectItem value="EN_ATTENTE">En attente</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Exporter
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-6">
+          {/* Message d'erreur */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+              <div>
+                <p className="font-medium text-red-800">Erreur</p>
+                <p className="text-red-700 text-sm">{error}</p>
               </div>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={requestDeleteSelected}
-                className="flex items-center gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Supprimer la sélection
-              </Button>
             </div>
           )}
 
-          {loading && (
-            <div className="flex justify-center items-center py-12">
-              <div className="text-gray-500">⏳ Chargement des congés...</div>
+          {/* État de chargement */}
+          {loading ? (
+            <div className="flex flex-col justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+              <p className="text-gray-500">Chargement des congés...</p>
             </div>
-          )}
-
-          {!loading && filteredConges.length === 0 && (
+          ) : filteredConges.length === 0 ? (
             <div className="text-center py-12">
-              <Umbrella className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun congé trouvé</h3>
-              <p className="text-gray-500 mb-4">Commencez par demander un congé</p>
-              <Button onClick={openCreate} className="bg-black text-white">
-                <Plus className="w-4 h-4 mr-2" />
-                Demander un congé
+              <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg font-medium mb-2">
+                {searchTerm || filterStatut !== "tous" 
+                  ? "Aucun congé trouvé avec ces filtres" 
+                  : "Aucun congé enregistré"}
+              </p>
+              <p className="text-gray-400 text-sm mb-4">
+                Commencez par créer votre premier congé
+              </p>
+              <Button 
+                onClick={openCreateDialog} 
+                variant="outline"
+                className="flex items-center gap-2 mx-auto"
+              >
+                <Plus className="h-4 w-4" />
+                Créer un congé
               </Button>
             </div>
-          )}
-
-          {!loading && filteredConges.length > 0 && (
-            <div className="space-y-4">
-               <div className="flex items-center p-2 rounded-md hover:bg-gray-50">
-                <Checkbox
-                  id="select-all"
-                  checked={selectedConges.size === filteredConges.length && filteredConges.length > 0}
-                  onCheckedChange={handleSelectAll}
-                  aria-label="Select all"
-                />
-                <label htmlFor="select-all" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">
-                  Tout sélectionner
-                </label>
-              </div>
-              {filteredConges.map((conge) => (
-                <Card key={conge.id} className={`bg-gray-50 rounded-lg border-0 ${selectedConges.has(conge.id) ? 'ring-2 ring-blue-500' : ''}`}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <Checkbox
-                          checked={selectedConges.has(conge.id)}
-                          onCheckedChange={() => handleSelectConge(conge.id)}
-                          aria-label="Select conge"
-                        />
-                        <div className="p-2 bg-gray-200 rounded-full">
-                          <User className="w-6 h-6 text-gray-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">
-                            {(() => {
-                              const emp = employes.find(e => e.id === conge.employeId);
-                              return emp ? `${emp.nom} ${emp.prenom}` : `Employé #${conge.employeId}`;
-                            })()}
-                          </h3>
-                          <p className="text-sm text-gray-500 flex items-center gap-1">
-                            <CalendarDays className="w-4 h-4" />
-                            {formatDate(conge.date_debut)} - {formatDate(conge.date_fin)} 
-                            ({calculateDays(conge.date_debut, conge.date_fin)} jours)
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <Badge className={`${getTypeColor(conge.type_conge)} text-xs px-2 py-1 flex items-center gap-1`}>
-                          <Umbrella className="w-3 h-3" />
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedConges.size === filteredConges.length && filteredConges.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead className="font-semibold">ID</TableHead>
+                    <TableHead className="font-semibold">Type</TableHead>
+                    <TableHead className="font-semibold">Employé</TableHead>
+                    <TableHead className="font-semibold">Date début</TableHead>
+                    <TableHead className="font-semibold">Date fin</TableHead>
+                    <TableHead className="font-semibold">Durée</TableHead>
+                    <TableHead className="font-semibold">Statut</TableHead>
+                    <TableHead className="font-semibold">Motif</TableHead>
+                    <TableHead className="text-right font-semibold">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredConges.map((conge) => {
+                    const dateDebut = new Date(conge.date_debut);
+                    const dateFin = new Date(conge.date_fin);
+                    const dureeJours = Math.ceil((dateFin - dateDebut) / (1000 * 60 * 60 * 24)) + 1;
+                    
+                    return (
+                      <TableRow 
+                        key={conge.id}
+                        className="hover:bg-gray-50 transition-colors"
+                        data-state={selectedConges.has(conge.id) && "selected"}
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedConges.has(conge.id)}
+                            onCheckedChange={() => handleSelectConge(conge.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium text-gray-600">
+                          #{conge.id}
+                        </TableCell>
+                        <TableCell className="font-medium">
                           {conge.type_conge}
-                        </Badge>
-                        
-                        <Badge className={`${colorStatut(conge.statut)} flex items-center gap-1`}>
-                          {getStatutIcon(conge.statut)}
-                          {conge.statut.toLowerCase()}
-                        </Badge>
-                        
-                        <div className="flex gap-2">
-                          {conge.statut === "SOUMIS" && (
-                            <>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => handleApprove(conge.id)}
-                                className="text-green-600 border-green-600 hover:bg-green-50"
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
+                              {conge.employe?.prenom?.[0]}{conge.employe?.nom?.[0]}
+                            </div>
+                            <span>
+                              {conge.employe ? 
+                                `${conge.employe.prenom} ${conge.employe.nom}` : 
+                                'N/A'
+                              }
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{formatDate(conge.date_debut)}</TableCell>
+                        <TableCell>{formatDate(conge.date_fin)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono">
+                            {dureeJours} jour{dureeJours > 1 ? 's' : ''}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(conge.statut)}</TableCell>
+                        <TableCell className="max-w-xs">
+                          <span className="truncate block" title={conge.motif}>
+                            {conge.motif || '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            {permissions.canUpdate("conges") && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => openEditDialog(conge)}
+                                className="hover:bg-blue-50"
                               >
-                                Approuver
+                                <Pencil className="h-4 w-4 text-blue-600" />
                               </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => handleReject(conge.id)}
-                                className="text-red-600 border-red-600 hover:bg-red-50"
+                            )}
+                            {permissions.canDelete("conges") && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDelete(conge.id)}
+                                className="hover:bg-red-50"
                               >
-                                Refuser
+                                <Trash2 className="h-4 w-4 text-red-600" />
                               </Button>
-                            </>
-                          )}
-                          
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => openEdit(conge)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => requestDelete(conge.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Dialog pour créer/modifier */}
+      {/* Dialog de création/édition */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">
-              {editingId ? 'Modifier le Congé' : 'Nouveau Congé'}
+            <DialogTitle className="text-xl font-bold">
+              {editing ? "✏️ Modifier le congé" : "Créer un nouveau congé"}
             </DialogTitle>
-            <DialogDescription className="text-gray-600">
-              {editingId ? 'Modifiez les informations du congé' : 'Demandez un nouveau congé'}
+            <DialogDescription>
+              Remplissez les informations du congé ci-dessous. Les champs marqués d'un * sont obligatoires.
             </DialogDescription>
           </DialogHeader>
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-red-600">{error}</div>
-              </div>
-            )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="employeId" className="text-sm font-medium text-gray-700">
-                Employé *
-              </Label>
-              <select
-                id="employeId"
-                value={form.employeId}
-                onChange={(e) => setForm({ ...form, employeId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                required
-              >
-                <option value="">-- Sélectionner un employé --</option>
-                {employes.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
-              </select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="type_conge" className="text-sm font-medium text-gray-700">
-                Type de congé *
-              </Label>
-              <select
-                id="type_conge"
-                value={form.type_conge}
-                onChange={(e) => setForm({ ...form, type_conge: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                required
-              >
-                <option value="Congés payés">Congés payés</option>
-                <option value="RTT">RTT</option>
-                <option value="Congé maladie">Congé maladie</option>
-                <option value="Congé maternité">Congé maternité</option>
-                <option value="Congé paternité">Congé paternité</option>
-              </select>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="date_debut" className="text-sm font-medium text-gray-700">
-                  Date de début *
+
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+              {/* Type de congé */}
+              <div className="grid gap-2">
+                <Label htmlFor="type_conge" className="font-semibold">
+                  Type de congé <span className="text-red-500">*</span>
                 </Label>
-                <Input 
-                  id="date_debut"
-                  type="date"
-                  value={form.date_debut} 
-                  onChange={(e) => setForm({ ...form, date_debut: e.target.value })} 
-                  required 
-                />
+                <Select
+                  name="type_conge"
+                  value={formData.type_conge}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, type_conge: value }))}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un type de congé" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Congé annuel">Congé annuel</SelectItem>
+                    <SelectItem value="Congé maladie">Congé maladie</SelectItem>
+                    <SelectItem value="Congé sans solde">Congé sans solde</SelectItem>
+                    <SelectItem value="Congé maternité">Congé maternité</SelectItem>
+                    <SelectItem value="Congé paternité">Congé paternité</SelectItem>
+                    <SelectItem value="RTT">RTT</SelectItem>
+                    <SelectItem value="Formation">Formation</SelectItem>
+                    <SelectItem value="Autre">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="date_fin" className="text-sm font-medium text-gray-700">
-                  Date de fin *
+
+              {/* ✅ Select Employé avec noms */}
+              <div className="grid gap-2">
+                <Label htmlFor="employeId" className="font-semibold">
+                  Employé <span className="text-red-500">*</span>
                 </Label>
-                <Input 
-                  id="date_fin"
-                  type="date"
-                  value={form.date_fin} 
-                  onChange={(e) => setForm({ ...form, date_fin: e.target.value })} 
-                  required 
+                {loadingEmployes ? (
+                  <div className="flex items-center gap-2 p-3 border rounded-md bg-gray-50">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <span className="text-sm text-gray-600">Chargement des employés...</span>
+                  </div>
+                ) : employes.length === 0 ? (
+                  <div className="p-3 border border-yellow-200 rounded-md bg-yellow-50">
+                    <p className="text-sm text-yellow-800 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      Aucun employé disponible. Créez d'abord un employé.
+                    </p>
+                  </div>
+                ) : (
+                  <Select
+                    name="employeId"
+                    value={formData.employeId}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, employeId: value }))}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un employé" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employes.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-xs">
+                              {emp.prenom?.[0]}{emp.nom?.[0]}
+                            </div>
+                            <span>
+                              {emp.prenom} {emp.nom}
+                              {emp.matricule && (
+                                <span className="text-gray-500 text-xs ml-2">
+                                  ({emp.matricule})
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="date_debut" className="font-semibold">
+                    Date de début <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="date_debut"
+                    name="date_debut"
+                    type="date"
+                    value={formData.date_debut}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="date_fin" className="font-semibold">
+                    Date de fin <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="date_fin"
+                    name="date_fin"
+                    type="date"
+                    value={formData.date_fin}
+                    onChange={handleChange}
+                    min={formData.date_debut}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Calcul de la durée */}
+              {formData.date_debut && formData.date_fin && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm text-blue-800">
+                    📅 Durée: <strong>
+                      {Math.ceil((new Date(formData.date_fin) - new Date(formData.date_debut)) / (1000 * 60 * 60 * 24)) + 1}
+                    </strong> jour(s)
+                  </p>
+                </div>
+              )}
+
+              {/* Statut */}
+              <div className="grid gap-2">
+                <Label htmlFor="statut" className="font-semibold">
+                  Statut
+                </Label>
+                <Select
+                  name="statut"
+                  value={formData.statut}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, statut: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SOUMIS">Soumis</SelectItem>
+                    <SelectItem value="APPROUVE">✅ Approuvé</SelectItem>
+                    <SelectItem value="REFUSE">❌ Refusé</SelectItem>
+                    <SelectItem value="EN_ATTENTE">⏳ En attente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Motif */}
+              <div className="grid gap-2">
+                <Label htmlFor="motif" className="font-semibold">
+                  Motif (optionnel)
+                </Label>
+                <Textarea
+                  id="motif"
+                  name="motif"
+                  value={formData.motif}
+                  onChange={handleChange}
+                  placeholder="Précisez le motif du congé..."
+                  rows={4}
+                  className="resize-none"
                 />
+                <p className="text-xs text-gray-500">
+                  Ajoutez des détails supplémentaires si nécessaire
+                </p>
               </div>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="statut" className="text-sm font-medium text-gray-700">
-                Statut *
-              </Label>
-              <select
-                id="statut"
-                value={form.statut}
-                onChange={(e) => setForm({ ...form, statut: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                required
-              >
-                <option value="SOUMIS">Soumis</option>
-                <option value="APPROUVE">Approuvé</option>
-                <option value="REJETE">Rejeté</option>
-              </select>
-            </div>
-            
-            <DialogFooter className="flex gap-3 pt-4">
+
+            <DialogFooter className="gap-2">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => {
                   setIsDialogOpen(false);
-                  setError(null);
+                  resetForm();
                 }}
-                className="flex-1"
               >
                 Annuler
               </Button>
               <Button 
-                type="submit" 
-                className="flex-1 bg-black hover:bg-gray-800 text-white"
-                disabled={!currentUser.id}
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700"
               >
-                {editingId ? 'Enregistrer' : 'Demander le congé'}
+                {editing ? "Mettre à jour" : "Créer le congé"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
-
-      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-            <AlertDialogDescription>
-              {selectedConges.size > 0
-                  ? `Êtes-vous sûr de vouloir supprimer ${selectedConges.size} congé(s) ? Cette action est irréversible.`
-                  : "Êtes-vous sûr de vouloir supprimer ce congé ? Cette action est irréversible."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Supprimer</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

@@ -32,16 +32,19 @@ export const PERMISSIONS = {
     create: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     edit: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     delete: [ROLES.SUPER_ADMIN],
-    viewOwn: [ROLES.EMPLOYE] // L'employé voit son contrat
+    viewOwn: [ROLES.EMPLOYE], // L'employé voit uniquement son contrat
+    list: [ROLES.SUPER_ADMIN, ROLES.ADMIN] // Pour lister tous les contrats
   },
   
   // Gestion des absences
   absences: {
     view: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
-    create: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.EMPLOYE],
+    create: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     edit: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     delete: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
-    viewOwn: [ROLES.EMPLOYE]
+    viewOwn: [ROLES.EMPLOYE],
+    declare: [ROLES.EMPLOYE], // L'employé peut déclarer ses absences
+    list: [ROLES.SUPER_ADMIN, ROLES.ADMIN] // Pour lister toutes les absences
   },
   
   // Gestion des présences
@@ -50,17 +53,21 @@ export const PERMISSIONS = {
     create: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     edit: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     delete: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
-    viewOwn: [ROLES.EMPLOYE]
+    viewOwn: [ROLES.EMPLOYE],
+    pointer: [ROLES.EMPLOYE], // L'employé peut pointer sa présence
+    list: [ROLES.SUPER_ADMIN, ROLES.ADMIN] // Pour lister toutes les présences
   },
   
   // Gestion des congés
   conges: {
     view: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
-    create: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.EMPLOYE],
+    create: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     edit: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     delete: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     approve: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
-    viewOwn: [ROLES.EMPLOYE]
+    viewOwn: [ROLES.EMPLOYE],
+    request: [ROLES.EMPLOYE], // L'employé peut faire des demandes de congés
+    list: [ROLES.SUPER_ADMIN, ROLES.ADMIN] // Pour lister tous les congés
   },
   
   // Gestion des départements
@@ -85,7 +92,8 @@ export const PERMISSIONS = {
     create: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     edit: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     delete: [ROLES.SUPER_ADMIN],
-    viewOwn: [ROLES.EMPLOYE]
+    viewOwn: [ROLES.EMPLOYE], // L'employé voit uniquement ses paiements
+    list: [ROLES.SUPER_ADMIN, ROLES.ADMIN] // Pour lister tous les paiements
   },
   
   // Gestion des bulletins
@@ -94,7 +102,8 @@ export const PERMISSIONS = {
     create: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     edit: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     delete: [ROLES.SUPER_ADMIN],
-    viewOwn: [ROLES.EMPLOYE]
+    viewOwn: [ROLES.EMPLOYE], // L'employé voit uniquement ses bulletins
+    list: [ROLES.SUPER_ADMIN, ROLES.ADMIN] // Pour lister tous les bulletins
   },
   
   // Gestion des performances
@@ -103,7 +112,8 @@ export const PERMISSIONS = {
     create: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     edit: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     delete: [ROLES.SUPER_ADMIN],
-    viewOwn: [ROLES.EMPLOYE]
+    viewOwn: [ROLES.EMPLOYE], // L'employé voit uniquement ses performances
+    list: [ROLES.SUPER_ADMIN, ROLES.ADMIN] // Pour lister toutes les performances
   }
 };
 

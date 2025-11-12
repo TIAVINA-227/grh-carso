@@ -416,7 +416,8 @@ export default function UtilisateursPage() {
     try {
       setLoading(true);
       const data = await getUtilisateurs();
-      setUtilisateurs(data);
+      // backend renvoie { success: true, count, utilisateurs }
+      setUtilisateurs(data.utilisateurs || data || []);
     } catch (error) {
       console.error("Erreur chargement utilisateurs:", error);
       toast.error("Impossible de charger les utilisateurs");
@@ -577,11 +578,11 @@ export default function UtilisateursPage() {
   }
 
   return (
-    <div className="p-8 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
-      <Card className="bg-white border-2 border-blue-200 shadow-xl">
-        <CardHeader className="border-b-2 border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+    <div className="p-8 bg-gradient-to-br bg-background dark:bg-slate-950 min-h-screen">
+      <Card className="bg-card dark:bg-slate-900 border-2 border-blue-50 dark:border-blue-900/30 shadow-xl">
+        <CardHeader className="border-b border-border bg-gradient-to-r from-card dark:from-slate-900">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl font-bold text-blue-900">
+            <CardTitle className="text-2xl font-bold text-blue-900 dark:text-blue-200">
               Gestion des Utilisateurs
             </CardTitle>
             
@@ -594,19 +595,19 @@ export default function UtilisateursPage() {
 
           <div className="mt-4 flex gap-4 items-center">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground dark:text-gray-500" />
               <Input
                 placeholder="Rechercher un utilisateur..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 bg-background dark:bg-slate-800 text-foreground dark:text-white border-border"
               />
             </div>
 
             {permissions.canCreate('utilisateurs') && (
               <Button
                 onClick={() => setShowAddModal(true)}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
                 Ajouter un utilisateur

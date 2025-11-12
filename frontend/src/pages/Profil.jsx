@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 const COULEURS_COUVERTURE = [
-  { nom: "Bleu", valeur: "#3B82F6" },
+  { nom: "Bleu", valeur: "#125dd6ff" },
   { nom: "Violet", valeur: "#8B5CF6" },
   { nom: "Rose", valeur: "#EC4899" },
   { nom: "Orange", valeur: "#F97316" },
@@ -96,33 +96,108 @@ export default function ProfilPage() {
       [e.target.name]: e.target.value
     });
   };
-
-  const handleAvatarChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Vérifier le type de fichier
-    if (!file.type.startsWith('image/')) {
-      toast.error("Veuillez sélectionner une image");
-      return;
-    }
-
-    // Vérifier la taille (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("L'image ne doit pas dépasser 5MB");
-      return;
-    }
-
-    // Convertir en base64 pour l'aperçu
+  
+  // ✅ Fonction pour compresser l'image
+const compressImage = (file, maxWidth = 800, maxHeight = 800, quality = 0.8) => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setProfil(prev => ({
-        ...prev,
-        avatar: reader.result
-      }));
+    
+    reader.onload = (e) => {
+      const img = new Image();
+      
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // Calculer les nouvelles dimensions
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convertir en base64 avec compression
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedBase64);
+      };
+      
+      img.onerror = reject;
+      img.src = e.target.result;
     };
+    
+    reader.onerror = reject;
     reader.readAsDataURL(file);
-  };
+  });
+};
+
+// ✅ Modifier handleAvatarChange : compresser localement puis uploader au backend (Cloudinary)
+const handleAvatarChange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Vérifier le type
+  if (!file.type.startsWith('image/')) {
+    toast.error('Veuillez sélectionner une image');
+    return;
+  }
+
+  // Vérifier la taille brute (max 10MB)
+  if (file.size > 10 * 1024 * 1024) {
+    toast.error("L'image ne doit pas dépasser 10MB");
+    return;
+  }
+
+  try {
+    // Compresser l'image localement
+    toast.info('Compression de l\'image...');
+    const compressedDataUrl = await compressImage(file, 400, 400, 0.8);
+
+    // Convertir dataURL en Blob
+    const blob = await (await fetch(compressedDataUrl)).blob();
+
+    // Préparer le FormData pour l'upload
+    const formData = new FormData();
+    formData.append('avatar', blob, file.name);
+
+    // Appeler l'API d'upload (Cloudinary)
+    toast.info('Upload de l\'image...');
+    const res = await fetch('http://localhost:5000/api/upload/avatar', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${user?.token}`
+      },
+      body: formData
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      console.error('Upload retour erreur:', result);
+      throw new Error(result.message || 'Erreur lors de l\'upload');
+    }
+
+    // Résultat attendu: { success: true, url, public_id }
+    setProfil(prev => ({ ...prev, avatar: result.url }));
+    toast.success('Image uploadée avec succès');
+
+  } catch (error) {
+    console.error('Erreur upload avatar:', error);
+    toast.error("Erreur lors de l'upload de l'image");
+  }
+};
 
   const handleCouvertureChange = (couleur) => {
     setProfil(prev => ({
@@ -182,8 +257,10 @@ export default function ProfilPage() {
     return `${prenom[0] || ''}${nom[0] || ''}`.toUpperCase();
   };
 
+  
+
   return (
-    <div className="p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+    <div className="p-8 bg-gradient-to-br from-background to-muted dark:from-slate-950 dark:to-slate-900 min-h-screen">
       {/* En-tête avec photo de couverture */}
       <div className="relative mb-8">
         <div 

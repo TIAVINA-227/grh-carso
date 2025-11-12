@@ -17,6 +17,10 @@ export const usePermissions = () => {
         canDelete: () => false,
         canApprove: () => false,
         canViewOwn: () => false,
+        canPointer: () => false,
+        canDeclare: () => false,
+        canRequest: () => false,
+        canList: () => false,
         canAccess: () => false,
         isSuperAdmin: false,
         isAdmin: false,
@@ -35,6 +39,11 @@ export const usePermissions = () => {
       canDelete: (module) => hasPermission(user.role, module, 'delete'),
       canApprove: (module) => hasPermission(user.role, module, 'approve'),
       canViewOwn: (module) => hasPermission(user.role, module, 'viewOwn'),
+      // Nouvelles permissions spécifiques
+      canPointer: (module) => hasPermission(user.role, module, 'pointer'),
+      canDeclare: (module) => hasPermission(user.role, module, 'declare'),
+      canRequest: (module) => hasPermission(user.role, module, 'request'),
+      canList: (module) => hasPermission(user.role, module, 'list'),
       
       // Vérifier l'accès à une route
       canAccess: (routeName) => canAccessRoute(user.role, routeName),

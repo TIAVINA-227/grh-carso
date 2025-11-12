@@ -1,4 +1,4 @@
-// pages/Contrats.jsx
+//frontend/src/ pages/Contrats.jsx
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { getContrats, createContrat, updateContrat, deleteContrat } from "../services/contratService";
+import { usePermissions } from "../hooks/usePermissions";
 import { getEmployes } from "../services/employeService"; // <- nouveau
 import { FileText, User, Plus, Edit, Trash2, Calendar, DollarSign, Eye } from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
@@ -32,6 +33,7 @@ export default function Contrats() {
   const [deleteId, setDeleteId] = useState(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [selectedContrats, setSelectedContrats] = useState(new Set());
+  const permissions = usePermissions();
 
   const load = async () => {
     setLoading(true);
@@ -178,21 +180,26 @@ export default function Contrats() {
   }).format(salary);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-background dark:bg-slate-950 p-6">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg">
+              <FileText className="h-6 w-6 text-white" />
+            </div>
             <h1 className="text-3xl font-bold text-gray-900">Gestion des Contrats</h1>
             <p className="text-sm text-gray-600 mt-1">Consultez et gérez les contrats de travail</p>
           </div>
-          <Button 
-            className="bg-blue-700 hover:bg-blue-900 text-white flex items-center gap-2" 
-            onClick={openCreate}
-          >
-            <Plus className="w-4 h-4" />
-            Nouveau Contrat
-          </Button>
+          {permissions.canCreate('contrats') && (
+            <Button 
+              className="bg-blue-700 hover:bg-blue-900 text-white flex items-center gap-2" 
+              onClick={openCreate}
+            >
+              <Plus className="w-4 h-4" />
+              Nouveau Contrat
+            </Button>
+          )}
         </div>
 
         {/* Statistiques */}
@@ -247,7 +254,7 @@ export default function Contrats() {
           </Card>
         </div>
 
-        {selectedContrats.size > 0 && (
+        {permissions.canDelete('contrats') && selectedContrats.size > 0 && (
           <div className="mb-4 flex items-center justify-between rounded-md bg-blue-50 p-3 border border-blue-200">
             <div className="text-sm font-medium text-blue-800">
               {selectedContrats.size} contrat(s) sélectionné(s).
@@ -289,12 +296,14 @@ export default function Contrats() {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <Checkbox
-                      checked={selectedContrats.has(contrat.id)}
-                      onCheckedChange={() => handleSelectContrat(contrat.id)}
-                      aria-label="Select contrat"
-                      className="mt-1"
-                    />
+                    {permissions.canDelete('contrats') && (
+                      <Checkbox
+                        checked={selectedContrats.has(contrat.id)}
+                        onCheckedChange={() => handleSelectContrat(contrat.id)}
+                        aria-label="Select contrat"
+                        className="mt-1"
+                      />
+                    )}
                     <div className="p-2 bg-gray-100 rounded-lg">
                       <User className="w-5 h-5 text-gray-600" />
                     </div>
@@ -338,12 +347,16 @@ export default function Contrats() {
                     <Button variant="outline" size="sm" className="bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200">
                       <Eye className="w-4 h-4 mr-1" /> Détails
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => openEdit(contrat)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => requestDelete(contrat.id)} className="text-red-600 hover:text-red-700">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {permissions.canEdit('contrats') && (
+                      <Button variant="outline" size="sm" onClick={() => openEdit(contrat)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {permissions.canDelete('contrats') && (
+                      <Button variant="outline" size="sm" onClick={() => requestDelete(contrat.id)} className="text-red-600 hover:text-red-700">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -353,96 +366,93 @@ export default function Contrats() {
       </div>
 
       {/* Dialog créer/modifier */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">{editingId ? 'Modifier le Contrat' : 'Nouveau Contrat'}</DialogTitle>
-            <DialogDescription className="text-gray-600">{editingId ? 'Modifiez le contrat' : 'Créez un nouveau contrat'}</DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && <div className="bg-red-50 border border-red-200 rounded-lg p-3"><div className="text-sm text-red-600">{error}</div></div>}
-            
-            {/* Sélection Employé */}
-            <div className="space-y-2">
-              <Label htmlFor="employeId" className="text-sm font-medium text-gray-700">Employé *</Label>
-              <select
-                id="employeId"
-                value={form.employeId}
-                onChange={(e) => setForm({ ...form, employeId: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                required
-              >
-                <option value="">-- Sélectionner un employé --</option>
-                {employes.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
-              </select>
-            </div>
-
-            {/* Type de contrat */}
-            <div className="space-y-2">
-              <Label htmlFor="type_contrat" className="text-sm font-medium text-gray-700">Type de contrat *</Label>
-              <select
-                id="type_contrat"
-                value={form.type_contrat}
-                onChange={(e) => setForm({ ...form, type_contrat: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                required
-              >
-                <option value="CDI">CDI</option>
-                <option value="CDD">CDD</option>
-                <option value="Stage">Stage</option>
-                <option value="Freelance">Consultant</option>
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+      {permissions.canCreate('contrats') || permissions.canEdit('contrats') ? (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold">{editingId ? 'Modifier le Contrat' : 'Nouveau Contrat'}</DialogTitle>
+              <DialogDescription className="text-gray-600">{editingId ? 'Modifiez le contrat' : 'Créez un nouveau contrat'}</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {error && <div className="bg-red-50 border border-red-200 rounded-lg p-3"><div className="text-sm text-red-600">{error}</div></div>}
+              {/* Sélection Employé */}
               <div className="space-y-2">
-                <Label htmlFor="date_debut" className="text-sm font-medium text-gray-700">Date de début *</Label>
-                <Input id="date_debut" type="date" value={form.date_debut} onChange={(e) => setForm({ ...form, date_debut: e.target.value })} required />
+                <Label htmlFor="employeId" className="text-sm font-medium text-gray-700">Employé *</Label>
+                <select
+                  id="employeId"
+                  value={form.employeId}
+                  onChange={(e) => setForm({ ...form, employeId: parseInt(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                  required
+                >
+                  <option value="">-- Sélectionner un employé --</option>
+                  {employes.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
+                </select>
+              </div>
+              {/* Type de contrat */}
+              <div className="space-y-2">
+                <Label htmlFor="type_contrat" className="text-sm font-medium text-gray-700">Type de contrat *</Label>
+                <select
+                  id="type_contrat"
+                  value={form.type_contrat}
+                  onChange={(e) => setForm({ ...form, type_contrat: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                  required
+                >
+                  <option value="CDI">CDI</option>
+                  <option value="CDD">CDD</option>
+                  <option value="Stage">Stage</option>
+                  <option value="Freelance">Consultant</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="date_debut" className="text-sm font-medium text-gray-700">Date de début *</Label>
+                  <Input id="date_debut" type="date" value={form.date_debut} onChange={(e) => setForm({ ...form, date_debut: e.target.value })} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="date_fin" className="text-sm font-medium text-gray-700">Date de fin</Label>
+                  <Input id="date_fin" type="date" value={form.date_fin} onChange={(e) => setForm({ ...form, date_fin: e.target.value })} />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="date_fin" className="text-sm font-medium text-gray-700">Date de fin</Label>
-                <Input id="date_fin" type="date" value={form.date_fin} onChange={(e) => setForm({ ...form, date_fin: e.target.value })} />
+                <Label htmlFor="salaire_base" className="text-sm font-medium text-gray-700">Salaire de base (Ar/mois) *</Label>
+                <Input id="salaire_base" type="number" value={form.salaire_base} onChange={(e) => setForm({ ...form, salaire_base: parseFloat(e.target.value) })} placeholder="50000" required />
               </div>
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="statut" className="text-sm font-medium text-gray-700">Statut *</Label>
+                <select id="statut" value={form.statut} onChange={(e) => setForm({ ...form, statut: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" required>
+                  <option value="ACTIF">Actif</option>
+                  <option value="TERMINE">Terminé</option>
+                </select>
+              </div>
+              <DialogFooter className="flex gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="flex-1">Annuler</Button>
+                <Button type="submit" className="flex-1 bg-black hover:bg-gray-800 text-white">{editingId ? 'Enregistrer' : 'Créer le contrat'}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      ):  null}
 
-            <div className="space-y-2">
-              <Label htmlFor="salaire_base" className="text-sm font-medium text-gray-700">Salaire de base (Ar/mois) *</Label>
-              <Input id="salaire_base" type="number" value={form.salaire_base} onChange={(e) => setForm({ ...form, salaire_base: parseFloat(e.target.value) })} placeholder="50000" required />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="statut" className="text-sm font-medium text-gray-700">Statut *</Label>
-              <select id="statut" value={form.statut} onChange={(e) => setForm({ ...form, statut: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" required>
-                <option value="ACTIF">Actif</option>
-                <option value="TERMINE">Terminé</option>
-              </select>
-            </div>
-
-            <DialogFooter className="flex gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="flex-1">Annuler</Button>
-              <Button type="submit" className="flex-1 bg-black hover:bg-gray-800 text-white">{editingId ? 'Enregistrer' : 'Créer le contrat'}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-            <AlertDialogDescription>
-              {selectedContrats.size > 0
-                ? `Es-tu sûr de vouloir supprimer ${selectedContrats.size} contrat(s) ? Cette action est irréversible.`
-                : "Es-tu sûr de vouloir supprimer ce contrat ? Cette action est irréversible."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 text-white">Supprimer</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {permissions.canDelete('contrats') && (
+        <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+              <AlertDialogDescription>
+                {selectedContrats.size > 0
+                  ? `Es-tu sûr de vouloir supprimer ${selectedContrats.size} contrat(s) ? Cette action est irréversible.`
+                  : "Es-tu sûr de vouloir supprimer ce contrat ? Cette action est irréversible."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete} className="bg-red-600 text-white">Supprimer</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }

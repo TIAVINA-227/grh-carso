@@ -1,3 +1,4 @@
+//frontend/src/pages/Absences.jsx
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -6,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { getAbsences, createAbsence, updateAbsence, deleteAbsence } from "../services/absenceService";
+import { usePermissions } from "../hooks/usePermissions";
 import { getEmployes } from "../services/employeService"; // <- nouveau
 import { CalendarDays, User, Plus, Edit, Trash2, CheckCircle, XCircle, Clock, FileText, Filter } from "lucide-react";
 import { Select } from "react-day-picker";
@@ -32,6 +34,7 @@ export default function Absences() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [selectedAbsences, setSelectedAbsences] = useState(new Set());
+  const permissions = usePermissions();
 
   const load = async () => {
     setLoading(true);
@@ -215,81 +218,81 @@ export default function Absences() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-background dark:bg-slate-950 p-6">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestion des Absences</h1>
-            <p className="text-sm text-gray-600 mt-1">Suivez et gérez les absences des employés</p>
+            <h1 className="text-3xl font-bold text-foreground dark:text-white">Gestion des Absences</h1>
+            <p className="text-sm text-muted-foreground dark:text-gray-400 mt-1">Suivez et gérez les absences des employés</p>
           </div>
-          <Button 
-            className="bg-black hover:bg-gray-800 text-white flex items-center gap-2" 
-            onClick={openCreate}
-          >
-            <Plus className="w-4 h-4" />
-            Déclarer une Absence
-          </Button>
+            <Button 
+              className="bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-black flex items-center gap-2" 
+              onClick={openCreate}
+            >
+              <Plus className="w-4 h-4" />
+              Déclarer une Absence
+            </Button>
         </div>
 
         {/* Statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white rounded-lg shadow-sm border-0">
+          <Card className="bg-card dark:bg-slate-900 rounded-lg shadow-sm border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Absences</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
-                  <p className="text-xs text-gray-500">Ce mois</p>
+                  <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Total Absences</p>
+                  <p className="text-3xl font-bold text-foreground dark:text-white">{stats.total}</p>
+                  <p className="text-xs text-muted-foreground dark:text-gray-500">Ce mois</p>
                 </div>
-                <FileText className="w-8 h-8 text-gray-500" />
+                <FileText className="w-8 h-8 text-muted-foreground dark:text-gray-500" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white rounded-lg shadow-sm border-0">
+          <Card className="bg-card dark:bg-slate-900 rounded-lg shadow-sm border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">En Attente</p>
-                  <p className="text-3xl font-bold text-teal-500">{stats.attente}</p>
-                  <p className="text-xs text-gray-500">À traiter</p>
+                  <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">En Attente</p>
+                  <p className="text-3xl font-bold text-teal-500 dark:text-teal-400">{stats.attente}</p>
+                  <p className="text-xs text-muted-foreground dark:text-gray-500">À traiter</p>
                 </div>
-                <Clock className="w-8 h-8 text-teal-500" />
+                <Clock className="w-8 h-8 text-teal-500 dark:text-teal-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white rounded-lg shadow-sm border-0">
+          <Card className="bg-card dark:bg-slate-900 rounded-lg shadow-sm border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Approuvées</p>
-                  <p className="text-3xl font-bold text-yellow-500">{stats.approuvees}</p>
-                  <p className="text-xs text-gray-500">Validées</p>
+                  <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Approuvées</p>
+                  <p className="text-3xl font-bold text-yellow-500 dark:text-yellow-400">{stats.approuvees}</p>
+                  <p className="text-xs text-muted-foreground dark:text-gray-500">Validées</p>
                 </div>
-                <CheckCircle className="w-8 h-8 text-yellow-500" />
+                <CheckCircle className="w-8 h-8 text-yellow-500 dark:text-yellow-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white rounded-lg shadow-sm border-0">
+          <Card className="bg-card dark:bg-slate-900 rounded-lg shadow-sm border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Refusées</p>
-                  <p className="text-3xl font-bold text-red-500">{stats.refusees}</p>
-                  <p className="text-xs text-gray-500">Non validées</p>
+                  <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Refusées</p>
+                  <p className="text-3xl font-bold text-red-500 dark:text-red-400">{stats.refusees}</p>
+                  <p className="text-xs text-muted-foreground dark:text-gray-500">Non validées</p>
                 </div>
-                <XCircle className="w-8 h-8 text-red-500" />
+                <XCircle className="w-8 h-8 text-red-500 dark:text-red-400" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         {selectedAbsences.size > 0 && (
-            <div className="mb-4 flex items-center justify-between rounded-md bg-blue-50 p-3 border border-blue-200">
-              <div className="text-sm font-medium text-blue-800">
+            <div className="mb-4 flex items-center justify-between rounded-md bg-primary/5 dark:bg-blue-900/20 p-3 border border-primary/20 dark:border-blue-800">
+              <div className="text-sm font-medium text-primary dark:text-blue-300">
                 {selectedAbsences.size} absence(s) sélectionnée(s).
               </div>
               <Button
@@ -305,18 +308,18 @@ export default function Absences() {
           )}
 
         {/* Liste des absences */}
-        <div className="bg-white rounded-lg shadow-sm border-0 p-6">
+        <div className="bg-card dark:bg-slate-900 rounded-lg shadow-sm border-border p-6">
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Liste des Absences</h2>
-              <p className="text-sm text-gray-600">{filteredAbsences.length} absence(s) trouvée(s)</p>
+              <h2 className="text-xl font-semibold text-foreground dark:text-white">Liste des Absences</h2>
+              <p className="text-sm text-muted-foreground dark:text-gray-400">{filteredAbsences.length} absence(s) trouvée(s)</p>
             </div>
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-500" />
+              <Filter className="w-4 h-4 text-muted-foreground dark:text-gray-500" />
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm"
+                className="px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm bg-background dark:bg-slate-900 text-foreground dark:text-white"
               >
                 <option value="Tous les statuts">Tous les statuts</option>
                 <option value="SOUMIS">En attente</option>
@@ -328,16 +331,16 @@ export default function Absences() {
 
           {loading && (
             <div className="flex justify-center items-center py-12">
-              <div className="text-gray-500">Chargement des absences...</div>
+              <div className="text-muted-foreground dark:text-gray-400">Chargement des absences...</div>
             </div>
           )}
 
           {!loading && filteredAbsences.length === 0 && (
             <div className="text-center py-12">
-              <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune absence trouvée</h3>
-              <p className="text-gray-500 mb-4">Commencez par déclarer une absence</p>
-              <Button onClick={openCreate} className="bg-blue-700 hover:bg-blue-900 text-white">
+              <FileText className="w-16 h-16 text-muted-foreground dark:text-gray-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground dark:text-white mb-2">Aucune absence trouvée</h3>
+              <p className="text-muted-foreground dark:text-gray-400 mb-4">Commencez par déclarer une absence</p>
+              <Button onClick={openCreate} className="bg-blue-700 dark:bg-blue-600 hover:bg-blue-800 dark:hover:bg-blue-700 text-white">
                 <Plus className="w-4 h-4 mr-2" />
                 Déclarer une absence
               </Button>
@@ -346,19 +349,19 @@ export default function Absences() {
 
           {!loading && filteredAbsences.length > 0 && (
             <div className="space-y-4">
-              <div className="flex items-center p-2 rounded-md hover:bg-gray-50">
+              <div className="flex items-center p-2 rounded-md hover:bg-muted dark:hover:bg-slate-800">
                 <Checkbox
                   id="select-all"
                   checked={selectedAbsences.size === filteredAbsences.length && filteredAbsences.length > 0}
                   onCheckedChange={handleSelectAll}
                   aria-label="Select all"
                 />
-                <label htmlFor="select-all" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">
+                <label htmlFor="select-all" className="ml-3 text-sm font-medium text-foreground dark:text-white cursor-pointer">
                   Tout sélectionner
                 </label>
               </div>
               {filteredAbsences.map((absence) => (
-                <Card key={absence.id} className={`bg-gray-50 rounded-lg border-0 ${selectedAbsences.has(absence.id) ? 'ring-2 ring-blue-500' : ''}`}>
+                <Card key={absence.id} className={`bg-muted dark:bg-slate-800 rounded-lg border-border ${selectedAbsences.has(absence.id) ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
@@ -404,7 +407,7 @@ export default function Absences() {
                         </Badge>
                         
                         <div className="flex gap-2">
-                          {absence.statut === "SOUMIS" && (
+                          {absence.statut === "SOUMIS" && permissions.canApprove("absences") && (
                             <>
                               <Button 
                                 variant="outline" 
@@ -425,21 +428,25 @@ export default function Absences() {
                             </>
                           )}
                           
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => openEdit(absence)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => requestDelete(absence.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          {permissions.canUpdate("absences") && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => openEdit(absence)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {permissions.canDelete("absences") && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => requestDelete(absence.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
