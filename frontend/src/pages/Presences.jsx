@@ -1,3 +1,4 @@
+// //frontend/src/pages/Presences.jsx
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -5,19 +6,26 @@ import { Badge } from "../components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { useToast } from "../components/ui/use-toast"; // ✅ Import toast
+import { useToast } from "../components/ui/use-toast";
 import { getPresences, createPresence, updatePresence, deletePresence } from "../services/presenceService";
 import { getEmployes } from "../services/employeService";
-import { CalendarDays, Clock, User, Plus, Download, Edit, Trash2, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { CalendarDays, Clock, User, Plus, Download, Edit, Trash2, CheckCircle, XCircle, AlertCircle, Users, TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { Checkbox } from "../components/ui/checkbox";
 import { usePermissions } from "../hooks/usePermissions";
+import { Separator } from "../components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Textarea } from "../components/ui/textarea";
+
+import { pdf } from '@react-pdf/renderer'
+import PresencesPDFDocument from "../exportPdf/PresencesPDFDocument.jsx";
+import logoGauche from "../assets/carso 1.png";
 
 export default function Presences() {
   const [presences, setPresences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [employes, setEmployes] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false); // ✅ Modale de suppression
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [presenceToDelete, setPresenceToDelete] = useState(null);
   const [form, setForm] = useState({ 
     employeId: "", 
@@ -30,11 +38,10 @@ export default function Presences() {
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString());
-  const { toast } = useToast(); // ✅ Hook toast
+  const { toast } = useToast();
   const [selectedPresences, setSelectedPresences] = useState(new Set());
   const permissions = usePermissions();
 
-  // Met à jour automatiquement la date + heure toutes les secondes
   useEffect(() => {
     const interval = setInterval(() => {
       setSelectedDate(new Date().toISOString());
@@ -42,7 +49,6 @@ export default function Presences() {
     return () => clearInterval(interval);
   }, []);
 
-  // Charger les présences
   const load = async () => {
     setLoading(true);
     try {
@@ -69,7 +75,6 @@ export default function Presences() {
 
   useEffect(() => { load(); }, []);
 
-  // Ouvrir la création
   const openCreate = () => {
     setEditingId(null);
     setForm({ 
@@ -82,7 +87,6 @@ export default function Presences() {
     setIsDialogOpen(true);
   };
 
-  // Ouvrir l’édition
   const openEdit = (p) => {
     setEditingId(p.id);
     setForm({ 
@@ -95,7 +99,6 @@ export default function Presences() {
     setIsDialogOpen(true);
   };
 
-  // Soumission du formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -130,7 +133,6 @@ export default function Presences() {
     }
   };
 
-  // ✅ Prépare la suppression avec modale
   const confirmDelete = (id) => {
     setPresenceToDelete(id);
     setConfirmDialogOpen(true);
@@ -194,20 +196,20 @@ export default function Presences() {
     }
   };
 
-  // // Statistiques
-  // const stats = {
-  //   presents: presences.filter(p => p.statut === "PRESENT").length,
-  //   absents: presences.filter(p => p.statut === "ABSENT").length,
-  //   retards: presences.filter(p => p.statut === "RETARD").length,
-  //   taux: presences.length > 0 ? Math.round((presences.filter(p => p.statut === "PRESENT").length / presences.length) * 100) : 0,
-  // };
+  // Statistiques
+  const stats = {
+    presents: presences.filter(p => p.statut === "PRESENT").length,
+    absents: presences.filter(p => p.statut === "ABSENT").length,
+    retards: presences.filter(p => p.statut === "RETARD").length,
+    taux: presences.length > 0 ? Math.round((presences.filter(p => p.statut === "PRESENT").length / presences.length) * 100) : 0,
+  };
 
   const colorStatut = (statut) => {
     switch (statut) {
-      case "PRESENT": return "bg-yellow-400 text-black";
-      case "RETARD": return "bg-teal-500 text-white";
-      case "ABSENT": return "bg-red-500 text-white";
-      default: return "bg-gray-300 text-black";
+      case "PRESENT": return "bg-emerald-100 text-emerald-700 border-emerald-200";
+      case "RETARD": return "bg-amber-100 text-amber-700 border-amber-200";
+      case "ABSENT": return "bg-rose-100 text-rose-700 border-rose-200";
+      default: return "bg-gray-100 text-gray-700 border-gray-200";
     }
   };
 
@@ -232,224 +234,452 @@ export default function Presences() {
     });
   };
 
-  return (
-    <div className="min-h-screen bg-background dark:bg-slate-950 p-6">
-      <div className="mx-auto max-w-7xl">
+  const exportToPDF = async () => {
+    if (presences.length === 0) {
+      toast({
+        title: "Aucune donnée à exporter",
+        description: "Aucune présence n'est enregistrée aujourd'hui.",
+        className: "bg-yellow-500 text-white",
+      });
+      return;
+    }
 
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestion des Présences</h1>
-            <p className="text-sm text-gray-600 mt-1">Suivez les présences quotidiennes des employés</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
-              className="flex items-center gap-2"
-              onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
-            >
-              <CalendarDays className="w-4 h-4" />
-              {formatDateTime(selectedDate)}
-            </Button>
-            <Button className="bg-blue-700 hover:bg-blue-900 text-white flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Exporter
-            </Button>
-           
-              <Button 
-                className="bg-blue-700 hover:bg-blue-900 text-white flex items-center gap-2" 
-                onClick={openCreate}
-              >
-                <Plus className="w-4 h-4" />
-                Nouvelle Présence
-              </Button>
-            
+    try {
+      toast({
+        title: "Génération du PDF en cours...",
+        className: "bg-blue-600 text-white",
+      });
+
+      // Générer le document PDF
+      const blob = await pdf(
+        <PresencesPDFDocument
+          presences={presences}
+          employes={employes}
+          logoUrl={logoGauche}
+          selectedDate={selectedDate}
+        />
+      ).toBlob();
+
+      // Créer un lien de téléchargement
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `liste_presences_${new Date().toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "PDF généré ✅",
+        description: "Le fichier PDF de la liste des présences a été téléchargé.",
+        className: "bg-green-600 text-white",
+      });
+    } catch (error) {
+      console.error("Erreur lors de l'export PDF:", error);
+      toast({
+        title: "Erreur lors de l'export",
+        description: "Impossible de générer le PDF",
+        className: "bg-red-600 text-white",
+      });
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background dark:bg-background p-4 md:p-8">
+      <div className="mx-auto max-w-7xl space-y-8">
+
+        {/* Header moderne avec glassmorphism */}
+        <div className="relative overflow-hidden rounded-2xl bg-card/70 dark:bg-card backdrop-blur-xl border border-border shadow-2xl p-8">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/3 to-accent/5"></div>
+          <div className="relative">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div className="space-y-2">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                  Gestion des Présences
+                </h1>
+                <p className="text-muted-foreground flex items-center gap-2">
+                  <Activity className="w-4 h-4" />
+                  Suivez les présences quotidiennes en temps réel
+                </p>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 backdrop-blur-sm border border-border shadow-sm">
+                  <CalendarDays className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-foreground">
+                    {formatDateTime(selectedDate)}
+                  </span>
+                </div>
+                
+                <Button
+                  onClick={exportToPDF}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/40"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Exporter PDF
+                </Button>
+
+                <Button 
+                  onClick={openCreate}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/30 transition-all duration-300 hover:shadow-xl hover:shadow-accent/40"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nouvelle Présence
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
+        {/* Cartes statistiques modernes */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white dark:from-emerald-600 dark:to-emerald-700">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-emerald-100 text-sm font-medium">Présents</p>
+                <CheckCircle className="w-8 h-8 text-white/80" />
+              </div>
+              <p className="text-4xl font-bold">{stats.presents}</p>
+              <div className="flex items-center gap-1 mt-2 text-emerald-100 text-xs">
+                <TrendingUp className="w-3 h-3" />
+                <span>Aujourd'hui</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white dark:from-rose-600 dark:to-rose-700">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-rose-100 text-sm font-medium">Absents</p>
+                <XCircle className="w-8 h-8 text-white/80" />
+              </div>
+              <p className="text-4xl font-bold">{stats.absents}</p>
+              <div className="flex items-center gap-1 mt-2 text-rose-100 text-xs">
+                <TrendingDown className="w-3 h-3" />
+                <span>Aujourd'hui</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white dark:from-amber-600 dark:to-amber-700">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-amber-100 text-sm font-medium">Retards</p>
+                <AlertCircle className="w-8 h-8 text-white/80" />
+              </div>
+              <p className="text-4xl font-bold">{stats.retards}</p>
+              <div className="flex items-center gap-1 mt-2 text-amber-100 text-xs">
+                <Clock className="w-3 h-3" />
+                <span>Aujourd'hui</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-primary text-primary-foreground">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-primary-foreground/80 text-sm font-medium">Taux présence</p>
+                <Users className="w-8 h-8 text-primary-foreground/80" />
+              </div>
+              <p className="text-4xl font-bold">{stats.taux}%</p>
+              <div className="flex items-center gap-1 mt-2 text-primary-foreground/80 text-xs">
+                <Activity className="w-3 h-3" />
+                <span>Performance</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Barre de sélection */}
         {selectedPresences.size > 0 && (
-          <div className="mb-4 flex items-center justify-between rounded-md bg-blue-50 p-3 border border-blue-200">
-            <div className="text-sm font-medium text-blue-800">
-              {selectedPresences.size} présence(s) sélectionnée(s).
+          <div className="rounded-xl bg-primary/10 dark:bg-primary/20 backdrop-blur-sm border border-primary/20 p-4 shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
+                  {selectedPresences.size}
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">
+                    {selectedPresences.size} présence{selectedPresences.size > 1 ? 's' : ''} sélectionnée{selectedPresences.size > 1 ? 's' : ''}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Cliquez sur supprimer pour effacer la sélection
+                  </p>
+                </div>
+              </div>
+              {permissions.canDelete('presences') && (
+                <Button
+                  variant="destructive"
+                  onClick={requestDeleteSelected}
+                  className="shadow-lg hover:shadow-xl transition-all"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Supprimer
+                </Button>
+              )}
             </div>
-            {permissions.canDelete('presences') && (
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={requestDeleteSelected}
-                className="flex items-center gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Supprimer la sélection
-              </Button>
-            )}
           </div>
         )}
 
-        {/* Liste des présences */}
-        <div className="bg-white rounded-lg shadow-sm border-0 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Présences du {formatDateTime(selectedDate)}
-          </h2>
-
-          {loading ? (
-            <div className="flex justify-center items-center py-12 text-gray-500">
-              Chargement des présences...
-            </div>
-          ) : presences.length === 0 ? (
-            <div className="text-center py-12">
-              <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune présence trouvée</h3>
-              <p className="text-gray-500 mb-4">Commencez par enregistrer une présence</p>
-              <Button onClick={openCreate} className="bg-black text-white">
-                <Plus className="w-4 h-4 mr-2" />
-                Enregistrer une présence
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center p-2 rounded-md hover:bg-gray-50">
-                <Checkbox
-                  id="select-all"
-                  checked={selectedPresences.size === presences.length && presences.length > 0}
-                  onCheckedChange={handleSelectAll}
-                  aria-label="Select all"
-                />
-                <label htmlFor="select-all" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">
-                  Tout sélectionner
-                </label>
+        {/* Liste des présences modernisée */}
+        <Card className="border shadow-2xl rounded-2xl overflow-hidden bg-card backdrop-blur-xl">
+          <div className="bg-muted/50 p-6 border-b">
+            <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                <Users className="w-5 h-5 text-primary-foreground" />
               </div>
-              {presences.map((presence) => (
-                <Card key={presence.id} className={`bg-gray-50 rounded-lg border-0 ${selectedPresences.has(presence.id) ? 'ring-2 ring-blue-500' : ''}`}>
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      {permissions.canDelete('presences') && (
-                        <Checkbox
-                          checked={selectedPresences.has(presence.id)}
-                          onCheckedChange={() => handleSelectPresence(presence.id)}
-                          aria-label="Select presence"
-                        />
-                      )}
-                      <div className="p-2 bg-gray-200 rounded-full">
-                        <User className="w-6 h-6 text-gray-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900 text-lg">
-                          {(() => {
-                            const emp = employes.find(e => e.id === presence.employeId);
-                            return emp ? `${emp.nom} ${emp.prenom}` : `Employé #${presence.employeId}`;
-                          })()}
-                        </h3>
-                        <p className="text-sm text-gray-500 flex items-center gap-1">
-                          <CalendarDays className="w-4 h-4" />
-                          {formatDateTime(presence.date_jour)}
-                        </p>
-                        {presence.heures_travaillees && (
-                          <p className="text-sm text-gray-600">
-                            Heures travaillées: {presence.heures_travaillees}h
-                          </p>
-                        )}
-                        {presence.justification && (
-                          <p className="text-sm text-gray-500 italic">
-                            "{presence.justification}"
-                          </p>
-                        )}
-                      </div>
-                    </div>
+              Présences du {formatDateTime(selectedDate)}
+            </h2>
+          </div>
 
-                    <div className="flex items-center gap-3">
-                      <Badge className={`${colorStatut(presence.statut)} flex items-center gap-1`}>
-                        {getStatutIcon(presence.statut)}
-                        {presence.statut.toLowerCase()}
-                      </Badge>
-                      <div className="flex gap-2">
-                        {permissions.canEdit('presences') && (
-                          <Button variant="outline" size="sm" onClick={() => openEdit(presence)}>
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        )}
-                        {permissions.canDelete('presences') && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => confirmDelete(presence.id)} // ✅ Modale
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
+          <CardContent className="p-6">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <p className="text-muted-foreground font-medium">Chargement des présences...</p>
+              </div>
+            ) : presences.length === 0 ? (
+              <div className="text-center py-16 space-y-6">
+                <div className="mx-auto w-24 h-24 rounded-full bg-muted flex items-center justify-center">
+                  <User className="w-12 h-12 text-muted-foreground" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-foreground">Aucune présence trouvée</h3>
+                  <p className="text-muted-foreground">Commencez par enregistrer une présence aujourd'hui</p>
+                </div>
+                <Button 
+                  onClick={openCreate} 
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Enregistrer une présence
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/30 border">
+                  <Checkbox
+                    id="select-all"
+                    checked={selectedPresences.size === presences.length && presences.length > 0}
+                    onCheckedChange={handleSelectAll}
+                    className="border-2"
+                  />
+                  <label htmlFor="select-all" className="text-sm font-semibold text-foreground cursor-pointer">
+                    Tout sélectionner ({presences.length} présence{presences.length > 1 ? 's' : ''})
+                  </label>
+                </div>
+
+                <Separator className="my-4" />
+
+                <div className="space-y-3">
+                  {presences.map((presence) => (
+                    <Card 
+                      key={presence.id} 
+                      className={`group hover:shadow-xl transition-all duration-300 border-2 ${
+                        selectedPresences.has(presence.id) 
+                          ? 'border-primary shadow-lg shadow-primary/20 bg-primary/5' 
+                          : 'border-transparent hover:border-border'
+                      }`}
+                    >
+                      <CardContent className="p-5">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 flex-1">
+                            {permissions.canDelete('presences') && (
+                              <Checkbox
+                                checked={selectedPresences.has(presence.id)}
+                                onCheckedChange={() => handleSelectPresence(presence.id)}
+                                className="border-2"
+                              />
+                            )}
+                            
+                            <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                              <User className="w-7 h-7 text-primary-foreground" />
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-lg text-foreground truncate">
+                                {(() => {
+                                  const emp = employes.find(e => e.id === presence.employeId);
+                                  return emp ? `${emp.nom} ${emp.prenom}` : `Employé #${presence.employeId}`;
+                                })()}
+                              </h3>
+                              <div className="flex flex-wrap items-center gap-3 mt-2">
+                                <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                  <CalendarDays className="w-4 h-4 text-primary" />
+                                  {formatDateTime(presence.date_jour)}
+                                </p>
+                                {presence.heures_travaillees && (
+                                  <p className="text-sm text-foreground flex items-center gap-1.5 px-2 py-1 rounded-lg bg-muted">
+                                    <Clock className="w-4 h-4 text-accent" />
+                                    {presence.heures_travaillees}h travaillées
+                                  </p>
+                                )}
+                              </div>
+                              {presence.justification && (
+                                <p className="text-sm text-muted-foreground italic mt-2 p-2 bg-muted/50 rounded-lg border-l-4 border-primary">
+                                  "{presence.justification}"
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <Badge className={`${colorStatut(presence.statut)} flex items-center gap-2 px-4 py-2 text-sm font-semibold border shadow-sm`}>
+                              {getStatutIcon(presence.statut)}
+                              {presence.statut}
+                            </Badge>
+                            
+                            <div className="flex gap-2">
+                              {permissions.canEdit('presences') && (
+                                <Button 
+                                  variant="outline" 
+                                  size="icon"
+                                  onClick={() => openEdit(presence)}
+                                  className="hover:bg-primary/10 hover:text-primary hover:border-primary transition-all"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                              )}
+                              {permissions.canDelete('presences') && (
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => confirmDelete(presence.id)}
+                                  className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-all"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Dialog principal */}
+      {/* Dialog principal modernisé */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">
-              {editingId ? 'Modifier la Présence' : 'Nouvelle Présence'}
-            </DialogTitle>
-            <DialogDescription className="text-gray-600">
-              {editingId ? 'Modifiez les informations de présence' : 'Enregistrez une nouvelle présence'}
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border shadow-2xl">
+          <div className="bg-primary p-6 text-primary-foreground">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center">
+                  {editingId ? <Edit className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                </div>
+                {editingId ? 'Modifier la Présence' : 'Nouvelle Présence'}
+              </DialogTitle>
+              <DialogDescription className="text-primary-foreground/80 mt-2">
+                {editingId ? 'Modifiez les informations de présence ci-dessous' : 'Enregistrez une nouvelle présence pour aujourd\'hui'}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="p-6 space-y-6 bg-card">
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-600">
-                {error}
+              <div className="bg-destructive/10 border-l-4 border-destructive rounded-lg p-4 flex items-start gap-3">
+                <XCircle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-destructive">Erreur</p>
+                  <p className="text-sm text-destructive/80 mt-1">{error}</p>
+                </div>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="employeId">Employé *</Label>
-              <select
-                id="employeId"
+              <Label htmlFor="employeId" className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <User className="w-4 h-4 text-primary" />
+                Employé <span className="text-destructive">*</span>
+              </Label>
+              <Select
                 value={form.employeId}
-                onChange={(e) => setForm({ ...form, employeId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                required
+                onValueChange={(value) => setForm({ ...form, employeId: value })}
               >
-                <option value="">-- Sélectionner un employé --</option>
-                {employes.map(e => (
-                  <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>
-                ))}
-              </select>
+                <SelectTrigger className="h-12 border-2 focus:border-primary transition-colors">
+                  <SelectValue placeholder="Sélectionner un employé" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employes.map(e => (
+                    <SelectItem key={e.id} value={e.id}>
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
+                          {e.nom[0]}{e.prenom[0]}
+                        </div>
+                        <span>{e.nom} {e.prenom}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="date_jour">Date et heure du pointage</Label>
-              <Input
-                id="date_jour"
-                type="datetime-local"
-                value={new Date(form.date_jour).toISOString().slice(0,16)}
-                readOnly
-              />
+              <Label htmlFor="date_jour" className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <CalendarDays className="w-4 h-4 text-accent" />
+                Date et heure du pointage
+              </Label>
+              <div className="relative">
+                <Input
+                  id="date_jour"
+                  type="datetime-local"
+                  value={new Date(form.date_jour).toISOString().slice(0,16)}
+                  readOnly
+                  className="h-12 border-2 bg-muted cursor-not-allowed"
+                />
+                <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="statut">Statut *</Label>
-              <select
-                id="statut"
+              <Label htmlFor="statut" className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Activity className="w-4 h-4 text-emerald-500" />
+                Statut <span className="text-destructive">*</span>
+              </Label>
+              <Select
                 value={form.statut}
-                onChange={(e) => setForm({ ...form, statut: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                required
+                onValueChange={(value) => setForm({ ...form, statut: value })}
               >
-                <option value="PRESENT">Présent</option>
-                <option value="ABSENT">Absent</option>
-                <option value="RETARD">Retard</option>
-              </select>
+                <SelectTrigger className="h-12 border-2 focus:border-primary transition-colors">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PRESENT">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-emerald-600" />
+                      <span>Présent</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="ABSENT">
+                    <div className="flex items-center gap-2">
+                      <XCircle className="w-4 h-4 text-rose-600" />
+                      <span>Absent</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="RETARD">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-600" />
+                      <span>Retard</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="heures_travaillees">Heures travaillées</Label>
+              <Label htmlFor="heures_travaillees" className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Clock className="w-4 h-4 text-orange-500" />
+                Heures travaillées
+              </Label>
               <Input
                 id="heures_travaillees"
                 type="number"
@@ -457,54 +687,104 @@ export default function Presences() {
                 value={form.heures_travaillees}
                 onChange={(e) => setForm({ ...form, heures_travaillees: parseFloat(e.target.value) })}
                 placeholder="8"
+                className="h-12 border-2 focus:border-primary transition-colors"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="justification">Justification</Label>
-              <textarea
+              <Label htmlFor="justification" className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-yellow-500" />
+                Justification
+              </Label>
+              <Textarea
                 id="justification"
                 value={form.justification}
                 onChange={(e) => setForm({ ...form, justification: e.target.value })}
-                placeholder="Justification si nécessaire..."
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black resize-none"
+                placeholder="Entrez une justification si nécessaire..."
+                rows={4}
+                className="border-2 focus:border-primary transition-colors resize-none"
               />
             </div>
 
-            <DialogFooter className="flex gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="flex-1">
+            <Separator className="my-6" />
+
+            <DialogFooter className="flex gap-3 sm:gap-3">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsDialogOpen(false)} 
+                className="flex-1 h-12 border-2 hover:bg-muted transition-all"
+              >
                 Annuler
               </Button>
-              <Button type="submit" className="flex-1 bg-black hover:bg-gray-800 text-white">
-                {editingId ? 'Enregistrer' : 'Créer la présence'}
+              <Button 
+                type="submit" 
+                className="flex-1 h-12 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all"
+              >
+                {editingId ? (
+                  <>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Mettre à jour
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Créer la présence
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* ✅ Modale de confirmation de suppression */}
+      {/* Modale de confirmation modernisée */}
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-semibold text-red-600">
-              Confirmation de suppression
-            </DialogTitle>
-            <DialogDescription className="text-gray-600">
-              {selectedPresences.size > 0
-                ? `Êtes-vous sûr de vouloir supprimer ${selectedPresences.size} présence(s) ? Cette action est irréversible.`
-                : "Êtes-vous sûr de vouloir supprimer cette présence ? Cette action est irréversible."}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex justify-end gap-3 pt-4">
-            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
-              Annuler
-            </Button>
-            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={handleDelete}>
-              Supprimer
-            </Button>
-          </DialogFooter>
+        <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden border shadow-2xl">
+          <div className="bg-destructive p-6 text-destructive-foreground">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl bg-destructive-foreground/20 backdrop-blur-sm flex items-center justify-center">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                Confirmation de suppression
+              </DialogTitle>
+              <DialogDescription className="text-destructive-foreground/80 mt-2">
+                Cette action est irréversible et supprimera définitivement les données
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <div className="p-6 bg-card space-y-4">
+            <div className="bg-destructive/10 border-l-4 border-destructive rounded-lg p-4">
+              <p className="text-foreground">
+                {selectedPresences.size > 0
+                  ? `Vous êtes sur le point de supprimer ${selectedPresences.size} présence${selectedPresences.size > 1 ? 's' : ''}.`
+                  : "Vous êtes sur le point de supprimer cette présence."}
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Voulez-vous vraiment continuer ?
+              </p>
+            </div>
+
+            <DialogFooter className="flex gap-3 sm:gap-3 pt-2">
+              <Button 
+                type="button"
+                variant="outline" 
+                onClick={() => setConfirmDialogOpen(false)}
+                className="flex-1 h-12 border-2 hover:bg-muted"
+              >
+                Annuler
+              </Button>
+              <Button 
+                onClick={handleDelete}
+                className="flex-1 h-12 bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg hover:shadow-xl transition-all"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Confirmer la suppression
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

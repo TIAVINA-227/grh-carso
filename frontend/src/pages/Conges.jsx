@@ -5,6 +5,9 @@ import { getConges, createConge, updateConge, deleteConge } from "../services/co
 import { usePermissions } from "../hooks/usePermissions";
 import { getEmployes } from "../services/employeService";
 import { toast } from "sonner";
+import { pdf } from '@react-pdf/renderer';
+import CongesPDFDocument from "../exportPdf/CongesPDFDocument.jsx";
+import logoDroite from "../assets/carso 1.png";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -43,7 +46,9 @@ import {
   Filter,
   Search,
   Download,
-  AlertCircle
+  AlertCircle,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
 
 export default function CongesPage() {
@@ -63,6 +68,9 @@ export default function CongesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatut, setFilterStatut] = useState("tous");
   
+  // 🔹 ID de l'employé connecté
+  const [currentEmployeId, setCurrentEmployeId] = useState(null);
+  
   const [formData, setFormData] = useState({
     type_conge: "",
     date_debut: "",
@@ -79,6 +87,16 @@ export default function CongesPage() {
       const data = await getEmployes();
       setEmployes(data);
       console.log('Employés chargés:', data.length);
+      
+      // 🔹 Trouver l'employé correspondant à l'utilisateur connecté
+      if (permissions.isEmploye && user) {
+        const employe = data.find(emp => emp.email === user.email);
+        if (employe) {
+          setCurrentEmployeId(employe.id);
+          // Pré-remplir l'ID pour les employés
+          setFormData(prev => ({ ...prev, employeId: employe.id.toString() }));
+        }
+      }
     } catch (err) {
       console.error("Erreur chargement employés:", err);
       toast.error("Erreur", { 
@@ -112,6 +130,7 @@ export default function CongesPage() {
   useEffect(() => {
     load();
     loadEmployes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fonction async de soumission
@@ -129,10 +148,12 @@ export default function CongesPage() {
     }
 
     try {
+      // 🔹 Pour un employé, forcer le statut à "SOUMIS" (au lieu de EN_ATTENTE)
       const payload = {
         ...formData,
         utilisateurId: user.id,
-        employeId: parseInt(formData.employeId)
+        employeId: parseInt(formData.employeId),
+        statut: permissions.isEmploye ? "SOUMIS" : formData.statut
       };
 
       console.log('Payload envoyé:', payload);
@@ -142,7 +163,11 @@ export default function CongesPage() {
         toast.success("Congé mis à jour");
       } else {
         await createConge(payload);
-        toast.success("Congé créé avec succès");
+        toast.success(
+          permissions.isEmploye 
+            ? "Demande de congé envoyée avec succès" 
+            : "Congé créé avec succès"
+        );
       }
       
       setIsDialogOpen(false);
@@ -195,6 +220,30 @@ export default function CongesPage() {
     }
   };
 
+  // 🔹 Approuver un congé
+  const handleApprove = async (id) => {
+    try {
+      await updateConge(id, { statut: "APPROUVE" });
+      toast.success("Congé approuvé");
+      await load();
+    } catch (err) {
+      console.error("Erreur approbation:", err);
+      toast.error("Erreur", { description: err.message });
+    }
+  };
+
+  // 🔹 Refuser un congé
+  const handleReject = async (id) => {
+    try {
+      await updateConge(id, { statut: "REJETE" });
+      toast.success("Congé refusé");
+      await load();
+    } catch (err) {
+      console.error("Erreur refus:", err);
+      toast.error("Erreur", { description: err.message });
+    }
+  };
+
   // Réinitialiser le formulaire
   const resetForm = () => {
     setFormData({
@@ -203,7 +252,7 @@ export default function CongesPage() {
       date_fin: "",
       motif: "",
       statut: "SOUMIS",
-      employeId: ""
+      employeId: permissions.isEmploye ? currentEmployeId?.toString() || "" : ""
     });
     setEditing(false);
     setCurrent(null);
@@ -211,6 +260,12 @@ export default function CongesPage() {
 
   // Ouvrir le dialog en mode édition
   const openEditDialog = (conge) => {
+    // 🔹 Employé peut seulement éditer les congés "SOUMIS"
+    if (permissions.isEmploye && conge.statut !== "SOUMIS") {
+      toast.error("Vous ne pouvez modifier que les demandes en attente");
+      return;
+    }
+
     setFormData({
       type_conge: conge.type_conge || "",
       date_debut: conge.date_debut?.split('T')[0] || "",
@@ -250,6 +305,42 @@ export default function CongesPage() {
     setSelectedConges(newSelected);
   };
 
+  // Exporter en PDF
+  const exportToPDF = async () => {
+    if (conges.length === 0) {
+      toast.warning("Aucune donnée à exporter");
+      return;
+    }
+
+    try {
+      toast.info("Génération du PDF en cours...");
+
+      // Générer le document PDF
+      const blob = await pdf(
+        <CongesPDFDocument
+          conges={conges}
+          employes={employes}
+          logoUrl={logoDroite}
+        />
+      ).toBlob();
+
+      // Créer un lien de téléchargement
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'liste_conges.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Export PDF réussi");
+    } catch (error) {
+      console.error("Erreur lors de l'export PDF:", error);
+      toast.error("Erreur lors de l'export PDF");
+    }
+  };
+
   const handleSelectAll = () => {
     if (selectedConges.size === filteredConges.length) {
       setSelectedConges(new Set());
@@ -270,7 +361,7 @@ export default function CongesPage() {
     const config = {
       SOUMIS: { variant: "default", label: "Soumis" },
       APPROUVE: { variant: "default", label: "Approuvé", className: "bg-green-500 text-white" },
-      REFUSE: { variant: "destructive", label: "Refusé" },
+      REJETE: { variant: "destructive", label: "Refusé" },
       EN_ATTENTE: { variant: "secondary", label: "En attente" }
     };
     
@@ -283,8 +374,13 @@ export default function CongesPage() {
     );
   };
 
-  // Filtrage
+  // 🔹 Filtrage avec support rôle employé
   const filteredConges = conges.filter(conge => {
+    // Si employé, ne voir QUE ses propres congés
+    if (permissions.isEmploye && currentEmployeId) {
+      if (conge.employeId !== currentEmployeId) return false;
+    }
+
     const matchSearch = 
       conge.type_conge?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       conge.employe?.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -306,7 +402,7 @@ export default function CongesPage() {
               </div>
               <div>
                 <CardTitle className="text-2xl font-bold text-foreground dark:text-white">
-                  Gestion des Congés
+                  {permissions.isEmploye ? "Mes Demandes de Congés" : "Gestion des Congés"}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground dark:text-gray-400 mt-1">
                   {filteredConges.length} congé{filteredConges.length > 1 ? 's' : ''} 
@@ -315,7 +411,8 @@ export default function CongesPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              {selectedConges.size > 0 && permissions.canDelete("conges") && (
+              {/* 🔹 Suppression multiple uniquement pour Admin/SuperAdmin */}
+              {selectedConges.size > 0 && permissions.canDelete("conges") && !permissions.isEmploye && (
                 <Button 
                   variant="destructive"
                   onClick={handleDeleteSelected}
@@ -325,13 +422,13 @@ export default function CongesPage() {
                   Supprimer ({selectedConges.size})
                 </Button>
               )}
-                <Button 
-                  onClick={openCreateDialog}
-                  className="flex items-center gap-2 bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800"
-                >
-                  <Plus className="h-4 w-4" />
-                  Nouveau Congé
-                </Button>
+              <Button 
+                onClick={openCreateDialog}
+                className="flex items-center gap-2 bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800"
+              >
+                <Plus className="h-4 w-4" />
+                {permissions.isEmploye ? "Nouvelle Demande" : "Nouveau Congé"}
+              </Button>
             </div>
           </div>
 
@@ -355,11 +452,10 @@ export default function CongesPage() {
                 <SelectItem value="tous">Tous les statuts</SelectItem>
                 <SelectItem value="SOUMIS">Soumis</SelectItem>
                 <SelectItem value="APPROUVE">Approuvé</SelectItem>
-                <SelectItem value="REFUSE">Refusé</SelectItem>
-                <SelectItem value="EN_ATTENTE">En attente</SelectItem>
+                <SelectItem value="REJETE">Refusé</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button variant="outline" className="flex items-center gap-2" onClick={exportToPDF}>
               <Download className="h-4 w-4" />
               Exporter
             </Button>
@@ -390,10 +486,14 @@ export default function CongesPage() {
               <p className="text-gray-500 text-lg font-medium mb-2">
                 {searchTerm || filterStatut !== "tous" 
                   ? "Aucun congé trouvé avec ces filtres" 
-                  : "Aucun congé enregistré"}
+                  : permissions.isEmploye
+                    ? "Vous n'avez pas encore de demande de congé"
+                    : "Aucun congé enregistré"}
               </p>
               <p className="text-gray-400 text-sm mb-4">
-                Commencez par créer votre premier congé
+                {permissions.isEmploye 
+                  ? "Faites votre première demande de congé"
+                  : "Commencez par créer votre premier congé"}
               </p>
               <Button 
                 onClick={openCreateDialog} 
@@ -401,7 +501,7 @@ export default function CongesPage() {
                 className="flex items-center gap-2 mx-auto"
               >
                 <Plus className="h-4 w-4" />
-                Créer un congé
+                {permissions.isEmploye ? "Faire une demande" : "Créer un congé"}
               </Button>
             </div>
           ) : (
@@ -409,15 +509,18 @@ export default function CongesPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50">
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={selectedConges.size === filteredConges.length && filteredConges.length > 0}
-                        onCheckedChange={handleSelectAll}
-                      />
-                    </TableHead>
+                    {/* 🔹 Checkbox uniquement pour Admin/SuperAdmin */}
+                    {!permissions.isEmploye && (
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={selectedConges.size === filteredConges.length && filteredConges.length > 0}
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </TableHead>
+                    )}
                     <TableHead className="font-semibold">ID</TableHead>
-                    <TableHead className="font-semibold">Type</TableHead>
                     <TableHead className="font-semibold">Employé</TableHead>
+                    <TableHead className="font-semibold">Type</TableHead>
                     <TableHead className="font-semibold">Date début</TableHead>
                     <TableHead className="font-semibold">Date fin</TableHead>
                     <TableHead className="font-semibold">Durée</TableHead>
@@ -438,18 +541,19 @@ export default function CongesPage() {
                         className="hover:bg-gray-50 transition-colors"
                         data-state={selectedConges.has(conge.id) && "selected"}
                       >
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedConges.has(conge.id)}
-                            onCheckedChange={() => handleSelectConge(conge.id)}
-                          />
-                        </TableCell>
+                        {/* 🔹 Checkbox uniquement pour Admin/SuperAdmin */}
+                        {!permissions.isEmploye && (
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedConges.has(conge.id)}
+                              onCheckedChange={() => handleSelectConge(conge.id)}
+                            />
+                          </TableCell>
+                        )}
                         <TableCell className="font-medium text-gray-600">
                           #{conge.id}
                         </TableCell>
-                        <TableCell className="font-medium">
-                          {conge.type_conge}
-                        </TableCell>
+                       
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
@@ -462,6 +566,9 @@ export default function CongesPage() {
                               }
                             </span>
                           </div>
+                        </TableCell>
+                         <TableCell className="font-medium">
+                          {conge.type_conge}
                         </TableCell>
                         <TableCell>{formatDate(conge.date_debut)}</TableCell>
                         <TableCell>{formatDate(conge.date_fin)}</TableCell>
@@ -478,7 +585,34 @@ export default function CongesPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
-                            {permissions.canUpdate("conges") && (
+                            {/* 🔹 Boutons Approuver/Refuser - Uniquement pour Admin/SuperAdmin sur congés SOUMIS */}
+                            {conge.statut === "SOUMIS" && 
+                             (permissions.isAdmin || permissions.isSuperAdmin) && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleApprove(conge.id)}
+                                  className="hover:bg-green-50"
+                                  title="Approuver"
+                                >
+                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleReject(conge.id)}
+                                  className="hover:bg-red-50"
+                                  title="Refuser"
+                                >
+                                  <XCircle className="h-4 w-4 text-red-600" />
+                                </Button>
+                              </>
+                            )}
+                            
+                            {/* 🔹 Modifier - Employé uniquement sur SOUMIS */}
+                            {permissions.canUpdate("conges") && 
+                             (!permissions.isEmploye || conge.statut === "SOUMIS") && (
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -488,7 +622,9 @@ export default function CongesPage() {
                                 <Pencil className="h-4 w-4 text-blue-600" />
                               </Button>
                             )}
-                            {permissions.canDelete("conges") && (
+                            
+                            {/* 🔹 Supprimer - Uniquement Admin/SuperAdmin */}
+                            {permissions.canDelete("conges") && !permissions.isEmploye && (
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -515,7 +651,7 @@ export default function CongesPage() {
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
-              {editing ? "✏️ Modifier le congé" : "Créer un nouveau congé"}
+              {editing ? "✏️ Modifier le congé" : permissions.isEmploye ? "📝 Nouvelle demande de congé" : "➕ Créer un nouveau congé"}
             </DialogTitle>
             <DialogDescription>
               Remplissez les informations du congé ci-dessous. Les champs marqués d'un * sont obligatoires.
@@ -551,53 +687,73 @@ export default function CongesPage() {
                 </Select>
               </div>
 
-              {/* ✅ Select Employé avec noms */}
+              {/* 🔹 Select Employé - Différent selon le rôle */}
               <div className="grid gap-2">
                 <Label htmlFor="employeId" className="font-semibold">
                   Employé <span className="text-red-500">*</span>
                 </Label>
-                {loadingEmployes ? (
-                  <div className="flex items-center gap-2 p-3 border rounded-md bg-gray-50">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                    <span className="text-sm text-gray-600">Chargement des employés...</span>
-                  </div>
-                ) : employes.length === 0 ? (
-                  <div className="p-3 border border-yellow-200 rounded-md bg-yellow-50">
-                    <p className="text-sm text-yellow-800 flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4" />
-                      Aucun employé disponible. Créez d'abord un employé.
-                    </p>
+                
+                {/* 🔹 Pour EMPLOYÉ : Affichage en lecture seule */}
+                {permissions.isEmploye && currentEmployeId ? (
+                  <div className="p-3 border border-border rounded-md bg-muted">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
+                        {employes.find(e => e.id === currentEmployeId)?.prenom?.[0]}
+                        {employes.find(e => e.id === currentEmployeId)?.nom?.[0]}
+                      </div>
+                      <span className="font-medium">
+                        {employes.find(e => e.id === currentEmployeId)?.prenom}{' '}
+                        {employes.find(e => e.id === currentEmployeId)?.nom}
+                      </span>
+                    </div>
                   </div>
                 ) : (
-                  <Select
-                    name="employeId"
-                    value={formData.employeId}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, employeId: value }))}
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un employé" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {employes.map((emp) => (
-                        <SelectItem key={emp.id} value={emp.id.toString()}>
-                          <div className="flex items-center gap-2">
-                            <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-xs">
-                              {emp.prenom?.[0]}{emp.nom?.[0]}
-                            </div>
-                            <span>
-                              {emp.prenom} {emp.nom}
-                              {emp.matricule && (
-                                <span className="text-gray-500 text-xs ml-2">
-                                  ({emp.matricule})
+                  /* 🔹 Pour ADMIN/SUPERADMIN : Select avec tous les employés */
+                  <>
+                    {loadingEmployes ? (
+                      <div className="flex items-center gap-2 p-3 border rounded-md bg-gray-50">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <span className="text-sm text-gray-600">Chargement des employés...</span>
+                      </div>
+                    ) : employes.length === 0 ? (
+                      <div className="p-3 border border-yellow-200 rounded-md bg-yellow-50">
+                        <p className="text-sm text-yellow-800 flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4" />
+                          Aucun employé disponible. Créez d'abord un employé.
+                        </p>
+                      </div>
+                    ) : (
+                      <Select
+                        name="employeId"
+                        value={formData.employeId}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, employeId: value }))}
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un employé" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {employes.map((emp) => (
+                            <SelectItem key={emp.id} value={emp.id.toString()}>
+                              <div className="flex items-center gap-2">
+                                <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-xs">
+                                  {emp.prenom?.[0]}{emp.nom?.[0]}
+                                </div>
+                                <span>
+                                  {emp.prenom} {emp.nom}
+                                  {emp.matricule && (
+                                    <span className="text-gray-500 text-xs ml-2">
+                                      ({emp.matricule})
+                                    </span>
+                                  )}
                                 </span>
-                              )}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -644,32 +800,33 @@ export default function CongesPage() {
                 </div>
               )}
 
-              {/* Statut */}
-              <div className="grid gap-2">
-                <Label htmlFor="statut" className="font-semibold">
-                  Statut
-                </Label>
-                <Select
-                  name="statut"
-                  value={formData.statut}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, statut: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un statut" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SOUMIS">Soumis</SelectItem>
-                    <SelectItem value="APPROUVE">✅ Approuvé</SelectItem>
-                    <SelectItem value="REFUSE">❌ Refusé</SelectItem>
-                    <SelectItem value="EN_ATTENTE">⏳ En attente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* 🔹 Statut - Uniquement pour Admin/SuperAdmin */}
+              {!permissions.isEmploye && (
+                <div className="grid gap-2">
+                  <Label htmlFor="statut" className="font-semibold">
+                    Statut
+                  </Label>
+                  <Select
+                    name="statut"
+                    value={formData.statut}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, statut: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un statut" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="SOUMIS">Soumis</SelectItem>
+                      <SelectItem value="APPROUVE">✅ Approuvé</SelectItem>
+                      <SelectItem value="REJETE">❌ Refusé</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {/* Motif */}
               <div className="grid gap-2">
                 <Label htmlFor="motif" className="font-semibold">
-                  Motif (optionnel)
+                  Motif {permissions.isEmploye && "(optionnel)"}
                 </Label>
                 <Textarea
                   id="motif"
@@ -684,6 +841,22 @@ export default function CongesPage() {
                   Ajoutez des détails supplémentaires si nécessaire
                 </p>
               </div>
+
+              {/* 🔹 Message d'information pour les employés */}
+              {permissions.isEmploye && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800">Information importante</p>
+                      <p className="text-xs text-yellow-700 mt-1">
+                        Votre demande sera soumise pour validation par votre responsable. 
+                        Le statut sera automatiquement défini sur "Soumis".
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <DialogFooter className="gap-2">
@@ -701,7 +874,7 @@ export default function CongesPage() {
                 type="submit"
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                {editing ? "Mettre à jour" : "Créer le congé"}
+                {editing ? "Mettre à jour" : permissions.isEmploye ? "Envoyer la demande" : "Créer le congé"}
               </Button>
             </DialogFooter>
           </form>

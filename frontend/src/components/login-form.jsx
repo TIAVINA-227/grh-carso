@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Eye, EyeOff } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
-import CarsoLogo from "../assets/carso 3.png"
+import CarsoLogo from "../assets/carso 5.png"
 import { toast } from "sonner"
 
 export function LoginForm({ className, ...props }) {

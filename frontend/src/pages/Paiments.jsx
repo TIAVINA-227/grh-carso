@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, DollarSign, CreditCard, Calendar, User, TrendingUp, Banknote, CheckCircle2, X, Edit2 } from "lucide-react";
+import { Plus, Trash2, DollarSign, CreditCard, Calendar, User, TrendingUp, Banknote, CheckCircle2, X, Edit2, Upload, FileSpreadsheet, ChevronDown, FileText } from "lucide-react";
+import { pdf } from '@react-pdf/renderer';
+import PaiementsPDFDocument from '../exportPdf/PaiementsPDFDocument';
 import * as paiementService from "../services/paiementService";
 import * as employeService from "../services/employeService";
 
@@ -41,6 +43,15 @@ export default function Paiments() {
     };
     loadData();
   }, []);
+
+  const exportToPDF = async () => {
+    try {
+      const blob = await pdf(<PaiementsPDFDocument paiements={paiements} employes={employes} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `paiements_${new Date().toISOString().slice(0,10)}.pdf`; a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) { console.error(err); }
+  };
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -215,13 +226,23 @@ export default function Paiments() {
           </div>
 
           <div className="flex justify-end">
-            <button
-              onClick={() => setIsDialogOpen(true)}
-              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Nouveau Paiement
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={exportToPDF}
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Exporter PDF
+              </button>
+
+              <button
+                onClick={() => setIsDialogOpen(true)}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Nouveau Paiement
+              </button>
+            </div>
           </div>
         </div>
 

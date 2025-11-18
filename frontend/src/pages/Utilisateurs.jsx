@@ -1,345 +1,4 @@
-// //frontend/src/pages/Utilisateurs.jsx
-// import React, { useEffect, useState } from "react";
-// import {
-//   Card,
-//   CardHeader,
-//   CardTitle,
-//   CardContent,
-// } from "../components/ui/card";
-// import { Badge } from "../components/ui/badge";
-// import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
-// import { Button } from "../components/ui/button";
-// import {
-//   Table,
-//   TableBody,
-//   TableCell,
-//   TableHead,
-//   TableHeader,
-//   TableRow,
-// } from "../components/ui/table";
-// import { Trash2, Pencil, Plus, RefreshCw } from "lucide-react";
-// import {
-//   Dialog,
-//   DialogContent,
-//   DialogHeader,
-//   DialogTitle,
-//   DialogTrigger,
-//   DialogDescription,
-// } from "../components/ui/dialog";
-// import { Input } from "../components/ui/input";
-// import { Label } from "../components/ui/label";
-// import {
-//   Select,
-//   SelectTrigger,
-//   SelectContent,
-//   SelectItem,
-//   SelectValue,
-// } from "../components/ui/select";
-// import { Spinner } from "@/components/ui/spinner";
-// import utilisateurService from "../services/utilisateurService";
-// import { useToast } from "@/components/ui/use-toast";
-// import { useAuth } from "../hooks/useAuth";
-// import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../components/ui/alert-dialog";
-// import { toast } from "sonner";
-// import { Checkbox } from "../components/ui/checkbox";
-
-// export default function UtilisateursPage() {
-//   const { user } = useAuth();
-//    const permissions = usePermissions();
-//   const [utilisateurs, setUtilisateurs] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-//   const [openAdd, setOpenAdd] = useState(false);
-//   const [openEdit, setOpenEdit] = useState(false);
-//   const [userToEdit, setUserToEdit] = useState(null);
-//   const [userToDelete, setUserToDelete] = useState(null);
-//   const { toast } = useToast();
-//   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-//   const [deleteId, setDeleteId] = useState(null);
-//   const [selectedUsers, setSelectedUsers] = useState(new Set());
-
-//   const [newUser, setNewUser] = useState({
-//     nom: "",
-//     prenom: "",
-//     email: "",
-//     mot_de_passe: "exemplemdp123",
-//     nom_utilisateur: "",
-//     role: "EMPLOYE",
-//   });
-
-//   // Protection accès selon le rôle
-//   if (!user || (user.role !== "admin" && user.role !== "superadmin")) {
-//     return <div className="p-10 text-center text-lg text-red-700">Vous n'avez pas accès à la gestion des utilisateurs.</div>;
-//   }
-
-//   // ✅ Charger la liste
-//   const chargerUtilisateurs = async () => {
-//     try {
-//       setLoading(true);
-//       const data = await utilisateurService.getUtilisateurs();
-//       setUtilisateurs(data);
-//     } catch (err) {
-//       setError(err.message);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   useEffect(() => {
-//     chargerUtilisateurs();
-//   }, []);
-
-//   // ✅ Ajouter
-//   const ajouterUtilisateur = async (e) => {
-//     e.preventDefault();
-//     try {
-//       const payload = {
-//         ...newUser,
-//         nom_utilisateur:
-//           newUser.nom_utilisateur?.trim() || newUser.email.trim().toLowerCase(),
-//         mot_de_passe: newUser.mot_de_passe?.trim() || "exemplemdp123",
-//       };
-//       const user = await utilisateurService.createUtilisateur(payload);
-//       setUtilisateurs((prev) => [...prev, user]);
-//       setOpenAdd(false);
-//       setNewUser({ nom: "", prenom: "", email: "", mot_de_passe: "exemplemdp123", nom_utilisateur: "", role: "employe" });
-//       toast({
-//         title: "✅ Utilisateur ajouté",
-//         description: `${user.prenom_utilisateur || user.nom_utilisateur} a été ajouté avec succès.`,
-//       });
-//     } catch (err) {
-//       toast({
-//         title: "❌ Erreur",
-//         description: err.message ?? "Impossible d’ajouter l’utilisateur.",
-//         variant: "destructive",
-//       });
-//     }
-//   };
-
-//   // ✅ Préparer modification
-//   const ouvrirModaleModification = (user) => {
-//     setUserToEdit(user);
-//     setOpenEdit(true);
-//   };
-
-//   // ✅ Modifier un utilisateur
-//   const modifierUtilisateur = async (e) => {
-//     e.preventDefault();
-//     try {
-//       const updated = await utilisateurService.updateUtilisateur(
-//         userToEdit.id,
-//         userToEdit
-//       );
-//       setUtilisateurs((prev) =>
-//         prev.map((u) => (u.id === updated.id ? updated : u))
-//       );
-//       setOpenEdit(false);
-//       toast({
-//         title: "✅ Mise à jour réussie",
-//         description: `${updated.prenom_utilisateur || updated.nom_utilisateur} a été modifié.`,
-//       });
-//     } catch (err) {
-//       toast({
-//         title: "❌ Erreur de mise à jour",
-//         description: "Impossible de modifier l’utilisateur.",
-//         variant: "destructive",
-//       });
-//     }
-//   };
-
-//   const requestDelete = (id) => {
-//     setDeleteId(id);
-//     setConfirmDeleteOpen(true);
-//   };
-//   const confirmDelete = async () => {
-//     setConfirmDeleteOpen(false);
-//     try {
-//       if (deleteId) {
-//         await utilisateurService.deleteUtilisateur(deleteId);
-//         toast.success("Utilisateur supprimé avec succès");
-//         setUtilisateurs(prev => prev.filter(u => u.id !== deleteId));
-//       } else if (selectedUsers.size > 0) {
-//         await Promise.all(Array.from(selectedUsers).map(id => utilisateurService.deleteUtilisateur(id)));
-//         toast.success(`${selectedUsers.size} utilisateur(s) supprimé(s)`);
-//         setUtilisateurs(prev => prev.filter(u => !selectedUsers.has(u.id)));
-//         setSelectedUsers(new Set());
-//       }
-//     } catch (err) {
-//       toast.error("Erreur lors de la suppression.");
-//     }
-//     setDeleteId(null);
-//   };
-
-//   const handleSelectUser = (id) => {
-//     setSelectedUsers(prev => {
-//       const newSelection = new Set(prev);
-//       if (newSelection.has(id)) {
-//         newSelection.delete(id);
-//       } else {
-//         newSelection.add(id);
-//       }
-//       return newSelection;
-//     });
-//   };
-
-//   const handleSelectAll = (checked) => {
-//     if (checked) {
-//       setSelectedUsers(new Set(utilisateurs.map(item => item.id)));
-//     } else {
-//       setSelectedUsers(new Set());
-//     }
-//   };
-
-//   const requestDeleteSelected = () => {
-//     if (selectedUsers.size > 0) {
-//       setDeleteId(null);
-//       setConfirmDeleteOpen(true);
-//     }
-//   };
-
-//   return (
-//     <div className="p-8 bg-gray-100 min-h-screen text-gray-900">
-//       <Card className="bg-white border-gray-300 shadow-lg">
-//         <CardHeader className="flex flex-row items-center justify-between">
-//           <CardTitle className="text-xl font-semibold flex items-center gap-3">
-//             👥 Liste des utilisateurs
-//             <Badge variant="secondary">Total : {utilisateurs.length}</Badge>
-//           </CardTitle>
-
-//           <div className="flex gap-2">
-//             <Button variant="outline" onClick={chargerUtilisateurs}>
-//               <RefreshCw className="w-4 h-4 mr-1" /> Actualiser
-//             </Button>
-
-//             {/* ➕ Bouton Ajout - Seulement SUPER_ADMIN */}
-//             {permissions.canCreate('utilisateurs') && (
-//               <Dialog open={openAdd} onOpenChange={setOpenAdd}>
-//                 <DialogTrigger asChild>
-//                   <Button>
-//                     <Plus className="w-4 h-4 mr-1" /> Ajouter
-//                   </Button>
-//                 </DialogTrigger>
-//                 {/* ... contenu du dialog */}
-//               </Dialog>
-//             )}
-//           </div>
-//         </CardHeader>
-
-//         <CardContent>
-//           {/* Sélection multiple - Seulement SUPER_ADMIN */}
-//           {permissions.canDelete('utilisateurs') && selectedUsers.size > 0 && (
-//             <div className="mb-4 flex items-center justify-between rounded-md bg-blue-50 p-3 border border-blue-200">
-//               <div className="text-sm font-medium text-blue-800">
-//                 {selectedUsers.size} utilisateur(s) sélectionné(s).
-//               </div>
-//               <Button
-//                 size="sm"
-//                 variant="destructive"
-//                 onClick={requestDeleteSelected}
-//                 className="flex items-center gap-2"
-//               >
-//                 <Trash2 className="h-4 w-4" />
-//                 Supprimer la sélection
-//               </Button>
-//             </div>
-//           )}
-
-//           {loading ? (
-//             <p className="flex items-center gap-2 text-gray-500">
-//               <Spinner className="w-5 h-5 animate-spin" /> Chargement...
-//             </p>
-//           ) : (
-//             <Table>
-//               <TableHeader>
-//                 <TableRow>
-//                   {/* Checkbox seulement pour SUPER_ADMIN */}
-//                   {permissions.canDelete('utilisateurs') && (
-//                     <TableHead className="w-12">
-//                       <Checkbox
-//                         checked={selectedUsers.size === utilisateurs.length && utilisateurs.length > 0}
-//                         onCheckedChange={handleSelectAll}
-//                         aria-label="Select all"
-//                       />
-//                     </TableHead>
-//                   )}
-//                   <TableHead>ID</TableHead>
-//                   <TableHead>Nom complet</TableHead>
-//                   <TableHead>Email</TableHead>
-//                   <TableHead>Rôle</TableHead>
-//                   <TableHead>Actions</TableHead>
-//                 </TableRow>
-//               </TableHeader>
-//               <TableBody>
-//                 {utilisateurs.map((u) => (
-//                   <TableRow key={u.id} data-state={selectedUsers.has(u.id) && "selected"}>
-//                     {/* Checkbox seulement pour SUPER_ADMIN */}
-//                     {permissions.canDelete('utilisateurs') && (
-//                       <TableCell>
-//                         <Checkbox
-//                           checked={selectedUsers.has(u.id)}
-//                           onCheckedChange={() => handleSelectUser(u.id)}
-//                           aria-label="Select user"
-//                         />
-//                       </TableCell>
-//                     )}
-//                     <TableCell>{u.id}</TableCell>
-//                     <TableCell className="flex items-center gap-2">
-//                       <Avatar className="h-8 w-8">
-//                         <AvatarImage src={u.avatar || "/avatars/shadcn.jpg"} />
-//                         <AvatarFallback>
-//                           {u.prenom_utilisateur?.[0] || u.nom_utilisateur?.[0]}
-//                           {u.nom_utilisateur?.[1] || ''}
-//                         </AvatarFallback>
-//                       </Avatar>
-//                       {u.prenom_utilisateur || u.nom_utilisateur}
-//                     </TableCell>
-//                     <TableCell>{u.email}</TableCell>
-//                     <TableCell>
-//                       <Badge variant={u.role === "SUPER_ADMIN" ? "destructive" : u.role === "ADMIN" ? "default" : "outline"}>
-//                         {u.role}
-//                       </Badge>
-//                     </TableCell>
-//                     <TableCell className="flex gap-2">
-//                       {/* Bouton Modifier - SUPER_ADMIN et ADMIN */}
-//                       {permissions.canEdit('utilisateurs') && (
-//                         <Button 
-//                           size="sm" 
-//                           variant="outline" 
-//                           onClick={() => ouvrirModaleModification(u)}
-//                         >
-//                           <Pencil className="w-4 h-4" />
-//                         </Button>
-//                       )}
-                      
-//                       {/* Bouton Supprimer - Seulement SUPER_ADMIN */}
-//                       {permissions.canDelete('utilisateurs') && (
-//                         <Button 
-//                           size="sm" 
-//                           variant="destructive" 
-//                           onClick={() => requestDelete(u.id)}
-//                         >
-//                           <Trash2 className="w-4 h-4" />
-//                         </Button>
-//                       )}
-
-//                       {/* Si aucune action possible, afficher message */}
-//                       {!permissions.canEdit('utilisateurs') && !permissions.canDelete('utilisateurs') && (
-//                         <span className="text-sm text-muted-foreground">Lecture seule</span>
-//                       )}
-//                     </TableCell>
-//                   </TableRow>
-//                 ))}
-//               </TableBody>
-//             </Table>
-//           )}
-//         </CardContent>
-//       </Card>
-
-//       {/* Modales... */}
-//     </div>
-//   );
-// }
-// frontend/src/pages/Utilisateurs.jsx
+// // frontend/src/pages/Utilisateurs.jsx
 import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
@@ -370,7 +29,7 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { Checkbox } from "../components/ui/checkbox";
-import { Pencil, Trash2, UserPlus, Search, AlertCircle } from "lucide-react";
+import { Pencil, Trash2, UserPlus, Search, AlertCircle, Users } from 'lucide-react';
 import { toast } from "sonner";
 import {
   getUtilisateurs,
@@ -416,7 +75,6 @@ export default function UtilisateursPage() {
     try {
       setLoading(true);
       const data = await getUtilisateurs();
-      // backend renvoie { success: true, count, utilisateurs }
       setUtilisateurs(data.utilisateurs || data || []);
     } catch (error) {
       console.error("Erreur chargement utilisateurs:", error);
@@ -426,7 +84,7 @@ export default function UtilisateursPage() {
     }
   };
 
-  // Ajouter un utilisateur
+
   const ajouterUtilisateur = async (e) => {
     e.preventDefault();
     
@@ -469,7 +127,7 @@ export default function UtilisateursPage() {
     }
   };
 
-  // Modifier un utilisateur
+
   const modifierUtilisateur = async (e) => {
     e.preventDefault();
     
@@ -504,7 +162,7 @@ export default function UtilisateursPage() {
     }
   };
 
-  // Supprimer un utilisateur
+
   const confirmerSuppression = async () => {
     if (!permissions.canDelete('utilisateurs')) {
       toast.error("Vous n'avez pas la permission de supprimer des utilisateurs");
@@ -535,7 +193,6 @@ export default function UtilisateursPage() {
     setShowEditModal(true);
   };
 
-  // Gestion de la sélection
   const handleSelectUser = (id) => {
     const newSelection = new Set(selectedUsers);
     if (newSelection.has(id)) {
@@ -554,7 +211,6 @@ export default function UtilisateursPage() {
     }
   };
 
-  // Filtrage
   const filteredUsers = utilisateurs.filter(
     (u) =>
       u.nom_utilisateur?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -562,7 +218,6 @@ export default function UtilisateursPage() {
       u.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Vérifier les permissions d'accès
   if (!permissions.canAccess('utilisateurs')) {
     return (
       <div className="p-8">
@@ -578,277 +233,367 @@ export default function UtilisateursPage() {
   }
 
   return (
-    <div className="p-8 bg-gradient-to-br bg-background dark:bg-slate-950 min-h-screen">
-      <Card className="bg-card dark:bg-slate-900 border-2 border-blue-50 dark:border-blue-900/30 shadow-xl">
-        <CardHeader className="border-b border-border bg-gradient-to-r from-card dark:from-slate-900">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl font-bold text-blue-900 dark:text-blue-200">
+    <div className="min-h-screen bg-background p-4 md:p-8">
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Users className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground">
               Gestion des Utilisateurs
-            </CardTitle>
-            
-            {/* Badge du rôle */}
-            <Badge variant={permissions.isSuperAdmin ? "destructive" : "default"}>
-              {permissions.isSuperAdmin && "Super Admin"}
-              {permissions.isAdmin && "Admin (Lecture seule)"}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Gérez les utilisateurs et leurs permissions
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Card className="shadow-lg border border-border bg-card">
+        <CardHeader className="border-b border-border bg-gradient-to-r from-background/50 to-transparent pb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <Badge 
+              variant={permissions.isSuperAdmin ? "destructive" : "default"}
+              className="w-fit"
+            >
+              {permissions.isSuperAdmin ? "🔐 Super Admin" : "👤 Admin (Lecture)"}
             </Badge>
           </div>
 
-          <div className="mt-4 flex gap-4 items-center">
+          <div className="flex flex-col md:flex-row gap-3 mt-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground dark:text-gray-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Rechercher un utilisateur..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-background dark:bg-slate-800 text-foreground dark:text-white border-border"
+                className="pl-10 bg-input text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary transition"
               />
             </div>
 
             {permissions.canCreate('utilisateurs') && (
               <Button
                 onClick={() => setShowAddModal(true)}
-                className="bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all hover:shadow-lg whitespace-nowrap"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
-                Ajouter un utilisateur
+                Ajouter
               </Button>
             )}
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="p-0">
           {loading ? (
-            <div className="text-center py-8">Chargement...</div>
+            <div className="text-center py-12">
+              <div className="animate-spin inline-block h-8 w-8 border-4 border-border border-t-primary rounded-full"></div>
+              <p className="text-muted-foreground mt-3">Chargement des utilisateurs...</p>
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-muted-foreground">Aucun utilisateur trouvé</p>
+            </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={selectedUsers.size === utilisateurs.length}
-                      onCheckedChange={handleSelectAll}
-                      aria-label="Select all"
-                    />
-                  </TableHead>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Rôle</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((u) => (
-                  <TableRow
-                    key={u.id}
-                    data-state={selectedUsers.has(u.id) && "selected"}
-                  >
-                    <TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-border bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="w-12 px-4 py-4">
                       <Checkbox
-                        checked={selectedUsers.has(u.id)}
-                        onCheckedChange={() => handleSelectUser(u.id)}
-                        aria-label="Select user"
+                        checked={selectedUsers.size === utilisateurs.length}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all"
                       />
-                    </TableCell>
-                    <TableCell>{u.id}</TableCell>
-                    <TableCell className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={u.avatar || "/avatars/shadcn.jpg"} />
-                        <AvatarFallback>
-                          {u.prenom_utilisateur?.[0] || u.nom_utilisateur?.[0]}
-                          {u.nom_utilisateur?.[1] || ""}
-                        </AvatarFallback>
-                      </Avatar>
-                      {u.prenom_utilisateur || u.nom_utilisateur}
-                    </TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          u.role === "SUPER_ADMIN"
-                            ? "destructive"
-                            : u.role === "ADMIN"
-                            ? "default"
-                            : "outline"
-                        }
-                      >
-                        {u.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="flex gap-2">
-                      
-                      {permissions.canEdit('utilisateurs') && (
-                        <Button size="sm" variant="outline" onClick={() => ouvrirModaleModification(u)}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                      )}
-                      {permissions.canDelete('utilisateurs') && (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => requestDelete(u.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </TableCell>
+                    </TableHead>
+                    <TableHead className="px-4 py-4 font-semibold text-foreground">ID</TableHead>
+                    <TableHead className="px-4 py-4 font-semibold text-foreground">Utilisateur</TableHead>
+                    <TableHead className="px-4 py-4 font-semibold text-foreground">Email</TableHead>
+                    <TableHead className="px-4 py-4 font-semibold text-foreground">Rôle</TableHead>
+                    <TableHead className="px-4 py-4 font-semibold text-foreground">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((u) => (
+                    <TableRow
+                      key={u.id}
+                      data-state={selectedUsers.has(u.id) && "selected"}
+                      className="border-b border-border hover:bg-muted/50 transition-colors"
+                    >
+                      <TableCell className="px-4 py-4">
+                        <Checkbox
+                          checked={selectedUsers.has(u.id)}
+                          onCheckedChange={() => handleSelectUser(u.id)}
+                          aria-label="Select user"
+                        />
+                      </TableCell>
+                      <TableCell className="px-4 py-4 text-sm text-muted-foreground">
+                        {u.id}
+                      </TableCell>
+                      <TableCell className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9 border border-border">
+                            <AvatarImage src={u.avatar || "/avatars/shadcn.jpg"} />
+                            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                              {u.prenom_utilisateur?.[0] || u.nom_utilisateur?.[0]}
+                              {u.nom_utilisateur?.[1] || ""}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium text-foreground">
+                            {u.prenom_utilisateur || u.nom_utilisateur}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-4 text-sm text-foreground">
+                        {u.email}
+                      </TableCell>
+                      <TableCell className="px-4 py-4">
+                        <Badge
+                          variant={
+                            u.role === "SUPER_ADMIN"
+                              ? "destructive"
+                              : u.role === "ADMIN"
+                              ? "default"
+                              : "outline"
+                          }
+                          className="font-medium"
+                        >
+                          {u.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-4 py-4">
+                        <div className="flex gap-2">
+                          {permissions.canEdit('utilisateurs') && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => ouvrirModaleModification(u)}
+                              className="hover:bg-primary/10 hover:text-primary transition"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {permissions.canDelete('utilisateurs') && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => requestDelete(u.id)}
+                              className="hover:opacity-90 transition"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Modal Ajout */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[450px] border border-border bg-card">
           <DialogHeader>
-            <DialogTitle>Ajouter un utilisateur</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <UserPlus className="h-4 w-4 text-primary" />
+              </div>
+              Ajouter un utilisateur
+            </DialogTitle>
           </DialogHeader>
-          <form onSubmit={ajouterUtilisateur}>
-            <div className="space-y-4">
-              <div>
-                <Label>Prénom</Label>
-                <Input
-                  value={newUser.prenom}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, prenom: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label>Nom</Label>
-                <Input
-                  value={newUser.nom}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, nom: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, email: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label>Rôle</Label>
-                <Select
-                  value={newUser.role}
-                  onValueChange={(value) =>
-                    setNewUser({ ...newUser, role: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
-                    <SelectItem value="EMPLOYE">Employé</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          <form onSubmit={ajouterUtilisateur} className="space-y-4">
+            <div>
+              <Label className="text-sm font-semibold text-foreground">Prénom</Label>
+              <Input
+                value={newUser.prenom}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, prenom: e.target.value })
+                }
+                placeholder="Jean"
+                required
+                className="mt-1.5 bg-input border border-border focus:ring-2 focus:ring-primary"
+              />
             </div>
-            <DialogFooter className="mt-4">
-              <Button type="submit">Créer</Button>
+            <div>
+              <Label className="text-sm font-semibold text-foreground">Nom</Label>
+              <Input
+                value={newUser.nom}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, nom: e.target.value })
+                }
+                placeholder="Dupont"
+                required
+                className="mt-1.5 bg-input border border-border focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-semibold text-foreground">Email</Label>
+              <Input
+                type="email"
+                value={newUser.email}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, email: e.target.value })
+                }
+                placeholder="jean@example.com"
+                required
+                className="mt-1.5 bg-input border border-border focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-semibold text-foreground">Rôle</Label>
+              <Select
+                value={newUser.role}
+                onValueChange={(value) =>
+                  setNewUser({ ...newUser, role: value })
+                }
+              >
+                <SelectTrigger className="mt-1.5 bg-input border border-border focus:ring-2 focus:ring-primary">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border border-border">
+                  <SelectItem value="SUPER_ADMIN">🔐 Super Admin</SelectItem>
+                  <SelectItem value="ADMIN">👤 Admin</SelectItem>
+                  <SelectItem value="EMPLOYE">👥 Employé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter className="gap-2 pt-4">
+              <Button 
+                type="button"
+                variant="outline"
+                onClick={() => setShowAddModal(false)}
+              >
+                Annuler
+              </Button>
+              <Button 
+                type="submit"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                Créer l'utilisateur
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Modal Modification */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[450px] border border-border bg-card">
           <DialogHeader>
-            <DialogTitle>Modifier l'utilisateur</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Pencil className="h-4 w-4 text-primary" />
+              </div>
+              Modifier l'utilisateur
+            </DialogTitle>
           </DialogHeader>
           {editingUser && (
-            <form onSubmit={modifierUtilisateur}>
-              <div className="space-y-4">
-                <div>
-                  <Label>Nom d'utilisateur</Label>
-                  <Input
-                    value={editingUser.nom_utilisateur}
-                    onChange={(e) =>
-                      setEditingUser({
-                        ...editingUser,
-                        nom_utilisateur: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-                <div>
-                  <Label>Prénom</Label>
-                  <Input
-                    value={editingUser.prenom_utilisateur || ""}
-                    onChange={(e) =>
-                      setEditingUser({
-                        ...editingUser,
-                        prenom_utilisateur: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={editingUser.email}
-                    onChange={(e) =>
-                      setEditingUser({ ...editingUser, email: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div>
-                  <Label>Rôle</Label>
-                  <Select
-                    value={editingUser.role}
-                    onValueChange={(value) =>
-                      setEditingUser({ ...editingUser, role: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
-                      <SelectItem value="EMPLOYE">Employé</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <form onSubmit={modifierUtilisateur} className="space-y-4">
+              <div>
+                <Label className="text-sm font-semibold text-foreground">Nom d'utilisateur</Label>
+                <Input
+                  value={editingUser.nom_utilisateur}
+                  onChange={(e) =>
+                    setEditingUser({
+                      ...editingUser,
+                      nom_utilisateur: e.target.value,
+                    })
+                  }
+                  required
+                  className="mt-1.5 bg-input border border-border focus:ring-2 focus:ring-primary"
+                />
               </div>
-              <DialogFooter className="mt-4">
-                <Button type="submit">Enregistrer</Button>
+              <div>
+                <Label className="text-sm font-semibold text-foreground">Prénom</Label>
+                <Input
+                  value={editingUser.prenom_utilisateur || ""}
+                  onChange={(e) =>
+                    setEditingUser({
+                      ...editingUser,
+                      prenom_utilisateur: e.target.value,
+                    })
+                  }
+                  className="mt-1.5 bg-input border border-border focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold text-foreground">Email</Label>
+                <Input
+                  type="email"
+                  value={editingUser.email}
+                  onChange={(e) =>
+                    setEditingUser({ ...editingUser, email: e.target.value })
+                  }
+                  required
+                  className="mt-1.5 bg-input border border-border focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold text-foreground">Rôle</Label>
+                <Select
+                  value={editingUser.role}
+                  onValueChange={(value) =>
+                    setEditingUser({ ...editingUser, role: value })
+                  }
+                >
+                  <SelectTrigger className="mt-1.5 bg-input border border-border focus:ring-2 focus:ring-primary">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border border-border">
+                    <SelectItem value="SUPER_ADMIN">🔐 Super Admin</SelectItem>
+                    <SelectItem value="ADMIN">👤 Admin</SelectItem>
+                    <SelectItem value="EMPLOYE">👥 Employé</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter className="gap-2 pt-4">
+                <Button 
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  Annuler
+                </Button>
+                <Button 
+                  type="submit"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  Enregistrer
+                </Button>
               </DialogFooter>
             </form>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Modal Suppression */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[400px] border border-border bg-card">
           <DialogHeader>
-            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-destructive/10">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+              </div>
+              Confirmer la suppression
+            </DialogTitle>
           </DialogHeader>
-          <p>Êtes-vous sûr de vouloir supprimer cet utilisateur ?</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
+          <p className="text-muted-foreground">
+            Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action ne peut pas être annulée.
+          </p>
+          <DialogFooter className="gap-2 pt-4">
+            <Button 
+              variant="outline"
+              onClick={() => setShowDeleteModal(false)}
+            >
               Annuler
             </Button>
-            <Button variant="destructive" onClick={confirmerSuppression}>
+            <Button 
+              variant="destructive"
+              onClick={confirmerSuppression}
+              className="hover:opacity-90"
+            >
               Supprimer
             </Button>
           </DialogFooter>
