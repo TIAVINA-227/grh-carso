@@ -61,31 +61,31 @@ export function AppSidebar({ ...props }) {
     {
       to: "/dashboard/employes",
       icon: Users,
-      label: permissions.isEmploye ? "Mon profil" : "Gérer Employés",
+      label: permissions.isEmploye ? "Employés" : "Gérer Employés",
       show: permissions.canAccess('employes')
     },
     {
       to: "/dashboard/contrats",
       icon: FileText,
-      label: permissions.isEmploye ? "Mon contrat" : "Contrats",
+      label: permissions.isEmploye ? "Contrat" : "Contrats",
       show: permissions.canAccess('contrats')
     },
     {
       to: "/dashboard/presences",
       icon: CheckSquare,
-      label: permissions.isEmploye ? "Mes présences" : "Présences",
+      label: permissions.isEmploye ? "Présences" : "Présences",
       show: permissions.canAccess('presences')
     },
     {
       to: "/dashboard/absences",
       icon: Calendar,
-      label: permissions.isEmploye ? "Mes absences" : "Absences",
+      label: permissions.isEmploye ? "Absences" : "Absences",
       show: permissions.canAccess('absences')
     },
     {
       to: "/dashboard/conges",
       icon: Umbrella,
-      label: permissions.isEmploye ? "Mes congés" : "Congés",
+      label: permissions.isEmploye ? "Congés" : "Congés",
       show: permissions.canAccess('conges')
     },
     {
@@ -109,13 +109,13 @@ export function AppSidebar({ ...props }) {
     {
       to: "/dashboard/bulletins",
       icon: File,
-      label: permissions.isEmploye ? "Mes bulletins" : "Bulletins",
+      label: permissions.isEmploye ? "Bulletins" : "Bulletins",
       show: permissions.canAccess('bulletins')
     },
     {
       to: "/dashboard/performances",
       icon: ChartColumnIncreasing,
-      label: permissions.isEmploye ? "Mes performances" : "Performances",
+      label: permissions.isEmploye ? "Performances" : "Performances",
       show: permissions.canAccess('performances')
     },
     {

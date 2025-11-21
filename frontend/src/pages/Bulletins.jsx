@@ -1,6 +1,10 @@
+//frontend/src/pages/Bulletins.jsx
 import { useEffect, useState } from "react";
-import { Plus, Trash2, FileText, Calendar, DollarSign, CheckCircle, Clock, Archive, X, TrendingUp, Edit2, Upload, FileSpreadsheet, ChevronDown } from "lucide-react";
+import { Plus, Trash2, FileText, Calendar, DollarSign, CheckCircle, Clock, Archive, X, TrendingUp, Edit2, Upload, FileSpreadsheet, ChevronDown, Eye, Pencil } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { pdf } from '@react-pdf/renderer';
+import { usePermissions } from "../hooks/usePermissions";
 import BulletinsPDFDocument from '../exportPDF/BulletinsPDFDocument';
 import * as bulletinService from "../services/bulletinService";
 import * as paiementService from "../services/paiementService";
@@ -13,6 +17,7 @@ function Bulletins() {
   const [editingId, setEditingId] = useState(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const permissions = usePermissions();
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [form, setForm] = useState({
     periode: '',
@@ -29,8 +34,22 @@ function Bulletins() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // Vérifier les permissions d'accès à la page
+  useEffect(() => {
+    if (!permissions.canView('bulletins')) {
+      showToast("Vous n'avez pas la permission d'accéder à cette page", 'error');
+      // Optionnel : rediriger vers une autre page
+      // navigate('/dashboard');
+    }
+  }, [permissions]);
+
   useEffect(() => {
     const loadData = async () => {
+      if (!permissions.canView('bulletins')) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
         const [bulletinsData, paiementsData] = await Promise.all([
@@ -47,19 +66,42 @@ function Bulletins() {
       }
     };
     loadData();
-  }, []);
+  }, [permissions]);
 
   const exportToPDF = async () => {
+    if (!permissions.canView('bulletins')) {
+      showToast("Vous n'avez pas la permission d'exporter les bulletins", 'error');
+      return;
+    }
+
     try {
       const blob = await pdf(<BulletinsPDFDocument bulletins={list} paiements={paiements} />).toBlob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `bulletins_${new Date().toISOString().slice(0,10)}.pdf`; a.click();
+      const a = document.createElement('a'); 
+      a.href = url; 
+      a.download = `bulletins_${new Date().toISOString().slice(0,10)}.pdf`; 
+      a.click();
       URL.revokeObjectURL(url);
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error(err); 
+      showToast("Erreur lors de l'export PDF", 'error');
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Vérifier les permissions
+    if (editingId && !permissions.canEdit('bulletins')) {
+      showToast("Vous n'avez pas la permission de modifier les bulletins", 'error');
+      return;
+    }
+
+    if (!editingId && !permissions.canCreate('bulletins')) {
+      showToast("Vous n'avez pas la permission de créer des bulletins", 'error');
+      return;
+    }
+
     if (!form.periode || !form.salaire_brut || !form.salaire_net || !form.paiementId) {
       showToast("Veuillez remplir tous les champs obligatoires", 'error');
       return;
@@ -67,9 +109,8 @@ function Bulletins() {
     
     setSubmitting(true);
     try {
-      // Extraire mois et année de la date
       const dateObj = new Date(form.periode);
-      const mois = dateObj.getMonth() + 1; // getMonth() retourne 0-11
+      const mois = dateObj.getMonth() + 1;
       const annee = dateObj.getFullYear();
 
       const payload = {
@@ -82,17 +123,14 @@ function Bulletins() {
       };
 
       if (editingId) {
-        // Mise à jour
         await bulletinService.updateBulletin(editingId, payload);
         showToast("Bulletin modifié avec succès !");
         setEditingId(null);
       } else {
-        // Création
         await bulletinService.createBulletin(payload);
         showToast("Bulletin enregistré avec succès !");
       }
 
-      // Recharger les données
       const bulletinsData = await bulletinService.getBulletins();
       setList(bulletinsData);
       
@@ -106,9 +144,22 @@ function Bulletins() {
     }
   };
 
+  const openCreate = () => {
+    if (!permissions.canCreate('bulletins')) {
+      showToast("Vous n'avez pas la permission de créer des bulletins", 'error');
+      return;
+    }
+    setEditingId(null);
+    setForm({ periode: '', salaire_brut: '', salaire_net: '', paiementId: '', statut: 'valide' });
+    setIsDialogOpen(true);
+  };
+
   const handleEdit = (bulletin) => {
+    if (!permissions.canEdit('bulletins')) {
+      showToast("Vous n'avez pas la permission de modifier les bulletins", 'error');
+      return;
+    }
     setEditingId(bulletin.id);
-    // Construire une date au format YYYY-MM-DD (utiliser le 1er du mois)
     const dateStr = `${bulletin.annee}-${String(bulletin.mois).padStart(2, '0')}-01`;
     setForm({
       periode: dateStr,
@@ -120,7 +171,14 @@ function Bulletins() {
     setIsDialogOpen(true);
   };
 
-  const requestDelete = (id) => { setDeleteId(id); setConfirmDeleteOpen(true); };
+  const requestDelete = (id) => {
+    if (!permissions.canDelete('bulletins')) {
+      showToast("Vous n'avez pas la permission de supprimer les bulletins", 'error');
+      return;
+    }
+    setDeleteId(id);
+    setConfirmDeleteOpen(true);
+  };
   
   const handleSelectRow = (id) => {
     setSelectedRows(prev => {
@@ -143,6 +201,10 @@ function Bulletins() {
   };
 
   const requestDeleteSelected = () => {
+    if (!permissions.canDelete('bulletins')) {
+      showToast("Vous n'avez pas la permission de supprimer les bulletins", 'error');
+      return;
+    }
     if (selectedRows.size > 0) {
       setDeleteId(-1);
       setConfirmDeleteOpen(true);
@@ -164,7 +226,6 @@ function Bulletins() {
         showToast("Bulletin supprimé avec succès");
       }
       
-      // Recharger les données
       const bulletinsData = await bulletinService.getBulletins();
       setList(bulletinsData);
       
@@ -208,6 +269,23 @@ function Bulletins() {
     return moisNoms[mois - 1] || mois;
   };
 
+  // Si l'utilisateur n'a pas la permission de voir les bulletins
+  if (!permissions.canView('bulletins')) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 p-4 md:p-8">
+        <div className="mx-auto max-w-7xl">
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="p-8 text-center">
+              <FileText className="h-16 w-16 text-red-400 mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-red-800 mb-2">Accès refusé</h2>
+              <p className="text-red-600">Vous n'avez pas la permission d'accéder à cette page.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 p-4 md:p-8">
       {/* Toast notification */}
@@ -220,72 +298,109 @@ function Bulletins() {
       )}
 
       <div className="mx-auto max-w-7xl space-y-6">
-        {/* En-tête */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 shadow-lg">
-              <FileText className="h-6 w-6 text-white" />
+        {/* Modern Header */}
+        <div className="relative overflow-hidden rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-2xl p-8">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-blue-500/5 to-cyan-500/10"></div>
+          <div className="relative">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-700 shadow-2xl shadow-blue-500/30">
+                <FileText className="h-8 w-8 text-white" />
+              </div>
+              <div className="flex-1">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
+                  Bulletins de Paie
+                </h1>
+                <p className="text-sm text-muted-foreground mt-2">Gestion et suivi des bulletins de salaire</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground dark:text-white">Bulletins de Paie</h1>
-              <p className="text-sm text-muted-foreground dark:text-gray-400">Gestion et suivi des bulletins de salaire</p>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <div className="flex items-center gap-2">
-              <button onClick={exportToPDF} className="px-3 py-2 bg-blue-600 text-white rounded-lg">Exporter PDF</button>
-
-              <button
-                onClick={() => setIsDialogOpen(true)}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 hover:from-blue-700 hover:to-blue-800 dark:hover:from-blue-800 dark:hover:to-blue-900 text-white rounded-lg shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Nouveau Bulletin
-              </button>
+            <Separator className="my-4 bg-border/40" />
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                {stats.total} bulletin{stats.total > 1 ? 's' : ''} au total
+              </div>
+              <div className="flex items-center gap-2">
+                {permissions.canView('bulletins') && (
+                  <button 
+                    onClick={exportToPDF} 
+                    className="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors border border-emerald-500/30 text-sm font-medium flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Exporter PDF
+                  </button>
+                )}
+                {permissions.canCreate('bulletins') && (
+                  <button
+                    onClick={openCreate}
+                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all flex items-center gap-2 text-sm font-medium"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nouveau Bulletin
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Statistiques */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-card dark:bg-slate-900 rounded-xl border border-border dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow p-6">
-            <div className="text-sm font-medium text-muted-foreground dark:text-gray-400 flex items-center gap-2 mb-3">
-              <FileText className="h-4 w-4" />
-              Total Bulletins
-            </div>
-            <div className="text-2xl font-bold text-foreground dark:text-white">{stats.total}</div>
-          </div>
+        {/* Statistiques modernes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium mb-2">Total Bulletins</p>
+                  <p className="text-3xl font-bold">{stats.total}</p>
+                </div>
+                <FileText className="h-8 w-8 text-blue-200" />
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-card dark:bg-slate-900 rounded-xl border border-border dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow p-6">
-            <div className="text-sm font-medium text-muted-foreground dark:text-gray-400 flex items-center gap-2 mb-3">
-              <CheckCircle className="h-4 w-4" />
-              Validés
-            </div>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.valides}</div>
-          </div>
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-emerald-100 text-sm font-medium mb-2">Validés</p>
+                  <p className="text-3xl font-bold">{stats.valides}</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-emerald-200" />
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-card dark:bg-slate-900 rounded-xl border border-border dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow p-6">
-            <div className="text-sm font-medium text-muted-foreground dark:text-gray-400 flex items-center gap-2 mb-3">
-              <Clock className="h-4 w-4" />
-              Brouillons
-            </div>
-            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.brouillons}</div>
-          </div>
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-amber-100 text-sm font-medium mb-2">Brouillons</p>
+                  <p className="text-3xl font-bold">{stats.brouillons}</p>
+                </div>
+                <Clock className="h-8 w-8 text-amber-200" />
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-card dark:bg-slate-900 rounded-xl border border-border dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow p-6">
-            <div className="text-sm font-medium text-slate-600 flex items-center gap-2 mb-3">
-              <TrendingUp className="h-4 w-4" />
-              Total Brut
-            </div>
-            <div className="text-xl font-bold text-blue-600">
-              {stats.totalBrut.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} Ar
-            </div>
-          </div>
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-cyan-500 to-cyan-600 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-cyan-100 text-sm font-medium mb-2">Total Brut</p>
+                  <p className="text-2xl font-bold">
+                    {stats.totalBrut.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} Ar
+                  </p>
+                </div>
+                <DollarSign className="h-8 w-8 text-cyan-200" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Barre de sélection */}
-        {selectedRows.size > 0 && (
+        {selectedRows.size > 0 && permissions.canDelete('bulletins') && (
           <div className="flex items-center justify-between rounded-xl bg-blue-50 p-4 border border-blue-200 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white font-bold">
@@ -311,14 +426,16 @@ function Bulletins() {
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="px-6 py-4 text-left">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.size === list.length && list.length > 0}
-                      onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                    />
-                  </th>
+                  {permissions.canDelete('bulletins') && (
+                    <th className="px-6 py-4 text-left">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.size === list.length && list.length > 0}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </th>
+                  )}
                   <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
                     ID
                   </th>
@@ -337,9 +454,11 @@ function Bulletins() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
                     Statut
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  {(permissions.canEdit('bulletins') || permissions.canDelete('bulletins')) && (
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -370,14 +489,16 @@ function Bulletins() {
                         key={b.id} 
                         className={`hover:bg-slate-50 transition-colors ${isSelected ? 'bg-blue-50' : ''}`}
                       >
-                        <td className="px-6 py-4">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleSelectRow(b.id)}
-                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                          />
-                        </td>
+                        {permissions.canDelete('bulletins') && (
+                          <td className="px-6 py-4">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleSelectRow(b.id)}
+                              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            />
+                          </td>
+                        )}
                         <td className="px-6 py-4">
                           <span className="font-medium text-slate-900">#{b.id}</span>
                         </td>
@@ -408,24 +529,30 @@ function Bulletins() {
                             {b.statut}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleEdit(b)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Modifier"
-                            >
-                              <Edit2 className="w-4 h-4"/>
-                            </button>
-                            <button
-                              onClick={() => requestDelete(b.id)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Supprimer"
-                            >
-                              <Trash2 className="w-4 h-4"/>
-                            </button>
-                          </div>
-                        </td>
+                        {(permissions.canEdit('bulletins') || permissions.canDelete('bulletins')) && (
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              {permissions.canEdit('bulletins') && (
+                                <button
+                                  onClick={() => handleEdit(b)}
+                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  title="Modifier"
+                                >
+                                  <Edit2 className="w-4 h-4"/>
+                                </button>
+                              )}
+                              {permissions.canDelete('bulletins') && (
+                                <button
+                                  onClick={() => requestDelete(b.id)}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Supprimer"
+                                >
+                                  <Trash2 className="w-4 h-4"/>
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })
@@ -436,7 +563,7 @@ function Bulletins() {
         </div>
       </div>
 
-      {/* Modal d'ajout */}
+      {/* Modal d'ajout/modification */}
       {isDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-[fadeIn_0.2s_ease-out]">
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-[slideUp_0.3s_ease-out] border border-blue-100">

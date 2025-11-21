@@ -1,5 +1,8 @@
+//frontend/src/pages/Paiments.jsx
 import { useEffect, useState } from "react";
 import { Plus, Trash2, DollarSign, CreditCard, Calendar, User, TrendingUp, Banknote, CheckCircle2, X, Edit2, Upload, FileSpreadsheet, ChevronDown, FileText } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { pdf } from '@react-pdf/renderer';
 import PaiementsPDFDocument from '../exportPdf/PaiementsPDFDocument';
 import * as paiementService from "../services/paiementService";
@@ -213,88 +216,116 @@ export default function Paiments() {
       )}
 
       <div className="mx-auto max-w-7xl space-y-6">
-        {/* En-tête */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg">
-              <DollarSign className="h-6 w-6 text-white" />
+        {/* Modern Header */}
+        <div className="relative overflow-hidden rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-2xl p-8">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/10 via-emerald-500/5 to-teal-500/10"></div>
+          <div className="relative">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-600 to-teal-600 shadow-2xl shadow-emerald-500/30">
+                <DollarSign className="h-8 w-8 text-white" />
+              </div>
+              <div className="flex-1">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-500 bg-clip-text text-transparent">
+                  Gestion des Paiements
+                </h1>
+                <p className="text-sm text-muted-foreground mt-2">Suivi et gestion des paiements de salaires</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">Gestion des Paiements</h1>
-              <p className="text-sm text-slate-500">Suivi et gestion des paiements de salaires</p>
-            </div>
-          </div>
+            <Separator className="my-4 bg-border/40" />
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                {stats.count} paiement{stats.count > 1 ? 's' : ''} au total
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={exportToPDF}
+                  className="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors border border-emerald-500/30 text-sm font-medium flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Exporter PDF
+                </button>
 
-          <div className="flex justify-end">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={exportToPDF}
-                className="px-3 py-2 bg-blue-600 text-white rounded-lg"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Exporter PDF
-              </button>
-
-              <button
-                onClick={() => setIsDialogOpen(true)}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Nouveau Paiement
-              </button>
+                <button
+                  onClick={() => setIsDialogOpen(true)}
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 transition-all flex items-center gap-2 text-sm font-medium"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nouveau Paiement
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Statistiques */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6">
-            <div className="text-sm font-medium text-slate-600 flex items-center gap-2 mb-3">
-              <DollarSign className="h-4 w-4" />
-              Total Payé
-            </div>
-            <div className="text-2xl font-bold text-blue-600">
-              {stats.total.toLocaleString('fr-FR')} Ar
-            </div>
-          </div>
+        {/* Statistiques modernes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-emerald-100 text-sm font-medium mb-2">Total Payé</p>
+                  <p className="text-2xl font-bold">
+                    {stats.total.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} Ar
+                  </p>
+                </div>
+                <DollarSign className="h-8 w-8 text-emerald-200" />
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6">
-            <div className="text-sm font-medium text-slate-600 flex items-center gap-2 mb-3">
-              <CheckCircle2 className="h-4 w-4" />
-              Nombre de Paiements
-            </div>
-            <div className="text-2xl font-bold text-slate-900">{stats.count}</div>
-          </div>
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium mb-2">Nombre de Paiements</p>
+                  <p className="text-3xl font-bold">{stats.count}</p>
+                </div>
+                <CheckCircle2 className="h-8 w-8 text-blue-200" />
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6">
-            <div className="text-sm font-medium text-slate-600 flex items-center gap-2 mb-3">
-              <TrendingUp className="h-4 w-4" />
-              Montant Moyen
-            </div>
-            <div className="text-2xl font-bold text-blue-600">
-              {stats.moyenne.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} Ar
-            </div>
-          </div>
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-cyan-500 to-cyan-600 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-cyan-100 text-sm font-medium mb-2">Montant Moyen</p>
+                  <p className="text-2xl font-bold">
+                    {stats.moyenne.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} Ar
+                  </p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-cyan-200" />
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6">
-            <div className="text-sm font-medium text-slate-600 flex items-center gap-2 mb-3">
-              <Calendar className="h-4 w-4" />
-              Ce Mois
-            </div>
-            <div className="text-2xl font-bold text-purple-600">
-              {stats.moisCourant.toLocaleString('fr-FR')} Ar
-            </div>
-          </div>
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-rose-100 text-sm font-medium mb-2">Ce Mois</p>
+                  <p className="text-2xl font-bold">
+                    {stats.moisCourant.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} Ar
+                  </p>
+                </div>
+                <Calendar className="h-8 w-8 text-rose-200" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Barre de sélection */}
         {selectedPaiements.size > 0 && (
-          <div className="flex items-center justify-between rounded-xl bg-blue-50 p-4 border border-blue-200 shadow-sm">
+          <div className="flex items-center justify-between rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 p-4 border border-emerald-200/50 dark:border-emerald-800/50 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white font-bold">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold">
                 {selectedPaiements.size}
               </div>
-              <div className="text-sm font-medium text-blue-800">
+              <div className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
                 paiement(s) sélectionné(s)
               </div>
             </div>
@@ -308,35 +339,36 @@ export default function Paiments() {
           </div>
         )}
 
-        {/* Table */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-6 py-4 text-left">
-                    <input
-                      type="checkbox"
-                      checked={selectedPaiements.size === paiements.length && paiements.length > 0}
-                      onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                    />
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Employé
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Montant
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Mode
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Période
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Date Paiement
-                  </th>
+        {/* Table modernes */}
+        <Card className="border-0 shadow-2xl">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted/50 border-b border-border">
+                  <tr>
+                    <th className="px-6 py-4 text-left">
+                      <input
+                        type="checkbox"
+                        checked={selectedPaiements.size === paiements.length && paiements.length > 0}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="w-4 h-4 rounded border-border text-emerald-600 focus:ring-emerald-500"
+                      />
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
+                      Employé
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
+                      Montant
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
+                      Mode
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
+                      Période
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
+                      Date Paiement
+                    </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
                     Actions
                   </th>
@@ -434,7 +466,8 @@ export default function Paiments() {
               </tbody>
             </table>
           </div>
-        </div>
+            </CardContent>
+        </Card>
       </div>
 
       {/* Modal d'ajout */}

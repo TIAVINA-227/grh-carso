@@ -12,14 +12,37 @@ import { Separator } from "../components/ui/separator";
 import { getAbsences, createAbsence, updateAbsence, deleteAbsence } from "../services/absenceService";
 import { usePermissions } from "../hooks/usePermissions";
 import { getEmployes } from "../services/employeService";
-import { CalendarDays, User, Plus, Edit, Trash2, CheckCircle, XCircle, Clock, FileText, Filter, Activity, TrendingDown, AlertCircle, Upload, FileSpreadsheet, ChevronDown } from "lucide-react";
+import { 
+  CalendarDays,
+  User, 
+  Users,
+  Plus, 
+  Edit, 
+  Trash2, 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  FileText, 
+  Filter, 
+  Activity, 
+  TrendingDown, 
+  AlertCircle, 
+  Upload, 
+  FileSpreadsheet, 
+  ChevronDown,
+  Calendar,
+} from "lucide-react";
 import { pdf } from '@react-pdf/renderer';
 import AbsencesPDFDocument from "../exportPDF/AbsencesPDFDocument";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Checkbox } from "../components/ui/checkbox";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Absences() {
+
+  const { user } = useAuth();
+
   const [absences, setAbsences] = useState([]);
   const [employes, setEmployes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +55,17 @@ export default function Absences() {
     justification: "",
     piece_jointe: ""
   });
+  const [loadingEmployes, setLoadingEmployes] = useState(false);
+
+  const [formData, setFormData] = useState({
+    employeId: "",
+    date_debut: "",
+    date_fin: "",
+    type_absence: "Maladie",
+    justification: "",
+    piece_jointe: ""
+  });
+  
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
   const [filterStatus, setFilterStatus] = useState("Tous les statuts");
@@ -39,6 +73,34 @@ export default function Absences() {
   const [deleteId, setDeleteId] = useState(null);
   const [selectedAbsences, setSelectedAbsences] = useState(new Set());
   const permissions = usePermissions();
+
+  const [currentEmployeId, setCurrentEmployeId] = useState(null);
+
+    // Fonction pour charger les employés
+  const loadEmployes = async () => {
+    try {
+      setLoadingEmployes(true);
+      const data = await getEmployes();
+      setEmployes(data);
+      console.log('Employés chargés:', data.length);
+      
+      // 🔹 Trouver l'employé correspondant à l'utilisateur connecté
+      if (permissions.isEmploye && user) {
+        const employe = data.find(emp => emp.email === user.email);
+        if (employe) {
+          setCurrentEmployeId(employe.id);
+          setFormData(prev => ({ ...prev, employeId: employe.id.toString() }));
+        }
+      }
+    } catch (err) {
+      console.error("Erreur chargement employés:", err);
+      toast.error("Erreur", { 
+        description: "Impossible de charger les employés" 
+      });
+    } finally {
+      setLoadingEmployes(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -56,7 +118,10 @@ export default function Absences() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { 
+    load();
+    loadEmployes(); 
+  }, []);
 
   const exportToPDF = async () => {
     try {
@@ -243,33 +308,43 @@ export default function Absences() {
         
         {/* Header moderne */}
         <div className="relative overflow-hidden rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-2xl p-8">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/3 to-accent/5"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-blue-500/5 to-cyan-500/10"></div>
           <div className="relative">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              <div className="space-y-2">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-700 shadow-2xl shadow-blue-500/30">
+                <Calendar className="h-8 w-8 text-white" />
+              </div>
+              <div className="flex-1">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
                   Gestion des Absences
                 </h1>
-                <p className="text-muted-foreground flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4" />
-                  Suivez et gérez les absences des employés
-                </p>
+                <p className="text-sm text-muted-foreground mt-2">Suivez et gérez les absences des employés</p>
               </div>
-              
+            </div>
+            <Separator className="my-4 bg-border/40" />
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                {stats.total} absences{stats.total > 1 ? 's' : ''} au total
+              </div>
               <div className="flex items-center gap-2">
-
-                <Button onClick={exportToPDF} className="bg-primary/80 hover:bg-primary/90 text-primary-foreground">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Exporter PDF
-                </Button>
-
-                <Button 
-                  onClick={openCreate}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/40"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Déclarer une Absence
-                </Button>
+                {(permissions.canView('absences') || permissions.isEmploye ) && (
+                  <button 
+                    onClick={exportToPDF} 
+                    className="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors border border-emerald-500/30 text-sm font-medium flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Exporter PDF
+                  </button>
+                )}
+                {(permissions.canCreate('absences') || permissions.canRequest('absences') || permissions.isEmploye) && (
+                  <button
+                    onClick={openCreate}
+                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all flex items-center gap-2 text-sm font-medium"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Déclarer une Absence
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -601,31 +676,44 @@ export default function Absences() {
               </div>
             )}
 
+            {/* Employé */}
             <div className="space-y-2">
-              <Label htmlFor="employeId" className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <User className="w-4 h-4 text-primary" />
+              <Label htmlFor="employeId" className="font-semibold flex items-center gap-2">
+                <Users className="w-4 h-4 text-primary" />
                 Employé <span className="text-destructive">*</span>
               </Label>
-              <Select
-                value={form.employeId.toString()}
-                onValueChange={(value) => setForm({ ...form, employeId: value })}
-              >
-                <SelectTrigger className="h-12 border-2 focus:border-primary transition-colors">
-                  <SelectValue placeholder="Sélectionner un employé" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employes.map(e => (
-                    <SelectItem key={e.id} value={e.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
-                          {e.nom[0]}{e.prenom[0]}
-                        </div>
-                        <span>{e.nom} {e.prenom}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              
+              {permissions.isEmploye && currentEmployeId ? (
+                <div className="p-3 border border-border rounded-md bg-muted">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-medium text-sm">
+                      {employes.find(e => e.id === currentEmployeId)?.prenom?.[0]}
+                      {employes.find(e => e.id === currentEmployeId)?.nom?.[0]}
+                    </div>
+                    <span className="font-medium">
+                      {employes.find(e => e.id === currentEmployeId)?.prenom}{' '}
+                      {employes.find(e => e.id === currentEmployeId)?.nom}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <Select
+                  value={formData.employeId}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, employeId: value }))}
+                  required
+                >
+                  <SelectTrigger className="h-12 border-2 focus:border-primary transition-colors">
+                    <SelectValue placeholder="Sélectionner un employé" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employes.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id.toString()}>
+                        {emp.prenom} {emp.nom}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

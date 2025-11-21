@@ -290,62 +290,111 @@ export default function Contrats() {
       <div className="mx-auto max-w-7xl space-y-8">
         
         {/* Header moderne */}
-        <div className="relative overflow-hidden rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-2xl p-8">
+        <div className="relative overflow-hidden z-[101] rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-2xl p-8">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/3 to-accent/5"></div>
-          <div className="relative">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              <div className="space-y-2">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+          
+          <div className="relative space-y-6">
+            {/* Titre et description */}
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-teal-600 shadow-2xl shadow-blue-500/30">
+                <Briefcase className="h-8 w-8 text-white" />
+              </div>
+              <div className="flex-1">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-teal-500 to-blue-500 bg-clip-text text-transparent">
                   Gestion des Contrats
                 </h1>
-                <p className="text-muted-foreground flex items-center gap-2">
-                  <Briefcase className="w-4 h-4" />
+                <p className="text-sm text-muted-foreground mt-2">
                   Consultez et gérez les contrats de travail
                 </p>
               </div>
-              
-              {permissions.canCreate('contrats') && (
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <Button
-                      variant="outline"
-                      onClick={() => setImportMenuOpen(!importMenuOpen)}
-                      className="gap-2 border-border"
+            </div>
+
+            <Separator className="bg-border/40" />
+
+            {/* Actions et statistiques */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+              <div className="text-sm text-muted-foreground">
+                {stats.total} contrat{stats.total > 1 ? 's' : ''} au total
+              </div>
+
+              {/* Boutons d'action */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Bouton Exporter PDF */}
+                <button
+                  onClick={exportToPDF}
+                  className="px-4 py-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors border border-blue-500/30 text-sm font-medium flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Exporter PDF
+                </button>
+
+                {permissions.canCreate && permissions.canCreate('contrats') && (
+                  <>
+                    {/* Bouton Nouveau Contrat */}
+                    <button
+                      onClick={openCreate}
+                      className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-pink-600 hover:from-blue-700 hover:to-pink-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all flex items-center gap-2 text-sm font-medium"
                     >
-                      <Upload className="w-4 h-4" />
-                      Importer
-                      <ChevronDown className="w-4 h-4" />
-                    </Button>
+                      <Plus className="h-4 w-4" />
+                      Nouveau Contrat
+                    </button>
+                    
+                    {/* Menu Import avec dropdown */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setImportMenuOpen(!importMenuOpen)}
+                        className="px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors flex items-center gap-2 text-sm font-medium"
+                      >
+                        <Upload className="w-4 h-4" />
+                        Importer
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${importMenuOpen ? 'rotate-180' : ''}`} />
+                      </button>
 
-                    {importMenuOpen && (
-                      <>
-                        <div className="fixed inset-0 z-10" onClick={() => setImportMenuOpen(false)} />
-                        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-xl border border-slate-200 z-20 overflow-hidden">
-                          <div onClick={() => csvInputRef.current?.click()} className="flex items-center gap-3 p-4 hover:bg-slate-50 cursor-pointer">
-                            <FileSpreadsheet className="h-5 w-5 text-green-500" />
-                            <div className="text-sm font-medium text-foreground">Import CSV Contrats</div>
+                      {importMenuOpen && (
+                        <>
+                          {/* Overlay pour fermer le menu */}
+                          <div 
+                            className="fixed inset-0 z-[100]" 
+                            onClick={() => setImportMenuOpen(false)} 
+                          />
+                          
+                          {/* Menu déroulant */}
+                          <div className="absolute right-0 top-[calc(100%+0.5rem)] w-64 bg-card rounded-lg shadow-2xl border border-border z-[101]">
+                            <div 
+                              onClick={() => {
+                                csvInputRef.current?.click();
+                                setImportMenuOpen(false);
+                              }} 
+                              className="flex items-center gap-3 p-4 hover:bg-muted cursor-pointer transition-colors rounded-lg"
+                            >
+                              <div className="h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                                <FileSpreadsheet className="h-5 w-5 text-green-600 dark:text-green-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-semibold text-foreground">
+                                  Import CSV
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Importer des contrats
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </>
-                    )}
-
-                    <input ref={csvInputRef} type="file" accept=".csv" onChange={handleCsvContratsImport} className="hidden" />
-                  </div>
-
-                  <Button onClick={exportToPDF} className="bg-primary/80 hover:bg-primary/90 text-primary-foreground">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Exporter PDF
-                  </Button>
-
-                  <Button 
-                    onClick={openCreate}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nouveau Contrat
-                  </Button>
-                </div>
-              )}
+                        </>
+                      )}
+                    </div>
+                    
+                    {/* Input file caché */}
+                    <input 
+                      ref={csvInputRef} 
+                      type="file" 
+                      accept=".csv" 
+                      onChange={handleCsvContratsImport} 
+                      className="hidden" 
+                    />
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

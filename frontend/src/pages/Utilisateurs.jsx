@@ -6,12 +6,14 @@ import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { Separator } from "../components/ui/separator";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "../components/ui/dialog";
 import {
   Table,
@@ -29,7 +31,7 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { Checkbox } from "../components/ui/checkbox";
-import { Pencil, Trash2, UserPlus, Search, AlertCircle, Users } from 'lucide-react';
+import { Pencil, Trash2, UserPlus, Search, AlertCircle, Users, Plus, Edit, Eye, CheckCircle, Clock, Shield } from 'lucide-react';
 import { toast } from "sonner";
 import {
   getUtilisateurs,
@@ -39,12 +41,22 @@ import {
 } from "../services/utilisateurService";
 import { usePermissions } from "../hooks/usePermissions";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "../components/ui/alert-dialog";
 
 export default function UtilisateursPage() {
   const permissions = usePermissions();
   
   const [utilisateurs, setUtilisateurs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUsers, setSelectedUsers] = useState(new Set());
 
@@ -64,6 +76,11 @@ export default function UtilisateursPage() {
     role: "SUPER_ADMIN",
   });
 
+  //statistiques
+  const stats = {
+    total: utilisateurs.length,
+  };
+  
   const [editingUser, setEditingUser] = useState(null);
 
   // Charger les utilisateurs
@@ -126,6 +143,25 @@ export default function UtilisateursPage() {
       });
     }
   };
+
+    // Ouvrir le dialog en mode création
+  const openCreateDialog = () => {
+    resetForm();
+    setShowAddModal(true);
+  };
+ 
+  // Réinitialiser le formulaire
+  const resetForm = () => {
+    setNewUser({ 
+      nom: "",
+      prenom: "",
+      email: "",
+      mot_de_passe: "exemplemdp123",
+      nom_utilisateur: "",
+      role: "SUPER_ADMIN",
+    });
+  };
+
 
 
   const modifierUtilisateur = async (e) => {
@@ -234,68 +270,118 @@ export default function UtilisateursPage() {
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Users className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-              Gestion des Utilisateurs
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Gérez les utilisateurs et leurs permissions
-            </p>
+      <div className="mx-auto max-w-7xl space-y-8">
+        
+        {/* Header moderne */}
+        <div className="relative overflow-hidden rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-2xl p-8">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-blue-500/5 to-cyan-500/10"></div>
+          <div className="relative">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-700 shadow-2xl shadow-blue-500/30">
+                <Users className="h-8 w-8 text-white" />
+              </div>
+              <div className="flex-1">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
+                  Gestion des Utilisateurs
+                </h1>
+                <p className="text-sm text-muted-foreground mt-2">
+                   Gérez les comptes et permissions des utilisateurs</p>
+              </div>
+            </div>
+            <Separator className="my-4 bg-border/40" />
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                {stats.total} utilisateur{stats.total > 1 ? 's' : ''} au total
+              </div>
+              <div className="flex items-center gap-2">
+                {/* Bouton Nouvelle demande - visible pour tous les rôles qui peuvent créer OU pour les employés */}
+                {permissions.canCreate('utilisateurs') && (
+                  <button
+                    onClick={openCreateDialog}
+                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all flex items-center gap-2 text-sm font-medium"
+                  >
+                    <Plus className="h-4 w-4" />
+                      Nouvelle Utilisateur 
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <Card className="shadow-lg border border-border bg-card">
-        <CardHeader className="border-b border-border bg-gradient-to-r from-background/50 to-transparent pb-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <Badge 
-              variant={permissions.isSuperAdmin ? "destructive" : "default"}
-              className="w-fit"
-            >
-              {permissions.isSuperAdmin ? "🔐 Super Admin" : "👤 Admin (Lecture)"}
-            </Badge>
-          </div>
+        {/* Cartes statistiques */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-primary text-primary-foreground">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-primary-foreground/80 text-sm font-medium">Total Utilisateurs</p>
+                <Users className="w-8 h-8 text-primary-foreground/80" />
+              </div>
+              <p className="text-4xl font-bold">{utilisateurs.length}</p>
+              <div className="flex items-center gap-1 mt-2 text-primary-foreground/80 text-xs">
+                <Users className="w-3 h-3" />
+                <span>Actifs</span>
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="flex flex-col md:flex-row gap-3 mt-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher un utilisateur..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-input text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary transition"
-              />
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white dark:from-emerald-600 dark:to-emerald-700">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-emerald-100 text-sm font-medium">Administrateurs</p>
+                <Shield className="w-8 h-8 text-white/80" />
+              </div>
+              <p className="text-4xl font-bold">{utilisateurs.filter(u => u.role === "ADMIN").length}</p>
+              <div className="flex items-center gap-1 mt-2 text-emerald-100 text-xs">
+                <Shield className="w-3 h-3" />
+                <span>Admins</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white dark:from-blue-600 dark:to-blue-700">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-blue-100 text-sm font-medium">Super Admin</p>
+                <Shield className="w-8 h-8 text-white/80" />
+              </div>
+              <p className="text-4xl font-bold">{utilisateurs.filter(u => u.role === "SUPER_ADMIN").length}</p>
+              <div className="flex items-center gap-1 mt-2 text-blue-100 text-xs">
+                <Shield className="w-3 h-3" />
+                <span>Super Admins</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Barre de recherche */}
+        <Card className="border shadow-2xl rounded-2xl overflow-hidden bg-card backdrop-blur-xl">
+          <CardHeader className="border-b bg-muted/50 p-6">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                <Users className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground">Liste des Utilisateurs</h2>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-6">
+            <div className="mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher un utilisateur..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-input h-11 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary transition"
+                />
+              </div>
             </div>
 
-            {permissions.canCreate('utilisateurs') && (
-              <Button
-                onClick={() => setShowAddModal(true)}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all hover:shadow-lg whitespace-nowrap"
-              >
-                <UserPlus className="w-4 h-4 mr-2" />
-                Ajouter
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin inline-block h-8 w-8 border-4 border-border border-t-primary rounded-full"></div>
-              <p className="text-muted-foreground mt-3">Chargement des utilisateurs...</p>
-            </div>
-          ) : filteredUsers.length === 0 ? (
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-muted-foreground">Aucun utilisateur trouvé</p>
-            </div>
-          ) : (
+            <Separator className="my-6" />
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -315,85 +401,92 @@ export default function UtilisateursPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsers.map((u) => (
-                    <TableRow
-                      key={u.id}
-                      data-state={selectedUsers.has(u.id) && "selected"}
-                      className="border-b border-border hover:bg-muted/50 transition-colors"
-                    >
-                      <TableCell className="px-4 py-4">
-                        <Checkbox
-                          checked={selectedUsers.has(u.id)}
-                          onCheckedChange={() => handleSelectUser(u.id)}
-                          aria-label="Select user"
-                        />
-                      </TableCell>
-                      <TableCell className="px-4 py-4 text-sm text-muted-foreground">
-                        {u.id}
-                      </TableCell>
-                      <TableCell className="px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9 border border-border">
-                            <AvatarImage src={u.avatar || "/avatars/shadcn.jpg"} />
-                            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                              {u.prenom_utilisateur?.[0] || u.nom_utilisateur?.[0]}
-                              {u.nom_utilisateur?.[1] || ""}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium text-foreground">
-                            {u.prenom_utilisateur || u.nom_utilisateur}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-4 py-4 text-sm text-foreground">
-                        {u.email}
-                      </TableCell>
-                      <TableCell className="px-4 py-4">
-                        <Badge
-                          variant={
-                            u.role === "SUPER_ADMIN"
-                              ? "destructive"
-                              : u.role === "ADMIN"
-                              ? "default"
-                              : "outline"
-                          }
-                          className="font-medium"
-                        >
-                          {u.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="px-4 py-4">
-                        <div className="flex gap-2">
-                          {permissions.canEdit('utilisateurs') && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => ouvrirModaleModification(u)}
-                              className="hover:bg-primary/10 hover:text-primary transition"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {permissions.canDelete('utilisateurs') && (
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => requestDelete(u.id)}
-                              className="hover:opacity-90 transition"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
+                  {filteredUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan="6" className="text-center py-8">
+                        <p className="text-muted-foreground">Aucun utilisateur trouvé</p>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    filteredUsers.map((u) => (
+                      <TableRow
+                        key={u.id}
+                        data-state={selectedUsers.has(u.id) && "selected"}
+                        className="border-b border-border hover:bg-muted/50 transition-colors"
+                      >
+                        <TableCell className="px-4 py-4">
+                          <Checkbox
+                            checked={selectedUsers.has(u.id)}
+                            onCheckedChange={() => handleSelectUser(u.id)}
+                            aria-label="Select user"
+                          />
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-sm text-muted-foreground">
+                          {u.id}
+                        </TableCell>
+                        <TableCell className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9 border border-border">
+                              <AvatarImage src={u.avatar || "/avatars/shadcn.jpg"} />
+                              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                                {u.prenom_utilisateur?.[0] || u.nom_utilisateur?.[0]}
+                                {u.nom_utilisateur?.[1] || ""}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium text-foreground">
+                              {u.prenom_utilisateur || u.nom_utilisateur}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-sm text-foreground">
+                          {u.email}
+                        </TableCell>
+                        <TableCell className="px-4 py-4">
+                          <Badge
+                            variant={
+                              u.role === "SUPER_ADMIN"
+                                ? "destructive"
+                                : u.role === "ADMIN"
+                                ? "default"
+                                : "outline"
+                            }
+                            className="font-medium"
+                          >
+                            {u.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="px-4 py-4">
+                          <div className="flex gap-2">
+                            {permissions.canEdit('utilisateurs') && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => ouvrirModaleModification(u)}
+                                className="hover:bg-primary/10 hover:text-primary transition"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                            )}
+                            {permissions.canDelete('utilisateurs') && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => requestDelete(u.id)}
+                                className="hover:opacity-90 transition"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="sm:max-w-[450px] border border-border bg-card">
@@ -599,6 +692,7 @@ export default function UtilisateursPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

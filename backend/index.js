@@ -302,9 +302,16 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ✅ CORS corrigé (localhost bien écrit)
+// ✅ CORS flexible pour tous les ports localhost en développement
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  origin: function (origin, callback) {
+    // Autoriser les requêtes sans origine (comme Postman) ou depuis localhost
+    if (!origin || /^http:\/\/localhost:\d+$/.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
@@ -372,65 +379,6 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-// Route de login
-// app.post("/api/auth/login", async (req, res) => {
-//   try {
-//     const { email, mot_de_passe } = req.body;
-
-//     if (!email || !mot_de_passe) {
-//       return res.status(400).json({ message: "Email et mot de passe requis" });
-//     }
-
-//     const utilisateur = await prisma.utilisateur.findUnique({
-//       where: { email },
-//       include: { employe: true, conges: true }
-//     });
-
-//     if (!utilisateur) {
-//       return res.status(401).json({ message: "Email ou mot de passe incorrect" });
-//     }
-
-//     const motDePasseValide = await bcrypt.compare(mot_de_passe, utilisateur.mot_de_passe);
-
-//     if (!motDePasseValide) {
-//       return res.status(401).json({ message: "Email ou mot de passe incorrect" });
-//     }
-
-//     if (utilisateur.statut && utilisateur.statut !== "ACTIF") {
-//       return res.status(401).json({ message: "Compte désactivé" });
-//     }
-
-//     const token = jwt.sign(
-//       {
-//         id: utilisateur.id,
-//         nom_utilisateur: utilisateur.nom_utilisateur,
-//         role: utilisateur.role,
-//       },
-//       process.env.JWT_SECRET || "votre_secret_jwt",
-//       { expiresIn: "24h" }
-//     );
-
-//     await prisma.utilisateur.update({
-//       where: { id: utilisateur.id },
-//       data: { derniere_connexion: new Date() }
-//     });
-
-//     res.json({
-//       token,
-//       user: {
-//         id: utilisateur.id,
-//         nom_utilisateur: utilisateur.nom_utilisateur,
-//         email: utilisateur.email,
-//         role: utilisateur.role,
-//         employe: utilisateur.employe
-//       }
-//     });
-
-//   } catch (error) {
-//     console.error("❌ Erreur lors de la connexion:", error);
-//     res.status(500).json({ message: "Erreur interne du serveur" });
-//   }
-// });
 // backend/index.js - Route de login
 app.post("/api/auth/login", async (req, res) => {
   try {

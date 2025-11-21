@@ -1,4 +1,4 @@
-// frontend/src/pages/Conges.jsx
+// frontend/src/pages/Conges.jsx - Modernized
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { getConges, createConge, updateConge, deleteConge } from "../services/congeService";
@@ -11,6 +11,7 @@ import logoDroite from "../assets/carso 1.png";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { Separator } from "../components/ui/separator";
 import { 
   Table, 
   TableBody, 
@@ -34,6 +35,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "../components/ui/alert-dialog";
 import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import { Badge } from "../components/ui/badge";
@@ -45,10 +56,12 @@ import {
   Calendar,
   Filter,
   Search,
-  Download,
-  AlertCircle,
   CheckCircle,
-  XCircle
+  XCircle,
+  Clock,
+  Users,
+  Edit,
+  Upload
 } from "lucide-react";
 
 export default function CongesPage() {
@@ -67,6 +80,8 @@ export default function CongesPage() {
   const [selectedConges, setSelectedConges] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatut, setFilterStatut] = useState("tous");
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
   
   // 🔹 ID de l'employé connecté
   const [currentEmployeId, setCurrentEmployeId] = useState(null);
@@ -93,7 +108,6 @@ export default function CongesPage() {
         const employe = data.find(emp => emp.email === user.email);
         if (employe) {
           setCurrentEmployeId(employe.id);
-          // Pré-remplir l'ID pour les employés
           setFormData(prev => ({ ...prev, employeId: employe.id.toString() }));
         }
       }
@@ -130,7 +144,6 @@ export default function CongesPage() {
   useEffect(() => {
     load();
     loadEmployes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fonction async de soumission
@@ -148,7 +161,6 @@ export default function CongesPage() {
     }
 
     try {
-      // 🔹 Pour un employé, forcer le statut à "SOUMIS" (au lieu de EN_ATTENTE)
       const payload = {
         ...formData,
         utilisateurId: user.id,
@@ -180,43 +192,112 @@ export default function CongesPage() {
     }
   };
 
-  // Fonction async de suppression
-  const handleDelete = async (id) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce congé ?")) {
+  // Ouvrir le dialog en mode édition
+  const openEditDialog = (conge) => {
+    if (permissions.isEmploye && conge.statut !== "SOUMIS") {
+      toast.error("Vous ne pouvez modifier que les demandes en attente");
       return;
     }
-    
+
+    setFormData({
+      type_conge: conge.type_conge || "",
+      date_debut: conge.date_debut?.split('T')[0] || "",
+      date_fin: conge.date_fin?.split('T')[0] || "",
+      motif: conge.motif || "",
+      statut: conge.statut || "SOUMIS",
+      employeId: conge.employeId?.toString() || ""
+    });
+    setCurrent(conge);
+    setEditing(true);
+    setIsDialogOpen(true);
+  };
+
+  // Ouvrir le dialog en mode création
+  const openCreateDialog = () => {
+    resetForm();
+    setIsDialogOpen(true);
+  };
+
+  // Réinitialiser le formulaire
+  const resetForm = () => {
+    setFormData({
+      type_conge: "",
+      date_debut: "",
+      date_fin: "",
+      motif: "",
+      statut: "SOUMIS",
+      employeId: permissions.isEmploye ? currentEmployeId?.toString() || "" : ""
+    });
+    setEditing(false);
+    setCurrent(null);
+  };
+
+  //open create
+  const openCreate = () => {
+    resetForm();
+    setIsDialogOpen(true);
+  };
+
+  // Gérer les changements de formulaire
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Sélection de congés
+  const handleSelectConge = (id) => {
+    const newSelected = new Set(selectedConges);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedConges(newSelected);
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedConges(new Set(filteredConges.map(c => c.id)));
+    } else {
+      setSelectedConges(new Set());
+    }
+  };
+
+  // Suppression
+  const requestDelete = (id) => {
+    setDeleteId(id);
+    setConfirmDeleteOpen(true);
+  };
+
+  const requestDeleteSelected = () => {
+    if (selectedConges.size > 0) {
+      setDeleteId(null);
+      setConfirmDeleteOpen(true);
+    }
+  };
+
+  const confirmDelete = async () => {
+    setConfirmDeleteOpen(false);
+    setLoading(true);
     try {
-      await deleteConge(id);
-      toast.success("Congé supprimé");
+      if (deleteId) {
+        await deleteConge(deleteId);
+        toast.success("Congé supprimé");
+      } else if (selectedConges.size > 0) {
+        await Promise.all(Array.from(selectedConges).map(id => deleteConge(id)));
+        toast.success(`${selectedConges.size} congé(s) supprimé(s)`);
+        setSelectedConges(new Set());
+      }
       await load();
     } catch (err) {
       console.error("Erreur suppression:", err);
       toast.error("Erreur", { description: err.message });
-    }
-  };
-
-  // Suppression multiple
-  const handleDeleteSelected = async () => {
-    if (selectedConges.size === 0) {
-      toast.error("Aucun congé sélectionné");
-      return;
-    }
-
-    if (!window.confirm(`Supprimer ${selectedConges.size} congé(s) ?`)) {
-      return;
-    }
-
-    try {
-      for (const id of selectedConges) {
-        await deleteConge(id);
-      }
-      toast.success(`${selectedConges.size} congé(s) supprimé(s)`);
-      setSelectedConges(new Set());
-      await load();
-    } catch (err) {
-      console.error("Erreur suppression multiple:", err);
-      toast.error("Erreur", { description: err.message });
+    } finally {
+      setLoading(false);
+      setDeleteId(null);
     }
   };
 
@@ -244,67 +325,6 @@ export default function CongesPage() {
     }
   };
 
-  // Réinitialiser le formulaire
-  const resetForm = () => {
-    setFormData({
-      type_conge: "",
-      date_debut: "",
-      date_fin: "",
-      motif: "",
-      statut: "SOUMIS",
-      employeId: permissions.isEmploye ? currentEmployeId?.toString() || "" : ""
-    });
-    setEditing(false);
-    setCurrent(null);
-  };
-
-  // Ouvrir le dialog en mode édition
-  const openEditDialog = (conge) => {
-    // 🔹 Employé peut seulement éditer les congés "SOUMIS"
-    if (permissions.isEmploye && conge.statut !== "SOUMIS") {
-      toast.error("Vous ne pouvez modifier que les demandes en attente");
-      return;
-    }
-
-    setFormData({
-      type_conge: conge.type_conge || "",
-      date_debut: conge.date_debut?.split('T')[0] || "",
-      date_fin: conge.date_fin?.split('T')[0] || "",
-      motif: conge.motif || "",
-      statut: conge.statut || "SOUMIS",
-      employeId: conge.employeId?.toString() || ""
-    });
-    setCurrent(conge);
-    setEditing(true);
-    setIsDialogOpen(true);
-  };
-
-  // Ouvrir le dialog en mode création
-  const openCreateDialog = () => {
-    resetForm();
-    setIsDialogOpen(true);
-  };
-
-  // Gérer les changements de formulaire
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // Sélection de congés
-  const handleSelectConge = (id) => {
-    const newSelected = new Set(selectedConges);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedConges(newSelected);
-  };
-
   // Exporter en PDF
   const exportToPDF = async () => {
     if (conges.length === 0) {
@@ -315,7 +335,6 @@ export default function CongesPage() {
     try {
       toast.info("Génération du PDF en cours...");
 
-      // Générer le document PDF
       const blob = await pdf(
         <CongesPDFDocument
           conges={conges}
@@ -324,7 +343,6 @@ export default function CongesPage() {
         />
       ).toBlob();
 
-      // Créer un lien de téléchargement
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -341,14 +359,6 @@ export default function CongesPage() {
     }
   };
 
-  const handleSelectAll = () => {
-    if (selectedConges.size === filteredConges.length) {
-      setSelectedConges(new Set());
-    } else {
-      setSelectedConges(new Set(filteredConges.map(c => c.id)));
-    }
-  };
-
   // Formater la date
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -359,19 +369,24 @@ export default function CongesPage() {
   // Badge de statut
   const getStatusBadge = (statut) => {
     const config = {
-      SOUMIS: { variant: "default", label: "Soumis" },
-      APPROUVE: { variant: "default", label: "Approuvé", className: "bg-green-500 text-white" },
-      REJETE: { variant: "destructive", label: "Refusé" },
-      EN_ATTENTE: { variant: "secondary", label: "En attente" }
+      SOUMIS: { label: "Soumis", className: "bg-yellow-100 text-yellow-800" },
+      APPROUVE: { label: "Approuvé", className: "bg-green-100 text-green-800" },
+      REJETE: { label: "Refusé", className: "bg-red-100 text-red-800" },
+      EN_ATTENTE: { label: "En attente", className: "bg-gray-100 text-gray-800" }
     };
     
-    const { label, className } = config[statut] || config.SOUMIS;
+    const config_style = config[statut] || config.SOUMIS;
     
     return (
-      <Badge className={className}>
-        {label}
+      <Badge className={config_style.className}>
+        {config_style.label}
       </Badge>
     );
+  };
+
+  // Statistiques
+  const stats = {
+    total: conges.length,
   };
 
   // 🔹 Filtrage avec support rôle employé
@@ -392,494 +407,604 @@ export default function CongesPage() {
   });
 
   return (
-    <div className="p-8 bg-gradient-to-br from-background to-muted dark:from-slate-950 dark:to-slate-900 min-h-screen">
-      <Card className="bg-card dark:bg-slate-900 border-border shadow-lg">
-        <CardHeader className="border-b border-border bg-gradient-to-r from-card dark:from-slate-900">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-600 dark:bg-blue-700 p-3 rounded-lg">
-                <Calendar className="h-6 w-6 text-white" />
+    <div className="min-h-screen bg-background p-4 md:p-8">
+      <div className="mx-auto max-w-7xl space-y-8">
+        
+        {/* Header moderne */}
+        <div className="relative overflow-hidden rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-2xl p-8">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-blue-500/5 to-cyan-500/10"></div>
+          <div className="relative">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-700 shadow-2xl shadow-blue-500/30">
+                <Calendar className="h-8 w-8 text-white" />
               </div>
-              <div>
-                <CardTitle className="text-2xl font-bold text-foreground dark:text-white">
+              <div className="flex-1">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
                   {permissions.isEmploye ? "Mes Demandes de Congés" : "Gestion des Congés"}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground dark:text-gray-400 mt-1">
-                  {filteredConges.length} congé{filteredConges.length > 1 ? 's' : ''} 
-                  {filterStatut !== "tous" && ` (filtre: ${filterStatut})`}
-                </p>
+                </h1>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {permissions.isEmploye ? "Soumettez et suivez vos demandes de congés" : "Gérez les demandes et approbations de congés"}e</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              {/* 🔹 Suppression multiple uniquement pour Admin/SuperAdmin */}
-              {selectedConges.size > 0 && permissions.canDelete("conges") && !permissions.isEmploye && (
+            <Separator className="my-4 bg-border/40" />
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                {stats.total} congé{stats.total > 1 ? 's' : ''} au total
+              </div>
+              <div className="flex items-center gap-2">
+                {/* Bouton Export - visible pour tous les rôles qui peuvent voir les congés */}
+                {(permissions.canView('conges') || permissions.isEmploye) && (
+                  <button 
+                    onClick={exportToPDF} 
+                    className="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors border border-emerald-500/30 text-sm font-medium flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Exporter PDF
+                  </button>
+                )}
+                {/* Bouton Nouvelle demande - visible pour tous les rôles qui peuvent créer OU pour les employés */}
+                {(permissions.canCreate('conges') || permissions.canRequest('conges') || permissions.isEmploye) && (
+                  <button
+                    onClick={openCreateDialog}
+                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all flex items-center gap-2 text-sm font-medium"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {permissions.isEmploye ? "Nouvelle Demande" : "Nouveau Congé"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Cartes statistiques */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-primary text-primary-foreground">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-primary-foreground/80 text-sm font-medium">Total Congés</p>
+                <Calendar className="w-8 h-8 text-primary-foreground/80" />
+              </div>
+              <p className="text-4xl font-bold">{filteredConges.length}</p>
+              <div className="flex items-center gap-1 mt-2 text-primary-foreground/80 text-xs">
+                <Calendar className="w-3 h-3" />
+                <span>Enregistrés</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-yellow-500 to-yellow-600 text-white dark:from-yellow-600 dark:to-yellow-700">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-yellow-100 text-sm font-medium">En Attente</p>
+                <Clock className="w-8 h-8 text-white/80" />
+              </div>
+              <p className="text-4xl font-bold">{filteredConges.filter(c => c.statut === "SOUMIS").length}</p>
+              <div className="flex items-center gap-1 mt-2 text-yellow-100 text-xs">
+                <Clock className="w-3 h-3" />
+                <span>Soumis</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white dark:from-emerald-600 dark:to-emerald-700">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-emerald-100 text-sm font-medium">Approuvés</p>
+                <CheckCircle className="w-8 h-8 text-white/80" />
+              </div>
+              <p className="text-4xl font-bold">{filteredConges.filter(c => c.statut === "APPROUVE").length}</p>
+              <div className="flex items-center gap-1 mt-2 text-emerald-100 text-xs">
+                <CheckCircle className="w-3 h-3" />
+                <span>Accordés</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-red-500 to-red-600 text-white dark:from-red-600 dark:to-red-700">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-red-100 text-sm font-medium">Refusés</p>
+                <XCircle className="w-8 h-8 text-white/80" />
+              </div>
+              <p className="text-4xl font-bold">{filteredConges.filter(c => c.statut === "REJETE").length}</p>
+              <div className="flex items-center gap-1 mt-2 text-red-100 text-xs">
+                <XCircle className="w-3 h-3" />
+                <span>Refusés</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Barre de sélection */}
+        {selectedConges.size > 0 && permissions.canDelete("conges") && !permissions.isEmploye && (
+          <div className="rounded-xl bg-primary/10 dark:bg-primary/20 backdrop-blur-sm border border-primary/20 p-4 shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
+                  {selectedConges.size}
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">
+                    {selectedConges.size} congé{selectedConges.size > 1 ? 's' : ''} sélectionné{selectedConges.size > 1 ? 's' : ''}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Cliquez sur supprimer pour effacer la sélection
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={requestDeleteSelected}
+                className="shadow-lg hover:shadow-xl transition-all"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Supprimer
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Liste des congés */}
+        <Card className="border shadow-2xl rounded-2xl overflow-hidden bg-card backdrop-blur-xl">
+          <CardHeader className="border-b bg-muted/50 p-6">
+            <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-primary-foreground" />
+              </div>
+              Liste des Congés
+            </h2>
+          </CardHeader>
+
+          <CardContent className="p-6">
+            {/* Barre de recherche et filtres */}
+            <div className="flex flex-col lg:flex-row gap-4 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher par type ou employé..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="h-11 pl-10 pr-4 text-base rounded-lg bg-background border border-border"
+                />
+              </div>
+              
+              <Select value={filterStatut} onValueChange={setFilterStatut}>
+                <SelectTrigger className="w-full md:w-[200px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Filtrer par statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tous">Tous les statuts</SelectItem>
+                  <SelectItem value="SOUMIS">Soumis</SelectItem>
+                  <SelectItem value="APPROUVE">Approuvé</SelectItem>
+                  <SelectItem value="REJETE">Refusé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Separator className="my-6" />
+
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <p className="text-muted-foreground font-medium">Chargement des congés...</p>
+              </div>
+            ) : filteredConges.length === 0 ? (
+              <div className="text-center py-16 space-y-6">
+                <div className="mx-auto w-24 h-24 rounded-full bg-muted flex items-center justify-center">
+                  <Calendar className="w-12 h-12 text-muted-foreground" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-foreground">
+                    {searchTerm || filterStatut !== "tous" 
+                      ? "Aucun congé trouvé avec ces filtres" 
+                      : permissions.isEmploye
+                        ? "Vous n'avez pas encore de demande de congé"
+                        : "Aucun congé enregistré"}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {permissions.isEmploye 
+                      ? "Faites votre première demande de congé"
+                      : "Commencez par créer votre premier congé"}
+                  </p>
+                </div>
                 <Button 
-                  variant="destructive"
-                  onClick={handleDeleteSelected}
-                  className="flex items-center gap-2"
+                  onClick={openCreateDialog} 
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
-                  <Trash2 className="h-4 w-4" />
-                  Supprimer ({selectedConges.size})
+                  <Plus className="w-4 h-4 mr-2" />
+                  {permissions.isEmploye ? "Faire une demande" : "Créer un congé"}
                 </Button>
-              )}
-              <Button 
-                onClick={openCreateDialog}
-                className="flex items-center gap-2 bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800"
-              >
-                <Plus className="h-4 w-4" />
-                {permissions.isEmploye ? "Nouvelle Demande" : "Nouveau Congé"}
-              </Button>
-            </div>
-          </div>
-
-          {/* Barre de recherche et filtres */}
-          <div className="flex gap-4 mt-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground dark:text-gray-500" />
-              <Input
-                placeholder="Rechercher par type ou employé..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-background dark:bg-slate-800 text-foreground dark:text-white border-border"
-              />
-            </div>
-            <Select value={filterStatut} onValueChange={setFilterStatut}>
-              <SelectTrigger className="w-[200px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filtrer par statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="tous">Tous les statuts</SelectItem>
-                <SelectItem value="SOUMIS">Soumis</SelectItem>
-                <SelectItem value="APPROUVE">Approuvé</SelectItem>
-                <SelectItem value="REJETE">Refusé</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" className="flex items-center gap-2" onClick={exportToPDF}>
-              <Download className="h-4 w-4" />
-              Exporter
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent className="p-6">
-          {/* Message d'erreur */}
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-              <div>
-                <p className="font-medium text-red-800">Erreur</p>
-                <p className="text-red-700 text-sm">{error}</p>
               </div>
-            </div>
-          )}
-
-          {/* État de chargement */}
-          {loading ? (
-            <div className="flex flex-col justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-              <p className="text-gray-500">Chargement des congés...</p>
-            </div>
-          ) : filteredConges.length === 0 ? (
-            <div className="text-center py-12">
-              <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg font-medium mb-2">
-                {searchTerm || filterStatut !== "tous" 
-                  ? "Aucun congé trouvé avec ces filtres" 
-                  : permissions.isEmploye
-                    ? "Vous n'avez pas encore de demande de congé"
-                    : "Aucun congé enregistré"}
-              </p>
-              <p className="text-gray-400 text-sm mb-4">
-                {permissions.isEmploye 
-                  ? "Faites votre première demande de congé"
-                  : "Commencez par créer votre premier congé"}
-              </p>
-              <Button 
-                onClick={openCreateDialog} 
-                variant="outline"
-                className="flex items-center gap-2 mx-auto"
-              >
-                <Plus className="h-4 w-4" />
-                {permissions.isEmploye ? "Faire une demande" : "Créer un congé"}
-              </Button>
-            </div>
-          ) : (
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50">
-                    {/* 🔹 Checkbox uniquement pour Admin/SuperAdmin */}
-                    {!permissions.isEmploye && (
-                      <TableHead className="w-12">
-                        <Checkbox
-                          checked={selectedConges.size === filteredConges.length && filteredConges.length > 0}
-                          onCheckedChange={handleSelectAll}
-                        />
-                      </TableHead>
-                    )}
-                    <TableHead className="font-semibold">ID</TableHead>
-                    <TableHead className="font-semibold">Employé</TableHead>
-                    <TableHead className="font-semibold">Type</TableHead>
-                    <TableHead className="font-semibold">Date début</TableHead>
-                    <TableHead className="font-semibold">Date fin</TableHead>
-                    <TableHead className="font-semibold">Durée</TableHead>
-                    <TableHead className="font-semibold">Statut</TableHead>
-                    <TableHead className="font-semibold">Motif</TableHead>
-                    <TableHead className="text-right font-semibold">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredConges.map((conge) => {
-                    const dateDebut = new Date(conge.date_debut);
-                    const dateFin = new Date(conge.date_fin);
-                    const dureeJours = Math.ceil((dateFin - dateDebut) / (1000 * 60 * 60 * 24)) + 1;
-                    
-                    return (
-                      <TableRow 
-                        key={conge.id}
-                        className="hover:bg-gray-50 transition-colors"
-                        data-state={selectedConges.has(conge.id) && "selected"}
-                      >
-                        {/* 🔹 Checkbox uniquement pour Admin/SuperAdmin */}
-                        {!permissions.isEmploye && (
-                          <TableCell>
-                            <Checkbox
-                              checked={selectedConges.has(conge.id)}
-                              onCheckedChange={() => handleSelectConge(conge.id)}
-                            />
+            ) : (
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 border-b">
+                      {!permissions.isEmploye && (
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={selectedConges.size === filteredConges.length && filteredConges.length > 0}
+                            onCheckedChange={handleSelectAll}
+                          />
+                        </TableHead>
+                      )}
+                      <TableHead className="font-semibold">ID</TableHead>
+                      <TableHead className="font-semibold">Employé</TableHead>
+                      <TableHead className="font-semibold">Type</TableHead>
+                      <TableHead className="font-semibold">Date début</TableHead>
+                      <TableHead className="font-semibold">Date fin</TableHead>
+                      <TableHead className="font-semibold">Durée</TableHead>
+                      <TableHead className="font-semibold">Statut</TableHead>
+                      <TableHead className="font-semibold">Motif</TableHead>
+                      <TableHead className="text-right font-semibold">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredConges.map((conge) => {
+                      const dateDebut = new Date(conge.date_debut);
+                      const dateFin = new Date(conge.date_fin);
+                      const dureeJours = Math.ceil((dateFin - dateDebut) / (1000 * 60 * 60 * 24)) + 1;
+                      
+                      return (
+                        <TableRow 
+                          key={conge.id}
+                          className="hover:bg-muted/50 transition-colors"
+                          data-state={selectedConges.has(conge.id) && "selected"}
+                        >
+                          {!permissions.isEmploye && (
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedConges.has(conge.id)}
+                                onCheckedChange={() => handleSelectConge(conge.id)}
+                              />
+                            </TableCell>
+                          )}
+                          <TableCell className="font-medium text-muted-foreground">
+                            #{conge.id}
                           </TableCell>
-                        )}
-                        <TableCell className="font-medium text-gray-600">
-                          #{conge.id}
-                        </TableCell>
-                       
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
-                              {conge.employe?.prenom?.[0]}{conge.employe?.nom?.[0]}
+                         
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-medium text-sm">
+                                {conge.employe?.prenom?.[0]}{conge.employe?.nom?.[0]}
+                              </div>
+                              <span>
+                                {conge.employe ? 
+                                  `${conge.employe.prenom} ${conge.employe.nom}` : 
+                                  'N/A'
+                                }
+                              </span>
                             </div>
-                            <span>
-                              {conge.employe ? 
-                                `${conge.employe.prenom} ${conge.employe.nom}` : 
-                                'N/A'
-                              }
+                          </TableCell>
+                           <TableCell className="font-medium">
+                            {conge.type_conge}
+                          </TableCell>
+                          <TableCell>{formatDate(conge.date_debut)}</TableCell>
+                          <TableCell>{formatDate(conge.date_fin)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="font-mono">
+                              {dureeJours} jour{dureeJours > 1 ? 's' : ''}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{getStatusBadge(conge.statut)}</TableCell>
+                          <TableCell className="max-w-xs">
+                            <span className="truncate block" title={conge.motif}>
+                              {conge.motif || '-'}
                             </span>
-                          </div>
-                        </TableCell>
-                         <TableCell className="font-medium">
-                          {conge.type_conge}
-                        </TableCell>
-                        <TableCell>{formatDate(conge.date_debut)}</TableCell>
-                        <TableCell>{formatDate(conge.date_fin)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-mono">
-                            {dureeJours} jour{dureeJours > 1 ? 's' : ''}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(conge.statut)}</TableCell>
-                        <TableCell className="max-w-xs">
-                          <span className="truncate block" title={conge.motif}>
-                            {conge.motif || '-'}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex gap-2 justify-end">
-                            {/* 🔹 Boutons Approuver/Refuser - Uniquement pour Admin/SuperAdmin sur congés SOUMIS */}
-                            {conge.statut === "SOUMIS" && 
-                             (permissions.isAdmin || permissions.isSuperAdmin) && (
-                              <>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex gap-2 justify-end">
+                              {conge.statut === "SOUMIS" && 
+                               (permissions.isAdmin || permissions.isSuperAdmin) && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleApprove(conge.id)}
+                                    className="hover:bg-green-50"
+                                    title="Approuver"
+                                  >
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleReject(conge.id)}
+                                    className="hover:bg-red-50"
+                                    title="Refuser"
+                                  >
+                                    <XCircle className="h-4 w-4 text-red-600" />
+                                  </Button>
+                                </>
+                              )}
+                              
+                              {permissions.canUpdate("conges") && 
+                               (!permissions.isEmploye || conge.statut === "SOUMIS") && (
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => handleApprove(conge.id)}
-                                  className="hover:bg-green-50"
-                                  title="Approuver"
+                                  onClick={() => openEditDialog(conge)}
+                                  className="hover:bg-blue-50"
                                 >
-                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                  <Pencil className="h-4 w-4 text-blue-600" />
                                 </Button>
+                              )}
+                              
+                              {permissions.canDelete("conges") && !permissions.isEmploye && (
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => handleReject(conge.id)}
+                                  onClick={() => requestDelete(conge.id)}
                                   className="hover:bg-red-50"
-                                  title="Refuser"
                                 >
-                                  <XCircle className="h-4 w-4 text-red-600" />
+                                  <Trash2 className="h-4 w-4 text-red-600" />
                                 </Button>
-                              </>
-                            )}
-                            
-                            {/* 🔹 Modifier - Employé uniquement sur SOUMIS */}
-                            {permissions.canUpdate("conges") && 
-                             (!permissions.isEmploye || conge.statut === "SOUMIS") && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => openEditDialog(conge)}
-                                className="hover:bg-blue-50"
-                              >
-                                <Pencil className="h-4 w-4 text-blue-600" />
-                              </Button>
-                            )}
-                            
-                            {/* 🔹 Supprimer - Uniquement Admin/SuperAdmin */}
-                            {permissions.canDelete("conges") && !permissions.isEmploye && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleDelete(conge.id)}
-                                className="hover:bg-red-50"
-                              >
-                                <Trash2 className="h-4 w-4 text-red-600" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Dialog de création/édition */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[550px]">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
-              {editing ? "✏️ Modifier le congé" : permissions.isEmploye ? "📝 Nouvelle demande de congé" : "➕ Créer un nouveau congé"}
-            </DialogTitle>
-            <DialogDescription>
-              Remplissez les informations du congé ci-dessous. Les champs marqués d'un * sont obligatoires.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden border shadow-2xl">
+          <div className="bg-primary p-6 text-primary-foreground">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center">
+                  {editing ? <Edit className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                </div>
+                {editing ? 'Modifier le congé' : 'Nouvelle demande de congé'}
+              </DialogTitle>
+              <DialogDescription className="text-primary-foreground/80 mt-2">
+                {editing ? 'Modifiez les informations du congé' : 'Créez une demande de congé'}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
 
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
-              {/* Type de congé */}
-              <div className="grid gap-2">
-                <Label htmlFor="type_conge" className="font-semibold">
-                  Type de congé <span className="text-red-500">*</span>
-                </Label>
+          <form onSubmit={handleSubmit} className="p-6 space-y-6 bg-card max-h-[60vh] overflow-y-auto">
+
+                        {/* Employé */}
+                        <div className="space-y-2">
+              <Label htmlFor="employeId" className="font-semibold flex items-center gap-2">
+                <Users className="w-4 h-4 text-primary" />
+                Employé <span className="text-destructive">*</span>
+              </Label>
+              
+              {permissions.isEmploye && currentEmployeId ? (
+                <div className="p-3 border border-border rounded-md bg-muted">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-medium text-sm">
+                      {employes.find(e => e.id === currentEmployeId)?.prenom?.[0]}
+                      {employes.find(e => e.id === currentEmployeId)?.nom?.[0]}
+                    </div>
+                    <span className="font-medium">
+                      {employes.find(e => e.id === currentEmployeId)?.prenom}{' '}
+                      {employes.find(e => e.id === currentEmployeId)?.nom}
+                    </span>
+                  </div>
+                </div>
+              ) : (
                 <Select
-                  name="type_conge"
-                  value={formData.type_conge}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, type_conge: value }))}
+                  value={formData.employeId}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, employeId: value }))}
                   required
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un type de congé" />
+                  <SelectTrigger className="h-12 border-2 focus:border-primary transition-colors">
+                    <SelectValue placeholder="Sélectionner un employé" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Congé annuel">Congé annuel</SelectItem>
-                    <SelectItem value="Congé maladie">Congé maladie</SelectItem>
-                    <SelectItem value="Congé sans solde">Congé sans solde</SelectItem>
-                    <SelectItem value="Congé maternité">Congé maternité</SelectItem>
-                    <SelectItem value="Congé paternité">Congé paternité</SelectItem>
-                    <SelectItem value="RTT">RTT</SelectItem>
-                    <SelectItem value="Formation">Formation</SelectItem>
-                    <SelectItem value="Autre">Autre</SelectItem>
+                    {employes.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id.toString()}>
+                        {emp.prenom} {emp.nom}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              {/* 🔹 Select Employé - Différent selon le rôle */}
-              <div className="grid gap-2">
-                <Label htmlFor="employeId" className="font-semibold">
-                  Employé <span className="text-red-500">*</span>
-                </Label>
-                
-                {/* 🔹 Pour EMPLOYÉ : Affichage en lecture seule */}
-                {permissions.isEmploye && currentEmployeId ? (
-                  <div className="p-3 border border-border rounded-md bg-muted">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
-                        {employes.find(e => e.id === currentEmployeId)?.prenom?.[0]}
-                        {employes.find(e => e.id === currentEmployeId)?.nom?.[0]}
-                      </div>
-                      <span className="font-medium">
-                        {employes.find(e => e.id === currentEmployeId)?.prenom}{' '}
-                        {employes.find(e => e.id === currentEmployeId)?.nom}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  /* 🔹 Pour ADMIN/SUPERADMIN : Select avec tous les employés */
-                  <>
-                    {loadingEmployes ? (
-                      <div className="flex items-center gap-2 p-3 border rounded-md bg-gray-50">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                        <span className="text-sm text-gray-600">Chargement des employés...</span>
-                      </div>
-                    ) : employes.length === 0 ? (
-                      <div className="p-3 border border-yellow-200 rounded-md bg-yellow-50">
-                        <p className="text-sm text-yellow-800 flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4" />
-                          Aucun employé disponible. Créez d'abord un employé.
-                        </p>
-                      </div>
-                    ) : (
-                      <Select
-                        name="employeId"
-                        value={formData.employeId}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, employeId: value }))}
-                        required
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un employé" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {employes.map((emp) => (
-                            <SelectItem key={emp.id} value={emp.id.toString()}>
-                              <div className="flex items-center gap-2">
-                                <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-xs">
-                                  {emp.prenom?.[0]}{emp.nom?.[0]}
-                                </div>
-                                <span>
-                                  {emp.prenom} {emp.nom}
-                                  {emp.matricule && (
-                                    <span className="text-gray-500 text-xs ml-2">
-                                      ({emp.matricule})
-                                    </span>
-                                  )}
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Dates */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="date_debut" className="font-semibold">
-                    Date de début <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="date_debut"
-                    name="date_debut"
-                    type="date"
-                    value={formData.date_debut}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="date_fin" className="font-semibold">
-                    Date de fin <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="date_fin"
-                    name="date_fin"
-                    type="date"
-                    value={formData.date_fin}
-                    onChange={handleChange}
-                    min={formData.date_debut}
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Calcul de la durée */}
-              {formData.date_debut && formData.date_fin && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                  <p className="text-sm text-blue-800">
-                    📅 Durée: <strong>
-                      {Math.ceil((new Date(formData.date_fin) - new Date(formData.date_debut)) / (1000 * 60 * 60 * 24)) + 1}
-                    </strong> jour(s)
-                  </p>
-                </div>
-              )}
-
-              {/* 🔹 Statut - Uniquement pour Admin/SuperAdmin */}
-              {!permissions.isEmploye && (
-                <div className="grid gap-2">
-                  <Label htmlFor="statut" className="font-semibold">
-                    Statut
-                  </Label>
-                  <Select
-                    name="statut"
-                    value={formData.statut}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, statut: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un statut" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="SOUMIS">Soumis</SelectItem>
-                      <SelectItem value="APPROUVE">✅ Approuvé</SelectItem>
-                      <SelectItem value="REJETE">❌ Refusé</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* Motif */}
-              <div className="grid gap-2">
-                <Label htmlFor="motif" className="font-semibold">
-                  Motif {permissions.isEmploye && "(optionnel)"}
-                </Label>
-                <Textarea
-                  id="motif"
-                  name="motif"
-                  value={formData.motif}
-                  onChange={handleChange}
-                  placeholder="Précisez le motif du congé..."
-                  rows={4}
-                  className="resize-none"
-                />
-                <p className="text-xs text-gray-500">
-                  Ajoutez des détails supplémentaires si nécessaire
-                </p>
-              </div>
-
-              {/* 🔹 Message d'information pour les employés */}
-              {permissions.isEmploye && (
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-yellow-800">Information importante</p>
-                      <p className="text-xs text-yellow-700 mt-1">
-                        Votre demande sera soumise pour validation par votre responsable. 
-                        Le statut sera automatiquement défini sur "Soumis".
-                      </p>
-                    </div>
-                  </div>
-                </div>
               )}
             </div>
 
-            <DialogFooter className="gap-2">
+            
+            {/* Type de congé */}
+            <div className="space-y-2">
+              <Label htmlFor="type_conge" className="font-semibold flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-primary" />
+                Type de congé <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={formData.type_conge}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, type_conge: value }))}
+                required
+              >
+                <SelectTrigger className="h-12 border-2 focus:border-primary transition-colors">
+                  <SelectValue placeholder="Sélectionner un type de congé" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Congé annuel">Congé annuel</SelectItem>
+                  <SelectItem value="Congé maladie">Congé maladie</SelectItem>
+                  <SelectItem value="Congé sans solde">Congé sans solde</SelectItem>
+                  <SelectItem value="Congé maternité">Congé maternité</SelectItem>
+                  <SelectItem value="Congé paternité">Congé paternité</SelectItem>
+                  <SelectItem value="RTT">RTT</SelectItem>
+                  <SelectItem value="Formation">Formation</SelectItem>
+                  <SelectItem value="Autre">Autre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+
+            {/* Dates */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="date_debut" className="font-semibold flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  Date début <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="date_debut"
+                  name="date_debut"
+                  type="date"
+                  value={formData.date_debut}
+                  onChange={handleChange}
+                  className="h-12 border-2 focus:border-primary transition-colors"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="date_fin" className="font-semibold flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  Date fin <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="date_fin"
+                  name="date_fin"
+                  type="date"
+                  value={formData.date_fin}
+                  onChange={handleChange}
+                  min={formData.date_debut}
+                  className="h-12 border-2 focus:border-primary transition-colors"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Calcul de la durée */}
+            {formData.date_debut && formData.date_fin && (
+              <div className="p-3 bg-primary/10 border border-primary/20 rounded-md">
+                <p className="text-sm text-primary">
+                  📅 Durée: <strong>
+                    {Math.ceil((new Date(formData.date_fin) - new Date(formData.date_debut)) / (1000 * 60 * 60 * 24)) + 1}
+                  </strong> jour(s)
+                </p>
+              </div>
+            )}
+
+            {/* Statut - Uniquement pour Admin/SuperAdmin */}
+            {!permissions.isEmploye && (
+              <div className="space-y-2">
+                <Label htmlFor="statut" className="font-semibold flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-primary" />
+                  Statut
+                </Label>
+                <Select
+                  value={formData.statut}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, statut: value }))}
+                >
+                  <SelectTrigger className="h-12 border-2 focus:border-primary transition-colors">
+                    <SelectValue placeholder="Sélectionner un statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SOUMIS">Soumis</SelectItem>
+                    <SelectItem value="APPROUVE">✅ Approuvé</SelectItem>
+                    <SelectItem value="REJETE">❌ Refusé</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Motif */}
+            <div className="space-y-2">
+              <Label htmlFor="motif" className="font-semibold">
+                Motif {permissions.isEmploye && "(optionnel)"}
+              </Label>
+              <Textarea
+                id="motif"
+                name="motif"
+                value={formData.motif}
+                onChange={handleChange}
+                placeholder="Précisez le motif du congé..."
+                rows={4}
+                className="resize-none border-2 focus:border-primary transition-colors"
+              />
+              <p className="text-xs text-muted-foreground">
+                Ajoutez des détails supplémentaires si nécessaire
+              </p>
+            </div>
+
+            <Separator className="my-6" />
+
+            <div className="flex gap-3">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => {
                   setIsDialogOpen(false);
                   resetForm();
-                }}
+                }} 
+                className="flex-1 h-12 border-2"
               >
                 Annuler
               </Button>
               <Button 
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700"
+                type="submit" 
+                className="flex-1 h-12 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all"
               >
-                {editing ? "Mettre à jour" : permissions.isEmploye ? "Envoyer la demande" : "Créer le congé"}
+                {editing ? "Mettre à jour" : "Envoyer la demande"}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* AlertDialog de confirmation */}
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent className="sm:max-w-[450px] p-0 overflow-hidden border shadow-2xl">
+          <div className="bg-destructive p-6 text-destructive-foreground">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-2xl font-bold flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl bg-destructive-foreground/20 backdrop-blur-sm flex items-center justify-center">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                Confirmation de suppression
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-destructive-foreground/80 mt-2">
+                Cette action est irréversible et supprimera définitivement les données
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+          </div>
+
+          <div className="p-6 bg-card space-y-4">
+            <div className="bg-destructive/10 border-l-4 border-destructive rounded-lg p-4">
+              <p className="text-foreground">
+                {selectedConges.size > 0
+                  ? `Vous êtes sur le point de supprimer ${selectedConges.size} congé${selectedConges.size > 1 ? 's' : ''}.`
+                  : "Vous êtes sur le point de supprimer ce congé."}
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Voulez-vous vraiment continuer ?
+              </p>
+            </div>
+
+            <AlertDialogFooter className="flex gap-3 sm:gap-3 pt-2">
+              <AlertDialogCancel className="flex-1 h-12 border-2 hover:bg-muted">
+                Annuler
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmDelete}
+                className="flex-1 h-12 bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg hover:shadow-xl transition-all"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Confirmer la suppression
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

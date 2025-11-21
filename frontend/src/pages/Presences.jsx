@@ -9,18 +9,37 @@ import { Label } from "../components/ui/label";
 import { useToast } from "../components/ui/use-toast";
 import { getPresences, createPresence, updatePresence, deletePresence } from "../services/presenceService";
 import { getEmployes } from "../services/employeService";
-import { CalendarDays, Clock, User, Plus, Download, Edit, Trash2, CheckCircle, XCircle, AlertCircle, Users, TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { 
+  CalendarDays, 
+  Clock, 
+  User, 
+  Plus,  
+  Edit, 
+  Trash2, 
+  CheckCircle, 
+  XCircle, 
+  AlertCircle, 
+  Users, 
+  TrendingUp, 
+  TrendingDown, 
+  Activity,
+  Upload
+} from "lucide-react";
 import { Checkbox } from "../components/ui/checkbox";
 import { usePermissions } from "../hooks/usePermissions";
 import { Separator } from "../components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
+import { useAuth } from "../hooks/useAuth.jsx";
 
 import { pdf } from '@react-pdf/renderer'
 import PresencesPDFDocument from "../exportPdf/PresencesPDFDocument.jsx";
 import logoGauche from "../assets/carso 1.png";
 
 export default function Presences() {
+
+  const { user } = useAuth();
+
   const [presences, setPresences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [employes, setEmployes] = useState([]);
@@ -35,12 +54,49 @@ export default function Presences() {
     justification: "" 
   });
 
+  const [loadingEmployes, setLoadingEmployes] = useState(false);
+  const [formData, setFormData] = useState({
+    employeId: "",
+    date_jour: new Date().toISOString(),
+    statut: "PRESENT",
+    heures_travaillees: 8,
+    justification: ""
+  });
+
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString());
   const { toast } = useToast();
   const [selectedPresences, setSelectedPresences] = useState(new Set());
   const permissions = usePermissions();
+
+  const [currentEmployeId, setCurrentEmployeId] = useState(null);
+
+     // Fonction pour charger les employés
+  const loadEmployes = async () => {
+    try {
+      setLoadingEmployes(true);
+      const data = await getEmployes();
+      setEmployes(data);
+      console.log('Employés chargés:', data.length);
+      
+      // 🔹 Trouver l'employé correspondant à l'utilisateur connecté
+      if (permissions.isEmploye && user) {
+        const employe = data.find(emp => emp.email === user.email);
+        if (employe) {
+          setCurrentEmployeId(employe.id);
+          setFormData(prev => ({ ...prev, employeId: employe.id.toString() }));
+        }
+      }
+    } catch (err) {
+      console.error("Erreur chargement employés:", err);
+      toast.error("Erreur", { 
+        description: "Impossible de charger les employés" 
+      });
+    } finally {
+      setLoadingEmployes(false);
+    }
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -73,7 +129,10 @@ export default function Presences() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { 
+    load(); 
+    loadEmployes();
+  }, []);
 
   const openCreate = () => {
     setEditingId(null);
@@ -202,6 +261,7 @@ export default function Presences() {
     absents: presences.filter(p => p.statut === "ABSENT").length,
     retards: presences.filter(p => p.statut === "RETARD").length,
     taux: presences.length > 0 ? Math.round((presences.filter(p => p.statut === "PRESENT").length / presences.length) * 100) : 0,
+    total: presences.length,
   };
 
   const colorStatut = (statut) => {
@@ -293,40 +353,54 @@ export default function Presences() {
         <div className="relative overflow-hidden rounded-2xl bg-card/70 dark:bg-card backdrop-blur-xl border border-border shadow-2xl p-8">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/3 to-accent/5"></div>
           <div className="relative">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              <div className="space-y-2">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                  Gestion des Présences
-                </h1>
-                <p className="text-muted-foreground flex items-center gap-2">
-                  <Activity className="w-4 h-4" />
-                  Suivez les présences quotidiennes en temps réel
-                </p>
-              </div>
-              
-              <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-700 shadow-2xl shadow-blue-500/30">
+                  <CalendarDays className="h-8 w-8 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
+                    Gestion des Présences
+                  </h1>
+                  <p className="text-sm text-muted-foreground mt-2">Suivez les présences quotidiennes en temps réel</p>
+                </div>
+                
                 <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 backdrop-blur-sm border border-border shadow-sm">
                   <CalendarDays className="w-4 h-4 text-primary" />
                   <span className="text-sm font-medium text-foreground">
                     {formatDateTime(selectedDate)}
                   </span>
                 </div>
-                
-                <Button
-                  onClick={exportToPDF}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/40"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Exporter PDF
-                </Button>
 
-                <Button 
-                  onClick={openCreate}
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/30 transition-all duration-300 hover:shadow-xl hover:shadow-accent/40"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nouvelle Présence
-                </Button>
+              </div>
+              <Separator className="my-4 bg-border/40" />
+                  
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="text-sm text-muted-foreground">
+                  {stats.total} presences{stats.total > 1 ? 's' : ''} au total
+                </div>
+                
+
+                <div className="flex items-center gap-2">
+                  {(permissions.canView('presences') || permissions.isEmploye) && (
+                    <button 
+                      onClick={exportToPDF} 
+                      className="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors border border-emerald-500/30 text-sm font-medium flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Exporter PDF
+                    </button>
+                  )}
+                  {(permissions.canCreate('bulletins') || permissions.canRequest || permissions.isEmploye) && (
+                    <button
+                      onClick={openCreate}
+                      className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all flex items-center gap-2 text-sm font-medium"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Nouvelle Présence
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -596,31 +670,44 @@ export default function Presences() {
               </div>
             )}
 
+            {/* Employé */}
             <div className="space-y-2">
-              <Label htmlFor="employeId" className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <User className="w-4 h-4 text-primary" />
+              <Label htmlFor="employeId" className="font-semibold flex items-center gap-2">
+                <Users className="w-4 h-4 text-primary" />
                 Employé <span className="text-destructive">*</span>
               </Label>
-              <Select
-                value={form.employeId}
-                onValueChange={(value) => setForm({ ...form, employeId: value })}
-              >
-                <SelectTrigger className="h-12 border-2 focus:border-primary transition-colors">
-                  <SelectValue placeholder="Sélectionner un employé" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employes.map(e => (
-                    <SelectItem key={e.id} value={e.id}>
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
-                          {e.nom[0]}{e.prenom[0]}
-                        </div>
-                        <span>{e.nom} {e.prenom}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              
+              {permissions.isEmploye && currentEmployeId ? (
+                <div className="p-3 border border-border rounded-md bg-muted">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-medium text-sm">
+                      {employes.find(e => e.id === currentEmployeId)?.prenom?.[0]}
+                      {employes.find(e => e.id === currentEmployeId)?.nom?.[0]}
+                    </div>
+                    <span className="font-medium">
+                      {employes.find(e => e.id === currentEmployeId)?.prenom}{' '}
+                      {employes.find(e => e.id === currentEmployeId)?.nom}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <Select
+                  value={formData.employeId}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, employeId: value }))}
+                  required
+                >
+                  <SelectTrigger className="h-12 border-2 focus:border-primary transition-colors">
+                    <SelectValue placeholder="Sélectionner un employé" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employes.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id.toString()}>
+                        {emp.prenom} {emp.nom}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-2">

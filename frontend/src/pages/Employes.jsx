@@ -1,13 +1,14 @@
 // //frontend/src/pages/Employes.jsx
-import { useState, useEffect } from "react"
-import { Search, Download, Filter, MoreHorizontal, ChevronDown, Plus, Trash2, Users } from "lucide-react"
-import { pdf } from '@react-pdf/renderer'
-import UserAvatar from "@/components/UserAvatar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useState, useEffect } from "react";
+import { Search, Download, Filter, MoreHorizontal, ChevronDown, Plus, Trash2, Users, DollarSign,Upload} from "lucide-react";
+import { pdf } from '@react-pdf/renderer';
+import UserAvatar from "@/components/UserAvatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +16,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -25,8 +26,8 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
   AlertDialogAction,
-} from "@/components/ui/alert-dialog"
-import { toast } from "sonner"
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import {
   getEmployes,
   createEmploye,
@@ -34,11 +35,11 @@ import {
   deleteEmploye,
   getDepartements,
   getPostes,
-} from "@/services/employeService"
-import { Checkbox } from "@/components/ui/checkbox"
-import { usePermissions } from "@/hooks/usePermissions"
-import EmployeePDFDocument from "@/exportPdf/EmployeePDFDocument.jsx"
-import logoDroite from "@/assets/carso 1.png"
+} from "@/services/employeService";
+import { Checkbox } from "@/components/ui/checkbox";
+import { usePermissions } from "@/hooks/usePermissions";
+import EmployeePDFDocument from "@/exportPdf/EmployeePDFDocument.jsx";
+import logoDroite from "@/assets/carso 1.png";
 
 export default function EmployeeList() {
   const permissions = usePermissions()
@@ -220,6 +221,17 @@ export default function EmployeeList() {
     return matchesSearch && matchesDepartment
   })
 
+    // Calculer les statistiques
+  const stats = {
+    total: employees.reduce((sum, p) => sum + p.montant, 0),
+    count: employees.length,
+    moyenne: employees.length > 0 ? employees.reduce((sum, p) => sum + p.montant, 0) / employees.length : 0,
+    moisCourant: employees.filter(p => {
+      const date = new Date(p.date_paiement);
+      const now = new Date();
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    }).reduce((sum, p) => sum + p.montant, 0)
+  };
   const handleSelectEmployee = (id) => {
     setSelectedEmployees((prev) => {
       const newSelection = new Set(prev)
@@ -286,26 +298,56 @@ export default function EmployeeList() {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header Section */}
         <div className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-600  shadow-lg">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-foreground">Gestion des Employés</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Gérez les informations de vos employés de manière efficace
-                </p>
-              </div>
-            </div>
-            {permissions.canCreate("employes") && (
+          <div className="mx-auto max-w-7xl ">
+                    <div className="relative overflow-hidden rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-2xl p-8">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-blue-500/5 to-teal-500/10"></div>
+                      <div className="relative">
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-teal-600 shadow-2xl shadow-blue-500/30">
+                            <Users className="h-8 w-8 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-teal-500 to-blue-500 bg-clip-text text-transparent">
+                              Gestion des Employés
+                            </h1>
+                            <p className="text-sm text-muted-foreground mt-2">Gérez les informations de vos employés de manière efficace</p>
+                          </div>
+                        </div>
+                        <Separator className="my-4 bg-border/40" />
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                          <div className="text-sm text-muted-foreground">
+                            {stats.count} paiement{stats.count > 1 ? 's' : ''} au total
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={exportToPDF}
+                              className="px-4 py-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors border border-blue-500/30 text-sm font-medium flex items-center gap-2"
+                            >
+                              <Upload className="h-4 w-4" />
+                              Exporter PDF
+                            </button>
+            
+                             {permissions.canCreate && permissions.canCreate('employes') ? (
+                            <button
+                                onClick={() => setIsDialogOpen(true)}
+                                className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-pink-600 hover:from-blue-700 hover:to-pink-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all flex items-center gap-2 text-sm font-medium"
+                                            >
+                                  <Plus className="h-4 w-4" />
+                                      Nouvel Employé
+                            </button>
+                              ) : null}
+                          </div>
+                        </div>
+                      </div>
+              {permissions.canCreate("employes") && (
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
+                {/* <DialogTrigger asChild>
                   <Button className="gap-2 h-11 md:h-auto">
                     <Plus className="h-5 w-5" /> Nouvel Employé
                   </Button>
-                </DialogTrigger>
+                </DialogTrigger> */}
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
                   <DialogHeader>
                     <DialogTitle className="text-2xl">
@@ -473,7 +515,8 @@ export default function EmployeeList() {
                   </form>
                 </DialogContent>
               </Dialog>
-            )}
+               )}
+                </div>
           </div>
         </div>
 
@@ -537,14 +580,6 @@ export default function EmployeeList() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              <Button
-                variant="outline"
-                className="h-11 gap-2 px-4 rounded-lg border-border bg-background hover:bg-muted"
-                onClick={exportToPDF}
-              >
-                <Download className="h-4 w-4" /> Exporter
-              </Button>
             </div>
           </div>
 

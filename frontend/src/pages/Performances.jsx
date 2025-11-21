@@ -1,6 +1,8 @@
 //frontend/src/pages/Performances.jsx
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Edit, Trash2, TrendingUp, Award, Calendar, User, Target, CheckCircle, MessageSquare, BarChart3, X } from "lucide-react";
+import { Plus, Edit, Trash2, TrendingUp, Award, Calendar, User, Target, CheckCircle, MessageSquare, BarChart3, X, Upload } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { getPerformances, createPerformance, updatePerformance, deletePerformance } from "../services/performanceService";
 import { getEmployes } from "../services/employeService";
@@ -148,165 +150,191 @@ export default function Performances() {
       )}
 
       <div className="mx-auto max-w-7xl space-y-6">
-        {/* En-tête */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg">
-              <BarChart3 className="h-6 w-6 text-white" />
+        {/* Modern Header */}
+        <div className="relative overflow-hidden rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-2xl p-8">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-blue-500/5 to-blue-500/10"></div>
+          <div className="relative">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-600 shadow-2xl shadow-blue-500/30">
+                <TrendingUp className="h-8 w-8 text-white" />
+              </div>
+              <div className="flex-1">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-blue-500 to-blue-500 bg-clip-text text-transparent">
+                  Évaluations des Performances
+                </h1>
+                <p className="text-sm text-muted-foreground mt-2">Suivi et analyse des performances de l'équipe</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">Évaluations des Performances</h1>
-              <p className="text-sm text-slate-500">Suivi et analyse des performances de l'équipe</p>
-            </div>
-          </div>
+            <Separator className="my-4 bg-border/40" />
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="w-full sm:w-72">
+                <select 
+                  value={selectedEmploye} 
+                  onChange={(e) => setSelectedEmploye(e.target.value)}
+                  className="w-full px-4 py-2 bg-card border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="_all">👥 Tous les employés</option>
+                  {employes.map(e => (
+                    <option value={String(e.id)} key={e.id}>{e.nom} {e.prenom}</option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-            <div className="w-full sm:w-72">
-              <select 
-                value={selectedEmploye} 
-                onChange={(e) => setSelectedEmploye(e.target.value)}
-                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="_all">👥 Tous les employés</option>
-                {employes.map(e => (
-                  <option value={String(e.id)} key={e.id}>{e.nom} {e.prenom}</option>
-                ))}
-              </select>
+              {permissions.canCreate && permissions.canCreate('performances') ? (
+                <button
+                  onClick={() => setIsDialogOpen(true)}
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-600 hover:from-blue-700 hover:to-blue-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all flex items-center gap-2 text-sm font-medium"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nouvelle Évaluation
+                </button>
+              ) : null}
             </div>
-
-            {permissions.canCreate && permissions.canCreate('performances') ? (
-              <button
-                onClick={() => setIsDialogOpen(true)}
-                className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 flex items-center justify-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Nouvelle Évaluation
-              </button>
-            ) : null}
           </div>
         </div>
 
-        {/* Statistiques */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6">
-            <div className="text-sm font-medium text-slate-600 flex items-center gap-2 mb-3">
-              <BarChart3 className="h-4 w-4" />
-              Total Évaluations
-            </div>
-            <div className="text-3xl font-bold text-slate-900">{stats.total}</div>
-          </div>
+        {/* Statistiques modernes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium mb-2">Total Évaluations</p>
+                  <p className="text-3xl font-bold">{stats.total}</p>
+                </div>
+                <BarChart3 className="h-8 w-8 text-blue-200" />
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6">
-            <div className="text-sm font-medium text-slate-600 flex items-center gap-2 mb-3">
-              <TrendingUp className="h-4 w-4" />
-              Note Moyenne
-            </div>
-            <div className="flex items-baseline gap-2">
-              <div className="text-3xl font-bold text-blue-600">{stats.moyenne}</div>
-              <div className="text-sm text-slate-500">/20</div>
-            </div>
-          </div>
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium mb-2">Note Moyenne</p>
+                  <div className="flex items-baseline gap-1">
+                    <p className="text-3xl font-bold">{stats.moyenne}</p>
+                    <p className="text-blue-100 text-sm">/20</p>
+                  </div>
+                </div>
+                <TrendingUp className="h-8 w-8 text-blue-200" />
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6">
-            <div className="text-sm font-medium text-slate-600 flex items-center gap-2 mb-3">
-              <Award className="h-4 w-4" />
-              Meilleure Note
-            </div>
-            <div className="flex items-baseline gap-2">
-              <div className="text-3xl font-bold text-green-600">{stats.meilleure}</div>
-              <div className="text-sm text-slate-500">/20</div>
-            </div>
-          </div>
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-emerald-100 text-sm font-medium mb-2">Meilleure Note</p>
+                  <div className="flex items-baseline gap-1">
+                    <p className="text-3xl font-bold">{stats.meilleure}</p>
+                    <p className="text-emerald-100 text-sm">/20</p>
+                  </div>
+                </div>
+                <Award className="h-8 w-8 text-emerald-200" />
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6">
-            <div className="text-sm font-medium text-slate-600 flex items-center gap-2 mb-3">
-              <Calendar className="h-4 w-4" />
-              Dernière Note
-            </div>
-            <div className="flex items-baseline gap-2">
-              <div className="text-3xl font-bold text-slate-900">{stats.derniere}</div>
-              <div className="text-sm text-slate-500">/20</div>
-            </div>
-          </div>
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-rose-100 text-sm font-medium mb-2">Dernière Note</p>
+                  <div className="flex items-baseline gap-1">
+                    <p className="text-3xl font-bold">{stats.derniere}</p>
+                    <p className="text-rose-100 text-sm">/20</p>
+                  </div>
+                </div>
+                <Calendar className="h-8 w-8 text-rose-200" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Graphique */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-lg p-6">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold flex items-center gap-2 text-slate-900">
-              <TrendingUp className="h-5 w-5 text-blue-600" />
-              Évolution des Performances
-            </h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Visualisation de l'évolution des notes au fil du temps
-            </p>
-          </div>
-          
-          {loading ? (
-            <div className='flex items-center justify-center h-[400px]'>
-              <div className="text-center space-y-3">
-                <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
-                <p className="text-slate-500">Chargement des données...</p>
-              </div>
+        <Card className="border-0 shadow-2xl">
+          <CardContent className="p-8">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">
+                <TrendingUp className="h-5 w-5 text-blue-600" />
+                Évolution des Performances
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Visualisation de l'évolution des notes au fil du temps
+              </p>
             </div>
-          ) : chartData.length === 0 ? (
-            <div className='flex flex-col items-center justify-center h-[400px] text-center space-y-3'>
-              <BarChart3 className="h-16 w-16 text-slate-300" />
-              <div>
-                <p className="text-lg font-medium text-slate-600">Aucune évaluation</p>
-                <p className="text-sm text-slate-500 mt-1">Créez votre première évaluation pour voir les statistiques</p>
+            
+            {loading ? (
+              <div className='flex items-center justify-center h-[400px]'>
+                <div className="text-center space-y-3">
+                  <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
+                  <p className="text-muted-foreground">Chargement des données...</p>
+                </div>
               </div>
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={400}>
-              <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorNote" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0.1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis
-                  dataKey="date"
-                  angle={-30}
-                  textAnchor='end'
-                  tick={{ fontSize: 12, fill: '#64748b' }}
-                  height={60}
-                />
-                <YAxis 
-                  domain={[0, 20]} 
-                  tick={{ fontSize: 12, fill: '#64748b' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                  }}
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const d = payload[0].payload;
-                      return (
-                        <div className="bg-white border border-slate-200 rounded-lg shadow-lg p-3 space-y-2">
-                          <div className="font-semibold text-slate-900 flex items-center gap-2">
-                            <User className="h-4 w-4 text-blue-600" />
-                            {d.nom}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-blue-600" />
-                            <span className="text-sm text-slate-600">Note :</span>
+            ) : chartData.length === 0 ? (
+              <div className='flex flex-col items-center justify-center h-[400px] text-center space-y-3'>
+                <BarChart3 className="h-16 w-16 text-muted-foreground/30" />
+                <div>
+                  <p className="text-lg font-medium text-foreground">Aucune évaluation</p>
+                  <p className="text-sm text-muted-foreground mt-1">Créez votre première évaluation pour voir les statistiques</p>
+                </div>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={400}>
+                <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorNote" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#9333ea" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#9333ea" stopOpacity={0.1} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="date"
+                    angle={-30}
+                    textAnchor='end'
+                    tick={{ fontSize: 12, fill: '#64748b' }}
+                    height={60}
+                  />
+                  <YAxis 
+                    domain={[0, 20]} 
+                    tick={{ fontSize: 12, fill: '#64748b' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                    }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const d = payload[0].payload;
+                        return (
+                          <div className="bg-card border border-border rounded-lg shadow-lg p-3 space-y-2">
+                            <div className="font-semibold text-foreground flex items-center gap-2">
+                              <User className="h-4 w-4 text-blue-600" />
+                              {d.nom}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="h-4 w-4 text-blue-600" />
+                            <span className="text-sm text-muted-foreground">Note :</span>
                             <span className={`px-2 py-1 rounded text-xs font-medium border ${getPerformanceColor(d.note)}`}>
                               {d.note}/20 - {getPerformanceLabel(d.note)}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
                             {d.date}
                           </div>
                           {d.commentaires && (
-                            <div className='text-xs text-slate-500 pt-2 border-t border-slate-100 italic'>
+                            <div className='text-xs text-muted-foreground/70 pt-2 border-t border-border italic'>
                               "{d.commentaires}"
                             </div>
                           )}
@@ -326,67 +354,73 @@ export default function Performances() {
                   type="monotone"
                   dataKey="note"
                   name="Note de performance"
-                  stroke="#2563eb"
+                  stroke="#9333ea"
                   strokeWidth={3}
                   fillOpacity={1}
                   fill="url(#colorNote)"
-                  activeDot={{ r: 6, fill: '#2563eb', stroke: '#fff', strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: '#9333ea', stroke: '#fff', strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           )}
-        </div>
+            </CardContent>
+        </Card>
         
-            {/* Liste des évaluations (détaillée) */}
-            <div className="mt-6 bg-white rounded-xl border border-slate-200 p-4">
-              <h3 className="text-lg font-semibold mb-3">Liste des évaluations</h3>
-              {chartData.length === 0 ? (
-                <div className="text-sm text-slate-500">Aucune évaluation trouvée.</div>
-              ) : (
-                <div className="space-y-2">
-                  {chartData.slice().reverse().map((p) => (
-                    <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-100">
-                      <div>
-                        <div className="font-medium text-slate-900">{p.nom}</div>
-                        <div className="text-sm text-slate-500">{p.date} — Note : <span className="font-semibold">{p.note}</span>/20</div>
-                        {p.commentaires && <div className="text-sm text-slate-600 italic mt-1">"{p.commentaires}"</div>}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {permissions.canEdit && permissions.canEdit('performances') && (
-                          <button
-                            onClick={() => {
-                              // Préparer l'édition
-                              setEditingId(p.id);
-                              setForm({
-                                employeId: String(p.employeId || ''),
-                                note: String(p.note || ''),
-                                date_eval: p.date ? String(p.date) : new Date().toISOString().slice(0,10),
-                                resultat: p.resultat || '',
-                                commentaires: p.commentaires || '',
-                                objectifs: p.objectifs || '',
-                                realisation: p.realisation || '',
-                              });
-                              setIsDialogOpen(true);
-                            }}
-                            className="px-3 py-1 bg-green-50 border border-ygreen-200 text-green-700 rounded-md hover:bg-green-100"
-                          >
-                            <Edit/>
-                          </button>
-                        )}
-                        {permissions.canDelete && permissions.canDelete('performances') && (
-                          <button
-                            onClick={() => { setDeleteId(p.id); setConfirmDeleteOpen(true); }}
-                            className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded-md hover:bg-red-100"
-                          >
-                            <Trash2/>
-                          </button>
-                        )}
-                      </div>
+        {/* Liste des évaluations (détaillée) */}
+        <Card className="border-0 shadow-2xl">
+          <CardContent className="p-8">
+            <h3 className="text-lg font-semibold flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent mb-4">
+              <BarChart3 className="h-5 w-5 text-blue-600" />
+              Liste des évaluations
+            </h3>
+            {chartData.length === 0 ? (
+              <div className="text-sm text-muted-foreground text-center py-8">Aucune évaluation trouvée.</div>
+            ) : (
+              <div className="space-y-2">
+                {chartData.slice().reverse().map((p) => (
+                  <div key={p.id} className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                    <div>
+                      <div className="font-medium text-foreground">{p.nom}</div>
+                      <div className="text-sm text-muted-foreground">{p.date} — Note : <span className="font-semibold text-blue-600">{p.note}</span>/20</div>
+                      {p.commentaires && <div className="text-sm text-muted-foreground italic mt-1">"{p.commentaires}"</div>}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    <div className="flex items-center gap-2">
+                      {permissions.canEdit && permissions.canEdit('performances') && (
+                        <button
+                          onClick={() => {
+                            // Préparer l'édition
+                            setEditingId(p.id);
+                            setForm({
+                              employeId: String(p.employeId || ''),
+                              note: String(p.note || ''),
+                              date_eval: p.date ? String(p.date) : new Date().toISOString().slice(0,10),
+                              resultat: p.resultat || '',
+                              commentaires: p.commentaires || '',
+                              objectifs: p.objectifs || '',
+                              realisation: p.realisation || '',
+                            });
+                            setIsDialogOpen(true);
+                          }}
+                          className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-md hover:bg-blue-100"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                      )}
+                      {permissions.canDelete && permissions.canDelete('performances') && (
+                        <button
+                          onClick={() => { setDeleteId(p.id); setConfirmDeleteOpen(true); }}
+                          className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded-md hover:bg-red-100"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Modal d'ajout */}
