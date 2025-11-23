@@ -23,17 +23,8 @@ import {
   Users,
   Upload,
   FileUp,
+  AlertCircle,
 } from "lucide-react";
-import { 
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction
-} from "../components/ui/alert-dialog";
 import { Checkbox } from "../components/ui/checkbox";
 import { Separator } from "../components/ui/separator";
 import {
@@ -433,12 +424,19 @@ export default function Departements() {
         {/* Liste des départements */}
         <Card className="border shadow-2xl rounded-2xl overflow-hidden bg-card backdrop-blur-xl">
           <div className="bg-muted/50 p-6 border-b">
-            <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-                <Building2 className="w-5 h-5 text-primary-foreground" />
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                  Liste des Volets
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {departements.length} volet{departements.length > 1 ? 's' : ''} trouvé{departements.length > 1 ? 's' : ''}
+                </p>
               </div>
-              Liste des volets
-            </h2>
+            </div>
           </div>
 
           <CardContent className="p-6">
@@ -767,50 +765,40 @@ export default function Departements() {
         </DialogContent>
       </Dialog>
 
-      {/* AlertDialog de confirmation */}
-      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <AlertDialogContent className="sm:max-w-[450px] p-0 overflow-hidden border shadow-2xl">
-          <div className="bg-destructive p-6 text-destructive-foreground">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-2xl font-bold flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-destructive-foreground/20 backdrop-blur-sm flex items-center justify-center">
-                  <Trash2 className="w-6 h-6" />
-                </div>
-                Confirmation de suppression
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-destructive-foreground/80 mt-2">
-                Cette action est irréversible et supprimera définitivement les données
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-          </div>
+      {/* Dialog de confirmation */}
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent className="sm:max-w-[400px] border border-border bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-destructive/10">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+              </div>
+              Confirmer la suppression
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground">
+            {selectedDepartements.size > 0
+              ? `Êtes-vous sûr de vouloir supprimer ${selectedDepartements.size} département${selectedDepartements.size > 1 ? 's' : ''} ? Cette action ne peut pas être annulée.`
+              : "Êtes-vous sûr de vouloir supprimer ce département ? Cette action ne peut pas être annulée."}
+          </p>
+          <DialogFooter className="gap-2 pt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setConfirmDeleteOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={confirmDelete}
+              className="hover:opacity-90"
+            >
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          <div className="p-6 bg-card space-y-4">
-            <div className="bg-destructive/10 border-l-4 border-destructive rounded-lg p-4">
-              <p className="text-foreground">
-                {selectedDepartements.size > 0
-                  ? `Vous êtes sur le point de supprimer ${selectedDepartements.size} département${selectedDepartements.size > 1 ? 's' : ''}.`
-                  : "Vous êtes sur le point de supprimer ce département."}
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Voulez-vous vraiment continuer ?
-              </p>
-            </div>
-
-            <AlertDialogFooter className="flex gap-3 sm:gap-3 pt-2">
-              <AlertDialogCancel className="flex-1 h-12 border-2 hover:bg-muted">
-                Annuler
-              </AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={confirmDelete}
-                className="flex-1 h-12 bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg hover:shadow-xl transition-all"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Confirmer la suppression
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

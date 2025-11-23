@@ -1,6 +1,6 @@
 //frontend/src/pages/Performances.jsx
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Edit, Trash2, TrendingUp, Award, Calendar, User, Target, CheckCircle, MessageSquare, BarChart3, X, Upload } from "lucide-react";
+import { Plus, Edit, Trash2, TrendingUp, Award, Calendar, User, Target, CheckCircle, MessageSquare, BarChart3, X, Upload, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -8,6 +8,8 @@ import { getPerformances, createPerformance, updatePerformance, deletePerformanc
 import { getEmployes } from "../services/employeService";
 import { usePermissions } from "../hooks/usePermissions";
 import { useToast } from "../components/ui/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export default function Performances() {
   const [list, setList] = useState([]);
@@ -576,36 +578,36 @@ export default function Performances() {
         </div>
       )}
 
-      {/* Modal de confirmation de suppression */}
-      {confirmDeleteOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-[fadeIn_0.2s_ease-out]">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-[slideUp_0.3s_ease-out]">
-            <div className="p-6">
-              <h3 className="text-xl font-semibold flex items-center gap-2 text-slate-900 mb-2">
-                <Trash2 className="h-5 w-5 text-red-600" />
-                Confirmer la suppression
-              </h3>
-              <p className="text-sm text-slate-600">
-                Êtes-vous sûr de vouloir supprimer cette évaluation ? Cette action est irréversible et toutes les données associées seront perdues.
-              </p>
-            </div>
-            <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
-              <button
-                onClick={() => setConfirmDeleteOpen(false)}
-                className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-              >
-                Supprimer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent className="sm:max-w-[400px] border border-border bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-destructive/10">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+              </div>
+              Confirmer la suppression
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground">
+            Êtes-vous sûr de vouloir supprimer cette évaluation ? Cette action ne peut pas être annulée.
+          </p>
+          <DialogFooter className="gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDeleteOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              className="hover:opacity-90"
+            >
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <style>{`
         @keyframes fadeIn {

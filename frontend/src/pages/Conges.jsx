@@ -35,16 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from "../components/ui/alert-dialog";
 import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import { Badge } from "../components/ui/badge";
@@ -61,7 +51,8 @@ import {
   Clock,
   Users,
   Edit,
-  Upload
+  Upload,
+  AlertCircle
 } from "lucide-react";
 
 export default function CongesPage() {
@@ -458,7 +449,7 @@ export default function CongesPage() {
         </div>
 
         {/* Cartes statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="relative overflow-hidden border-0 shadow-xl bg-primary text-primary-foreground">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
@@ -551,14 +542,21 @@ export default function CongesPage() {
 
         {/* Liste des congés */}
         <Card className="border shadow-2xl rounded-2xl overflow-hidden bg-card backdrop-blur-xl">
-          <CardHeader className="border-b bg-muted/50 p-6">
-            <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-primary-foreground" />
+          <div className="bg-muted/50 p-6 border-b">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                  Liste des Congés
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {filteredConges.length} congé{filteredConges.length > 1 ? 's' : ''} trouvé{filteredConges.length > 1 ? 's' : ''}
+                </p>
               </div>
-              Liste des Congés
-            </h2>
-          </CardHeader>
+            </div>
+          </div>
 
           <CardContent className="p-6">
             {/* Barre de recherche et filtres */}
@@ -961,50 +959,38 @@ export default function CongesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* AlertDialog de confirmation */}
-      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <AlertDialogContent className="sm:max-w-[450px] p-0 overflow-hidden border shadow-2xl">
-          <div className="bg-destructive p-6 text-destructive-foreground">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-2xl font-bold flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-destructive-foreground/20 backdrop-blur-sm flex items-center justify-center">
-                  <Trash2 className="w-6 h-6" />
-                </div>
-                Confirmation de suppression
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-destructive-foreground/80 mt-2">
-                Cette action est irréversible et supprimera définitivement les données
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-          </div>
-
-          <div className="p-6 bg-card space-y-4">
-            <div className="bg-destructive/10 border-l-4 border-destructive rounded-lg p-4">
-              <p className="text-foreground">
-                {selectedConges.size > 0
-                  ? `Vous êtes sur le point de supprimer ${selectedConges.size} congé${selectedConges.size > 1 ? 's' : ''}.`
-                  : "Vous êtes sur le point de supprimer ce congé."}
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Voulez-vous vraiment continuer ?
-              </p>
-            </div>
-
-            <AlertDialogFooter className="flex gap-3 sm:gap-3 pt-2">
-              <AlertDialogCancel className="flex-1 h-12 border-2 hover:bg-muted">
-                Annuler
-              </AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={confirmDelete}
-                className="flex-1 h-12 bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg hover:shadow-xl transition-all"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Confirmer la suppression
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent className="sm:max-w-[400px] border border-border bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-destructive/10">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+              </div>
+              Confirmer la suppression
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground">
+            {selectedConges.size > 0
+              ? `Êtes-vous sûr de vouloir supprimer ${selectedConges.size} congé${selectedConges.size > 1 ? 's' : ''} ? Cette action ne peut pas être annulée.`
+              : "Êtes-vous sûr de vouloir supprimer ce congé ? Cette action ne peut pas être annulée."}
+          </p>
+          <DialogFooter className="gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDeleteOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              className="hover:opacity-90"
+            >
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

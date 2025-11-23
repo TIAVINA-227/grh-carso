@@ -359,14 +359,21 @@ export default function UtilisateursPage() {
 
         {/* Barre de recherche */}
         <Card className="border shadow-2xl rounded-2xl overflow-hidden bg-card backdrop-blur-xl">
-          <CardHeader className="border-b bg-muted/50 p-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-                <Users className="w-5 h-5 text-primary-foreground" />
+          <div className="border-b bg-muted/50 p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                    <Users className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                  Liste des Utilisateurs
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {utilisateurs.length} utilisateur{utilisateurs.length > 1 ? 's' : ''} trouvé{utilisateurs.length > 1 ? 's' : ''}
+                </p>
               </div>
-              <h2 className="text-2xl font-bold text-foreground">Liste des Utilisateurs</h2>
             </div>
-          </CardHeader>
+          </div>
 
           <CardContent className="p-6">
             <div className="mb-6">

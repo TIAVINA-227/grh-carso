@@ -90,56 +90,60 @@ export default function TableauDeBord() {
       </div>
 
       {/* Statistiques rapides */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-card dark:bg-slate-900 hover:shadow-lg transition-shadow border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground dark:text-gray-400">
-              Employés
-            </CardTitle>
-            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground dark:text-white">--</div>
-            <p className="text-xs text-muted-foreground dark:text-gray-500 mt-1">Total des employés</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+          <CardContent className="p-6 relative">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-blue-100 text-sm font-medium mb-2">Employés</p>
+                <p className="text-3xl font-bold">--</p>
+                <p className="text-xs text-blue-100/80 mt-1">Total des employés</p>
+              </div>
+              <Users className="h-8 w-8 text-white/80" />
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Contrats
-            </CardTitle>
-            <FileText className="h-5 w-5 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900">--</div>
-            <p className="text-xs text-gray-500 mt-1">Contrats actifs</p>
+        <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+          <CardContent className="p-6 relative">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-emerald-100 text-sm font-medium mb-2">Contrats</p>
+                <p className="text-3xl font-bold">--</p>
+                <p className="text-xs text-emerald-100/80 mt-1">Contrats actifs</p>
+              </div>
+              <FileText className="h-8 w-8 text-white/80" />
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Congés
-            </CardTitle>
-            <Calendar className="h-5 w-5 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900">--</div>
-            <p className="text-xs text-gray-500 mt-1">En attente</p>
+        <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+          <CardContent className="p-6 relative">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-purple-100 text-sm font-medium mb-2">Congés</p>
+                <p className="text-3xl font-bold">--</p>
+                <p className="text-xs text-purple-100/80 mt-1">Demandes en attente</p>
+              </div>
+              <Calendar className="h-8 w-8 text-white/80" />
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Performances
-            </CardTitle>
-            <TrendingUp className="h-5 w-5 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900">--</div>
-            <p className="text-xs text-gray-500 mt-1">Moyenne générale</p>
+        <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+          <CardContent className="p-6 relative">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-rose-100 text-sm font-medium mb-2">Performances</p>
+                <p className="text-3xl font-bold">--</p>
+                <p className="text-xs text-rose-100/80 mt-1">Moyenne générale</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-white/80" />
+            </div>
           </CardContent>
         </Card>
       </div>

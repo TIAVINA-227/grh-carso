@@ -11,11 +11,10 @@ import { Separator } from "../components/ui/separator";
 import { getContrats, createContrat, updateContrat, deleteContrat } from "../services/contratService";
 import { usePermissions } from "../hooks/usePermissions";
 import { getEmployes } from "../services/employeService";
-import { FileText, User, Plus, Edit, Trash2, Calendar, DollarSign, Eye, Activity, Briefcase, TrendingUp, Clock, Upload, FileSpreadsheet, ChevronDown, Mail, Phone, MapPin, Building2 } from "lucide-react";
+import { FileText, User, Plus, Edit, Trash2, Calendar, DollarSign, Eye, Activity, Briefcase, TrendingUp, Clock, Upload, FileSpreadsheet, ChevronDown, Mail, Phone, MapPin, Building2, AlertCircle } from "lucide-react";
 import { pdf } from '@react-pdf/renderer';
 import ContratsPDFDocument from "../exportPDF/ContratsPDFDocument";
 import { useToast } from "../components/ui/use-toast";
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../components/ui/alert-dialog";
 import { Checkbox } from "../components/ui/checkbox";
 
 export default function Contrats() {
@@ -290,7 +289,7 @@ export default function Contrats() {
       <div className="mx-auto max-w-7xl space-y-8">
         
         {/* Header moderne */}
-        <div className="relative overflow-hidden z-[101] rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-2xl p-8">
+        <div className="relative overflow-hidden rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-2xl p-8">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/3 to-accent/5"></div>
           
           <div className="relative space-y-6">
@@ -339,50 +338,7 @@ export default function Contrats() {
                       Nouveau Contrat
                     </button>
                     
-                    {/* Menu Import avec dropdown */}
-                    <div className="relative">
-                      <button
-                        onClick={() => setImportMenuOpen(!importMenuOpen)}
-                        className="px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors flex items-center gap-2 text-sm font-medium"
-                      >
-                        <Upload className="w-4 h-4" />
-                        Importer
-                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${importMenuOpen ? 'rotate-180' : ''}`} />
-                      </button>
-
-                      {importMenuOpen && (
-                        <>
-                          {/* Overlay pour fermer le menu */}
-                          <div 
-                            className="fixed inset-0 z-[100]" 
-                            onClick={() => setImportMenuOpen(false)} 
-                          />
-                          
-                          {/* Menu déroulant */}
-                          <div className="absolute right-0 top-[calc(100%+0.5rem)] w-64 bg-card rounded-lg shadow-2xl border border-border z-[101]">
-                            <div 
-                              onClick={() => {
-                                csvInputRef.current?.click();
-                                setImportMenuOpen(false);
-                              }} 
-                              className="flex items-center gap-3 p-4 hover:bg-muted cursor-pointer transition-colors rounded-lg"
-                            >
-                              <div className="h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                                <FileSpreadsheet className="h-5 w-5 text-green-600 dark:text-green-400" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-semibold text-foreground">
-                                  Import CSV
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  Importer des contrats
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                    
                     
                     {/* Input file caché */}
                     <input 
@@ -400,7 +356,7 @@ export default function Contrats() {
         </div>
 
         {/* Cartes statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="relative overflow-hidden border-0 shadow-xl bg-primary text-primary-foreground">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
@@ -492,14 +448,70 @@ export default function Contrats() {
         )}
 
         {/* Liste des contrats */}
+        
         <Card className="border shadow-2xl rounded-2xl overflow-hidden bg-card backdrop-blur-xl">
           <div className="bg-muted/50 p-6 border-b">
-            <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-                <FileText className="w-5 h-5 text-primary-foreground" />
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              {/* Partie gauche - Titre */}
+              <div>
+                <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                  Liste des Contrats
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {contrats.length} contrat{contrats.length > 1 ? 's' : ''} trouvé{contrats.length > 1 ? 's' : ''}
+                </p>
               </div>
-              Liste des Contrats
-            </h2>
+
+              {/* Partie droite - Bouton Import */}
+              {permissions.canCreate && permissions.canCreate('contrats') && (
+                <div className="relative">
+                  <button
+                    onClick={() => setImportMenuOpen(!importMenuOpen)}
+                    className="px-4 py-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 transition-colors border border-green-500/30 text-sm font-medium flex items-center gap-2"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    Importer CSV
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${importMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {importMenuOpen && (
+                    <>
+                      {/* Overlay pour fermer le menu */}
+                      <div 
+                        className="fixed inset-0 z-[100]" 
+                        onClick={() => setImportMenuOpen(false)} 
+                      />
+                      
+                      {/* Menu déroulant */}
+                      <div className="absolute right-0 top-[calc(100%+0.5rem)] w-64 bg-card rounded-lg shadow-2xl border border-border z-[101]">
+                        <div 
+                          onClick={() => {
+                            csvInputRef.current?.click();
+                            setImportMenuOpen(false);
+                          }} 
+                          className="flex items-center gap-3 p-4 hover:bg-muted cursor-pointer transition-colors rounded-lg"
+                        >
+                          <div className="h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                            <FileSpreadsheet className="h-5 w-5 text-green-600 dark:text-green-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-semibold text-foreground">
+                              Import CSV
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Importer des contrats
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <CardContent className="p-6">
@@ -1043,51 +1055,40 @@ export default function Contrats() {
         </Dialog>
       )}
 
-      {/* AlertDialog de confirmation */}
       {permissions.canDelete('contrats') && (
-        <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-          <AlertDialogContent className="sm:max-w-[450px] p-0 overflow-hidden border shadow-2xl">
-            <div className="bg-destructive p-6 text-destructive-foreground">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="text-2xl font-bold flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-destructive-foreground/20 backdrop-blur-sm flex items-center justify-center">
-                    <Trash2 className="w-6 h-6" />
-                  </div>
-                  Confirmation de suppression
-                </AlertDialogTitle>
-                <AlertDialogDescription className="text-destructive-foreground/80 mt-2">
-                  Cette action est irréversible et supprimera définitivement les données
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-            </div>
-
-            <div className="p-6 bg-card space-y-4">
-              <div className="bg-destructive/10 border-l-4 border-destructive rounded-lg p-4">
-                <p className="text-foreground">
-                  {selectedContrats.size > 0
-                    ? `Vous êtes sur le point de supprimer ${selectedContrats.size} contrat${selectedContrats.size > 1 ? 's' : ''}.`
-                    : "Vous êtes sur le point de supprimer ce contrat."}
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Voulez-vous vraiment continuer ?
-                </p>
-              </div>
-
-              <AlertDialogFooter className="flex gap-3 sm:gap-3 pt-2">
-                <AlertDialogCancel className="flex-1 h-12 border-2 hover:bg-muted">
-                  Annuler
-                </AlertDialogCancel>
-                <AlertDialogAction 
-                  onClick={confirmDelete}
-                  className="flex-1 h-12 bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg hover:shadow-xl transition-all"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Confirmer la suppression
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </div>
-          </AlertDialogContent>
-        </AlertDialog>
+        <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+          <DialogContent className="sm:max-w-[400px] border border-border bg-card">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-destructive/10">
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                </div>
+                Confirmer la suppression
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-muted-foreground">
+              {selectedContrats.size > 0
+                ? `Êtes-vous sûr de vouloir supprimer ${selectedContrats.size} contrat${selectedContrats.size > 1 ? 's' : ''} ? Cette action ne peut pas être annulée.`
+                : "Êtes-vous sûr de vouloir supprimer ce contrat ? Cette action ne peut pas être annulée."}
+            </p>
+            <DialogFooter className="gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmDeleteOpen(false)}
+                className="flex-1"
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmDelete}
+                className="flex-1 hover:opacity-90"
+              >
+                Supprimer
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

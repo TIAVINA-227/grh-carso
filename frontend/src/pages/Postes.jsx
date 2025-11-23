@@ -20,11 +20,11 @@ import {
   Search, 
   Calendar, 
   ChevronDown, 
-  AlertTriangle, 
+  AlertTriangle,
+  AlertCircle,
   Layers2
 } from "lucide-react";
 import { getPostes, createPoste, updatePoste, deletePoste } from "@/services/posteService";
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
@@ -1079,62 +1079,70 @@ export default function PostesWithFileStorage() {
       </Dialog>
 
       {/* Dialog de confirmation de suppression des postes */}
-      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <AlertDialogContent className="rounded-2xl max-w-md">
-          <AlertDialogHeader>
-            <div className="flex items-center gap-4 mb-2">
-              <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full">
-                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-500" />
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent className="sm:max-w-[400px] border border-border bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-destructive/10">
+                <AlertCircle className="h-4 w-4 text-destructive" />
               </div>
-              <AlertDialogTitle className="text-xl font-bold text-foreground dark:text-white">
-                Confirmer la suppression
-              </AlertDialogTitle>
-            </div>
-            <AlertDialogDescription className="text-muted-foreground dark:text-gray-400 text-base pt-2">
-              {selectedPostes.size > 0
-                ? `Vous êtes sur le point de supprimer ${selectedPostes.size} poste(s). Cette action est irréversible et toutes les données associées seront perdues.`
-                : "Vous êtes sur le point de supprimer ce poste. Cette action est irréversible et toutes les données associées seront perdues."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 sm:gap-2">
-            <AlertDialogCancel className="flex-1 dark:text-white">Annuler</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDelete} 
-              className="flex-1 bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white"
+              Confirmer la suppression
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground">
+            {selectedPostes.size > 0
+              ? `Êtes-vous sûr de vouloir supprimer ${selectedPostes.size} poste(s) ? Cette action ne peut pas être annulée.`
+              : "Êtes-vous sûr de vouloir supprimer ce poste ? Cette action ne peut pas être annulée."}
+          </p>
+          <DialogFooter className="gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDeleteOpen(false)}
             >
-              Supprimer définitivement
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Dialog de confirmation de suppression des fichiers */}
-      <AlertDialog open={confirmDeleteFileOpen} onOpenChange={setConfirmDeleteFileOpen}>
-        <AlertDialogContent className="rounded-2xl max-w-md">
-          <AlertDialogHeader>
-            <div className="flex items-center gap-4 mb-2">
-              <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full">
-                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-500" />
-              </div>
-              <AlertDialogTitle className="text-xl font-bold text-foreground dark:text-white">
-                Supprimer le fichier
-              </AlertDialogTitle>
-            </div>
-            <AlertDialogDescription className="text-muted-foreground dark:text-gray-400 text-base pt-2">
-              Êtes-vous sûr de vouloir supprimer le fichier <span className="font-semibold text-foreground dark:text-white">"{deleteFileName}"</span> ? Cette action est irréversible.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 sm:gap-2">
-            <AlertDialogCancel className="flex-1 dark:text-white">Annuler</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDeleteFile} 
-              className="flex-1 bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white"
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              className="hover:opacity-90"
             >
               Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmation de suppression des fichiers */}
+      <Dialog open={confirmDeleteFileOpen} onOpenChange={setConfirmDeleteFileOpen}>
+        <DialogContent className="sm:max-w-[400px] border border-border bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-destructive/10">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+              </div>
+              Supprimer le fichier
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground">
+            Êtes-vous sûr de vouloir supprimer le fichier "{deleteFileName}" ? Cette action ne peut pas être annulée.
+          </p>
+          <DialogFooter className="gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDeleteFileOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteFile}
+              className="hover:opacity-90"
+            >
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

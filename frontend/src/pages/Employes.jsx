@@ -1,6 +1,7 @@
 // //frontend/src/pages/Employes.jsx
 import { useState, useEffect } from "react";
-import { Search, Download, Filter, MoreHorizontal, ChevronDown, Plus, Trash2, Users, DollarSign,Upload} from "lucide-react";
+import { Search, Download, Filter, MoreHorizontal, ChevronDown, Plus, Trash2, Users, DollarSign, Upload, AlertCircle } from "lucide-react";
+
 import { pdf } from '@react-pdf/renderer';
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
@@ -16,17 +17,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
   getEmployes,
@@ -521,14 +513,16 @@ export default function EmployeeList() {
         </div>
 
         <div className="rounded-2xl bg-card border border-border shadow-sm overflow-hidden">
-          <div className="p-6 md:p-8 border-b border-border">
-            <div className="flex items-center justify-between">
+          <div className="bg-muted/50 p-6 md:p-8 border-b border-border">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                  <span className="inline-flex h-2 w-2 rounded-full bg-primary"></span>
+                <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                    <Users className="w-5 h-5 text-primary-foreground" />
+                  </div>
                   Liste des Employés
                 </h2>
-                <p className="mt-1 text-sm text-muted-foreground">{filteredEmployees.length} employé(s) trouvé(s)</p>
+                <p className="mt-1 text-sm text-muted-foreground">{filteredEmployees.length} employé{filteredEmployees.length > 1 ? 's' : ''} trouvé{filteredEmployees.length > 1 ? 's' : ''}</p>
               </div>
             </div>
           </div>
@@ -611,8 +605,8 @@ export default function EmployeeList() {
                   <th className="hidden lg:table-cell px-4 md:px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Email
                   </th>
-                  <th className="px-4 md:px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Statut
+                  <th className="px-4 md:px-6 py-4">
+                    <span className="sr-only">Statut</span>
                   </th>
                   <th className="px-4 md:px-6 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Actions
@@ -790,24 +784,38 @@ export default function EmployeeList() {
           </DialogContent>
         </Dialog>
 
-        <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-          <AlertDialogContent className="rounded-2xl">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl">Confirmer la suppression</AlertDialogTitle>
-              <AlertDialogDescription className="text-base">
-                {selectedEmployees.size > 0
-                  ? `Êtes-vous sûr de vouloir supprimer ${selectedEmployees.size} employé(s) ? Cette action est irréversible.`
-                  : "Êtes-vous sûr de vouloir supprimer cet employé ? Cette action est irréversible."}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="gap-3">
-              <AlertDialogCancel className="rounded-lg">Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete} className="rounded-lg bg-destructive hover:bg-destructive/90">
+        <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+          <DialogContent className="sm:max-w-[400px] border border-border bg-card">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-destructive/10">
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                </div>
+                Confirmer la suppression
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-muted-foreground">
+              {selectedEmployees.size > 0
+                ? `Êtes-vous sûr de vouloir supprimer ${selectedEmployees.size} employé(s) ? Cette action ne peut pas être annulée.`
+                : "Êtes-vous sûr de vouloir supprimer cet employé ? Cette action ne peut pas être annulée."}
+            </p>
+            <DialogFooter className="gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmDeleteOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmDelete}
+                className="hover:opacity-90"
+              >
                 Supprimer
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

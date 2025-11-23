@@ -1,12 +1,14 @@
 //frontend/src/pages/Paiments.jsx
 import { useEffect, useState } from "react";
-import { Plus, Trash2, DollarSign, CreditCard, Calendar, User, TrendingUp, Banknote, CheckCircle2, X, Edit2, Upload, FileSpreadsheet, ChevronDown, FileText } from "lucide-react";
+import { Plus, Trash2, DollarSign, CreditCard, Calendar, User, TrendingUp, Banknote, CheckCircle2, X, Edit2, Upload, FileSpreadsheet, ChevronDown, FileText, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { pdf } from '@react-pdf/renderer';
 import PaiementsPDFDocument from '../exportPdf/PaiementsPDFDocument';
 import * as paiementService from "../services/paiementService";
 import * as employeService from "../services/employeService";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export default function Paiments() {
   const [paiements, setPaiements] = useState([]);
@@ -339,8 +341,24 @@ export default function Paiments() {
           </div>
         )}
 
-        {/* Table modernes */}
-        <Card className="border-0 shadow-2xl">
+        {/* Liste des paiements */}
+        <Card className="border shadow-2xl rounded-2xl overflow-hidden bg-card backdrop-blur-xl">
+          <div className="bg-muted/50 p-6 border-b">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                    <CreditCard className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                  Liste des Paiements
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {paiements.length} paiement{paiements.length > 1 ? 's' : ''} trouvé{paiements.length > 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -606,38 +624,38 @@ export default function Paiments() {
         </div>
       )}
 
-      {/* Modal de confirmation */}
-      {confirmDeleteOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-[fadeIn_0.2s_ease-out]">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-[slideUp_0.3s_ease-out]">
-            <div className="p-6">
-              <h3 className="text-xl font-semibold flex items-center gap-2 text-slate-900 mb-2">
-                <Trash2 className="h-5 w-5 text-red-600" />
-                Confirmer la suppression
-              </h3>
-              <p className="text-sm text-slate-600">
-                {selectedPaiements.size > 0
-                  ? `Êtes-vous sûr de vouloir supprimer ${selectedPaiements.size} paiement(s) ? Cette opération est irréversible.`
-                  : "Êtes-vous sûr de vouloir supprimer ce paiement ? Cette opération est irréversible."}
-              </p>
-            </div>
-            <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
-              <button
-                onClick={() => setConfirmDeleteOpen(false)}
-                className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-              >
-                Supprimer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent className="sm:max-w-[400px] border border-border bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-destructive/10">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+              </div>
+              Confirmer la suppression
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground">
+            {selectedPaiements.size > 0
+              ? `Êtes-vous sûr de vouloir supprimer ${selectedPaiements.size} paiement(s) ? Cette action ne peut pas être annulée.`
+              : "Êtes-vous sûr de vouloir supprimer ce paiement ? Cette action ne peut pas être annulée."}
+          </p>
+          <DialogFooter className="gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDeleteOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              className="hover:opacity-90"
+            >
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <style>{`
         @keyframes fadeIn {

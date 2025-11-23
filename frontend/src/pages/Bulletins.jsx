@@ -1,7 +1,12 @@
 //frontend/src/pages/Bulletins.jsx
 import { useEffect, useState } from "react";
-import { Plus, Trash2, FileText, Calendar, DollarSign, CheckCircle, Clock, Archive, X, TrendingUp, Edit2, Upload, FileSpreadsheet, ChevronDown, Eye, Pencil } from "lucide-react";
+import { Plus, Trash2, FileText, Calendar, DollarSign, CheckCircle, Clock, Archive, X, TrendingUp, Edit2, Upload, FileSpreadsheet, ChevronDown, Eye, Pencil, AlertCircle } from "lucide-react";
+// Import Dialog and related components
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+
 import { Card, CardContent } from "@/components/ui/card";
+// Import Separator component
 import { Separator } from "@/components/ui/separator";
 import { pdf } from '@react-pdf/renderer';
 import { usePermissions } from "../hooks/usePermissions";
@@ -685,38 +690,39 @@ function Bulletins() {
         </div>
       )}
 
-      {/* Modal de confirmation */}
-      {confirmDeleteOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-[fadeIn_0.2s_ease-out]">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-[slideUp_0.3s_ease-out]">
-            <div className="p-6">
-              <h3 className="text-xl font-semibold flex items-center gap-2 text-slate-900 mb-2">
-                <Trash2 className="h-5 w-5 text-red-600" />
-                Confirmer la suppression
-              </h3>
-              <p className="text-sm text-slate-600">
-                {deleteId === -1
-                  ? `Êtes-vous sûr de vouloir supprimer ${selectedRows.size} bulletins ? Cette opération est irréversible.`
-                  : "Êtes-vous sûr de vouloir supprimer ce bulletin ? Cette opération est irréversible."}
-              </p>
-            </div>
-            <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
-              <button
-                onClick={() => setConfirmDeleteOpen(false)}
-                className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-              >
-                Supprimer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Dialog de confirmation */}
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent className="sm:max-w-[400px] border border-border bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-destructive/10">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+              </div>
+              Confirmer la suppression
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground">
+            {selectedRows.size > 0
+              ? `Êtes-vous sûr de vouloir supprimer ${selectedRows.size} bulletin(s) ? Cette action ne peut pas être annulée.`
+              : "Êtes-vous sûr de vouloir supprimer ce bulletin ? Cette action ne peut pas être annulée."}
+          </p>
+          <DialogFooter className="gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDeleteOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              className="hover:opacity-90"
+            >
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <style>{`
         @keyframes fadeIn {

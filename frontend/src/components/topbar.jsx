@@ -34,7 +34,6 @@ import { Button } from "@/components/ui/button";
 export default function Topbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [confirmDeconexionOpen, setConfirmDeconexionOpen] = useState(false);
   
   // États
   const [theme, setTheme] = useState("light");
@@ -182,23 +181,6 @@ export default function Topbar() {
     }
   };
   
-const handleLogout = () => {
-    console.log('🔴 Déconnexion demandée');
-    
-    // 1. Appeler logout du contexte (supprime token + user)
-    logout();
-    
-    // 2. Rediriger vers login avec replace
-    navigate("/", { replace: true });
-    
-    console.log('✅ Déconnexion terminée');
-  };
-
-  // ✅ Fonction de confirmation
-  const confirmLogout = () => {
-    setConfirmDeconexionOpen(false);
-    handleLogout();
-  };
     if (!user) return null;
     
   return (
@@ -353,64 +335,6 @@ const handleLogout = () => {
                 </span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end">
-              {/* <DropdownMenuLabel>
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    {getNomComplet()}
-                  </p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {profil.email}
-                  </p>
-                  <Badge 
-                    variant={user?.role === "SUPER_ADMIN" ? "destructive" : "default"}
-                    className="w-fit mt-2"
-                  >
-                    {user?.role === "SUPER_ADMIN" ? "Super Admin" : 
-                     user?.role === "ADMIN" ? "Admin" : "Employé"}
-                  </Badge>
-                </div>
-              </DropdownMenuLabel> */}
-              
-              <DropdownMenuItem onClick={() => navigate("/dashboard/profil")}>
-                <User className="mr-2 h-4 w-4" />
-                <span>Mon profil</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/dashboard/parametres")}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Paramètres</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={logout}
-                className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Déconnexion</span>
-              </DropdownMenuItem>
-
-              {/* ✅ Modal de confirmation */}
-              <AlertDialog open={confirmDeconexionOpen} onOpenChange={setConfirmDeconexionOpen}>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmer la déconnexion</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Êtes-vous sûr de vouloir vous déconnecter ? 
-                      Vous devrez vous reconnecter pour accéder à votre compte.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={confirmLogout}
-                      className="bg-red-600 text-white hover:bg-red-700">
-                      Se déconnecter
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
-            </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
