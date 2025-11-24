@@ -1,8 +1,11 @@
 // frontend/src/services/presenceService.js
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
-export async function getPresences() {
-  const url = `${API_BASE}/api/presences`;
+export async function getPresences(options = {}) {
+  const url = new URL(`${API_BASE}/api/presences`);
+  if (options.period) {
+    url.searchParams.set('period', options.period);
+  }
   const res = await fetch(url, { headers: { "Content-Type": "application/json" } });
   if (!res.ok) {
     const text = await res.text();

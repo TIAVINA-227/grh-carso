@@ -38,7 +38,8 @@ export const createPresence = async (req, res) => {
 
 export const getAllPresences = async (req, res) => {
   try {
-    const presences = await presenceService.getAllPresences();
+    const { period } = req.query;
+    const presences = await presenceService.getAllPresences({ period });
     res.json(presences);
   } catch (error) {
     console.error('❌ Erreur récupération présences:', error);

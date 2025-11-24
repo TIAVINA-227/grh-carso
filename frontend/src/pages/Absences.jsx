@@ -64,6 +64,7 @@ export default function Absences() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [selectedAbsences, setSelectedAbsences] = useState(new Set());
+  const [absenceView, setAbsenceView] = useState('active');
   const permissions = usePermissions();
 
   const [currentEmployeId, setCurrentEmployeId] = useState(null);
@@ -94,10 +95,12 @@ export default function Absences() {
     }
   };
 
-  const load = async () => {
+  const load = async (period = 'active') => {
     setLoading(true);
+    setAbsenceView(period);
+    setSelectedAbsences(new Set());
     try {
-      const data = await getAbsences();
+      const data = await getAbsences({ period });
       setAbsences(data || []);
       const empData = await getEmployes();
       setEmployes(empData || []);
@@ -111,7 +114,7 @@ export default function Absences() {
   };
 
   useEffect(() => { 
-    load();
+    load('active');
     loadEmployes(); 
   }, []);
 
@@ -347,7 +350,7 @@ export default function Absences() {
             <Separator className="my-4 bg-border/40" />
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="text-sm text-muted-foreground">
-                {stats.total} absences{stats.total > 1 ? 's' : ''} au total
+                {stats.total} absence{stats.total > 1 ? 's' : ''} {absenceView === 'month' ? 'ce mois' : 'en cours'}
               </div>
               <div className="flex items-center gap-2">
                 {(permissions.canView('absences') || permissions.isEmploye ) && (
@@ -370,6 +373,22 @@ export default function Absences() {
                 )}
               </div>
             </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                variant={absenceView === 'active' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => load('active')}
+              >
+                Absences en cours
+              </Button>
+              <Button
+                variant={absenceView === 'month' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => load('month')}
+              >
+                Absences du mois
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -385,7 +404,7 @@ export default function Absences() {
               <p className="text-4xl font-bold">{stats.total}</p>
               <div className="flex items-center gap-1 mt-2 text-primary-foreground/80 text-xs">
                 <Activity className="w-3 h-3" />
-                <span>Ce mois</span>
+                <span>{absenceView === 'month' ? 'Ce mois' : 'En cours'}</span>
               </div>
             </CardContent>
           </Card>
@@ -459,7 +478,7 @@ export default function Absences() {
                 className="shadow-lg hover:shadow-xl transition-all"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Supprimer
+                Supprimer la sélection
               </Button>
             </div>
           </div>
@@ -481,7 +500,7 @@ export default function Absences() {
                 </p>
               </div>
               
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-muted-foreground" />
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
                   <SelectTrigger className="w-[200px] border-2">
@@ -509,7 +528,7 @@ export default function Absences() {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
             </div>
           </div>
 

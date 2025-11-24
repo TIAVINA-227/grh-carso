@@ -220,14 +220,14 @@ export default function Paiments() {
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Modern Header */}
         <div className="relative overflow-hidden rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-2xl p-8">
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/10 via-emerald-500/5 to-teal-500/10"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-blue-500/5 to-teal-500/10"></div>
           <div className="relative">
             <div className="flex items-center gap-4 mb-6">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-600 to-teal-600 shadow-2xl shadow-emerald-500/30">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-teal-600 shadow-2xl shadow-blue-500/30">
                 <DollarSign className="h-8 w-8 text-white" />
               </div>
               <div className="flex-1">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-500 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-teal-500 to-blue-500 bg-clip-text text-transparent">
                   Gestion des Paiements
                 </h1>
                 <p className="text-sm text-muted-foreground mt-2">Suivi et gestion des paiements de salaires</p>
@@ -241,7 +241,7 @@ export default function Paiments() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={exportToPDF}
-                  className="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors border border-emerald-500/30 text-sm font-medium flex items-center gap-2"
+                  className="px-4 py-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors border border-blue-500/30 text-sm font-medium flex items-center gap-2"
                 >
                   <Upload className="h-4 w-4" />
                   Exporter PDF
@@ -249,7 +249,7 @@ export default function Paiments() {
 
                 <button
                   onClick={() => setIsDialogOpen(true)}
-                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 transition-all flex items-center gap-2 text-sm font-medium"
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all flex items-center gap-2 text-sm font-medium"
                 >
                   <Plus className="h-4 w-4" />
                   Nouveau Paiement
@@ -261,17 +261,17 @@ export default function Paiments() {
 
         {/* Statistiques modernes */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-emerald-100 text-sm font-medium mb-2">Total Payé</p>
+                  <p className="text-blue-100 text-sm font-medium mb-2">Total Payé</p>
                   <p className="text-2xl font-bold">
                     {stats.total.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} Ar
                   </p>
                 </div>
-                <DollarSign className="h-8 w-8 text-emerald-200" />
+                <DollarSign className="h-8 w-8 text-blue-200" />
               </div>
             </CardContent>
           </Card>
@@ -322,12 +322,12 @@ export default function Paiments() {
 
         {/* Barre de sélection */}
         {selectedPaiements.size > 0 && (
-          <div className="flex items-center justify-between rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 p-4 border border-emerald-200/50 dark:border-emerald-800/50 shadow-sm">
+          <div className="flex items-center justify-between rounded-xl bg-blue-50/50 dark:bg-blue-950/20 p-4 border border-blue-200/50 dark:border-blue-800/50 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white font-bold">
                 {selectedPaiements.size}
               </div>
-              <div className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+              <div className="text-sm font-medium text-blue-700 dark:text-blue-300">
                 paiement(s) sélectionné(s)
               </div>
             </div>
@@ -369,7 +369,7 @@ export default function Paiments() {
                         type="checkbox"
                         checked={selectedPaiements.size === paiements.length && paiements.length > 0}
                         onChange={(e) => handleSelectAll(e.target.checked)}
-                        className="w-4 h-4 rounded border-border text-emerald-600 focus:ring-emerald-500"
+                        className="w-4 h-4 rounded border-border text-blue-600 focus:ring-blue-500"
                       />
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-foreground uppercase tracking-wider">

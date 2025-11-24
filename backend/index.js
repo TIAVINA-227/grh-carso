@@ -546,7 +546,7 @@ app.get("/api/dashboard", async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "votre_secret_jwt");
     const utilisateur = await prisma.utilisateur.findUnique({
       where: { id: decoded.id },
-      select: { id: true, nom_utilisateur: true, email: true, role: true },
+      select: { id: true, nom_utilisateur: true, prenom_utilisateur: true, email: true, role: true, avatar: true },
     });
     if (!utilisateur) return res.status(401).json({ message: "Utilisateur non trouvé" });
 
@@ -561,6 +561,204 @@ app.get("/api/dashboard", async (req, res) => {
     }
     console.error("❌ Erreur /api/dashboard:", error);
     return res.status(500).json({ message: "Erreur interne du serveur" });
+  }
+});
+
+// Statistiques du Dashboard
+app.get("/api/dashboard/stats", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+    if (!token) return res.status(401).json({ message: "Token manquant" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "votre_secret_jwt");
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const last30Days = new Date();
+    last30Days.setDate(last30Days.getDate() - 30);
+    
+    // Récupérer toutes les statistiques en parallèle
+    const [
+      totalEmployes,
+      totalUtilisateurs,
+      totalContrats,
+      totalAbsences,
+      totalPresences,
+      totalConges,
+      totalPaiements,
+      totalBulletins,
+      totalPerformances,
+      totalPostes,
+      totalDepartements,
+      employesActifs,
+      employesList,
+      congesEnAttente,
+      paiementsCeMois,
+      performancesRecent,
+      presencesRecent,
+      absencesRecent30,
+      congesActifs
+    ] = await Promise.all([
+      prisma.employe.count(),
+      prisma.utilisateur.count(),
+      prisma.contrat.count(),
+      prisma.absence.count(),
+      prisma.presence.count(),
+      prisma.conge.count(),
+      prisma.paiement.count(),
+      prisma.bulletinSalaire.count(),
+      prisma.suiviPerformance.count(),
+      prisma.poste.count(),
+      prisma.departement.count(),
+      prisma.employe.count({ where: { contrat: { statut: "ACTIF" } } }),
+      prisma.employe.findMany({
+        take: 4,
+        include: {
+          poste: true,
+          departement: true,
+          contrat: true
+        },
+        orderBy: { date_embauche: 'desc' }
+      }),
+      prisma.conge.count({ where: { statut: "SOUMIS" } }),
+      prisma.paiement.aggregate({
+        where: {
+          date_paiement: {
+            gte: startOfMonth
+          }
+        },
+        _sum: { montant: true },
+        _count: true
+      }),
+      prisma.suiviPerformance.findMany({
+        take: 12,
+        orderBy: { date_eval: 'desc' },
+        include: { employe: true }
+      }),
+      prisma.presence.findMany({
+        where: {
+          date_jour: {
+            gte: last30Days
+          }
+        },
+        include: { employe: true }
+      }),
+      prisma.absence.count({
+        where: {
+          OR: [
+            { date_debut: { gte: last30Days } },
+            { date_fin: { gte: last30Days } }
+          ]
+        }
+      }),
+      prisma.conge.findMany({
+        where: {
+          statut: "APPROUVE",
+          date_debut: { lte: now },
+          date_fin: { gte: now }
+        },
+        include: {
+          employe: {
+            include: { poste: true }
+          }
+        },
+        orderBy: { date_debut: 'asc' }
+      })
+    ]);
+
+    // Calculer les moyennes et statistiques
+    const moyennePerformance = performancesRecent.length > 0
+      ? performancesRecent.reduce((sum, p) => sum + p.note, 0) / performancesRecent.length
+      : 0;
+
+    const salaireMoyen = paiementsCeMois._count > 0
+      ? paiementsCeMois._sum.montant / paiementsCeMois._count
+      : 0;
+
+    // Calculer le taux de présence (30 derniers jours)
+    const totalPresences30j = presencesRecent.filter(p => p.statut === "PRESENT").length;
+    const tauxPresence = presencesRecent.length > 0
+      ? (totalPresences30j / presencesRecent.length) * 100
+      : 0;
+
+    // Préparer les données pour les graphiques
+    const kpiData = performancesRecent.slice(0, 12).map(p => ({
+      name: new Date(p.date_eval).toLocaleDateString('fr-FR', { month: 'short' }),
+      value: p.note
+    }));
+
+    // Synthèse globale pour le donut
+    const overviewTotals = [
+      { key: 'employes', label: 'Employés', value: totalEmployes, color: '#2563eb' },
+      { key: 'utilisateurs', label: 'Utilisateurs', value: totalUtilisateurs, color: '#7c3aed' },
+      { key: 'contrats', label: 'Contrats', value: totalContrats, color: '#f97316' },
+      { key: 'postes', label: 'Postes', value: totalPostes, color: '#14b8a6' },
+      { key: 'departements', label: 'Départements', value: totalDepartements, color: '#0ea5e9' },
+      { key: 'absences', label: 'Absences', value: totalAbsences, color: '#f43f5e' },
+      { key: 'presences', label: 'Présences', value: totalPresences, color: '#22c55e' },
+      { key: 'conges', label: 'Congés', value: totalConges, color: '#a855f7' },
+      { key: 'paiements', label: 'Paiements', value: totalPaiements, color: '#facc15' },
+      { key: 'bulletins', label: 'Bulletins', value: totalBulletins, color: '#fb7185' },
+      { key: 'performances', label: 'Performances', value: totalPerformances, color: '#38bdf8' }
+    ];
+
+    const totalOverview = overviewTotals.reduce((sum, item) => sum + item.value, 0);
+    const overviewWithPercentages = overviewTotals.map(item => ({
+      ...item,
+      percentage: totalOverview ? (item.value / totalOverview) * 100 : 0
+    }));
+
+    // Liste des personnes actuellement en congé
+    const leaves = congesActifs.map((conge) => ({
+      id: conge.id,
+      name: `${conge.employe?.nom || ''} ${conge.employe?.prenom || ''}`.trim(),
+      role: conge.employe?.poste?.intitule || "Poste non défini",
+      type: conge.type_conge || "Congé",
+      dateRange: `${new Date(conge.date_debut).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} - ${new Date(conge.date_fin).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}`
+    }));
+
+    // Préparer la liste des employés avec statut
+    const employeeStatus = employesList.map(emp => ({
+      id: emp.id,
+      name: `${emp.nom} ${emp.prenom}`,
+      email: emp.email || `${emp.nom.toLowerCase()}.${emp.prenom.toLowerCase()}@carso.mg`,
+      role: emp.poste?.intitule || 'Non défini',
+      status: emp.contrat?.statut === "ACTIF" ? "Actif" : "Inactif",
+      avatar: null
+    }));
+
+    const tauxAbsence = absencesRecent30 + presencesRecent.length > 0
+      ? (absencesRecent30 / (absencesRecent30 + presencesRecent.length)) * 100
+      : 0;
+
+    res.json({
+      stats: {
+        totalEmployes,
+        totalUtilisateurs,
+        totalContrats,
+        totalPresences
+      },
+      statsChange: {
+        totalEmployes: "+2%",
+        totalUtilisateurs: "+1%",
+        totalContrats: "+3%",
+        totalPresences: "+4%"
+      },
+      kpiData,
+      overviewTotals: overviewWithPercentages,
+      employeeStatus,
+      leaves,
+      additionalStats: {
+        tauxAbsence: Math.round(tauxAbsence * 10) / 10,
+        performanceMoyenne: Math.round(moyennePerformance * 10) / 10,
+        totalPostes,
+        salaireMoyen: Math.round(salaireMoyen)
+      }
+    });
+  } catch (error) {
+    console.error("❌ Erreur /api/dashboard/stats:", error);
+    res.status(500).json({ message: "Erreur interne du serveur", error: error.message });
   }
 });
 

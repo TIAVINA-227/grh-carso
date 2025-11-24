@@ -1,4 +1,6 @@
+//frontend/src/pages/TableauDeBord.jsx
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +20,9 @@ import {
   MoreVertical,
   Bell,
   Search,
-  ChevronRight
+  ChevronRight,
+  AlertTriangle,
+  Layers
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { 
@@ -29,148 +33,140 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar
 } from "recharts";
+import { useAuth } from "@/hooks/useAuth";
+import { getDashboardStats, getDashboardUser } from "@/services/dashboardService";
+import { toast } from "sonner";
 import imagecarso from "../assets/imagecarso 2.png";
 
 export default function TableauDeBord() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  
   // État pour les données utilisateur
   const [userData, setUserData] = useState({
-    nom: "Rakoto",
-    prenom: "Jean",
-    email: "jean.rakoto@example.com",
-    role: "ADMIN",
+    nom: "",
+    prenom: "",
+    email: "",
+    role: "",
     avatar: null
   });
 
-  // Données statiques pour les statistiques
-  const stats = [
-    {
-      title: "Total Employés",
-      value: "23,541",
-      change: "+65%",
-      isPositive: true,
-      icon: Users,
-      color: "from-blue-500 to-blue-600",
-      bgColor: "bg-blue-500/10",
-      iconColor: "text-blue-600"
-    },
-    {
-      title: "Total Projets",
-      value: "12,389",
-      change: "-35%",
-      isPositive: false,
-      icon: Briefcase,
-      color: "from-purple-500 to-purple-600",
-      bgColor: "bg-purple-500/10",
-      iconColor: "text-purple-600"
-    },
-    {
-      title: "Candidatures",
-      value: "17,389",
-      change: "+75%",
-      isPositive: true,
-      icon: FileText,
-      color: "from-emerald-500 to-emerald-600",
-      bgColor: "bg-emerald-500/10",
-      iconColor: "text-emerald-600"
-    },
-    {
-      title: "Vues d'emploi",
-      value: "9,993",
-      change: "-25%",
-      isPositive: false,
-      icon: TrendingUp,
-      color: "from-rose-500 to-rose-600",
-      bgColor: "bg-rose-500/10",
-      iconColor: "text-rose-600"
-    }
-  ];
+  // États pour les données dynamiques
+  const [stats, setStats] = useState([]);
+  const [kpiData, setKpiData] = useState([]);
+  const [overviewData, setOverviewData] = useState([]);
+  const [employeeStatus, setEmployeeStatus] = useState([]);
+  const [leaveData, setLeaveData] = useState([]);
+  const [rawCounts, setRawCounts] = useState({
+    totalEmployes: 0,
+    totalUtilisateurs: 0,
+    totalContrats: 0,
+    totalPresences: 0
+  });
+  const [additionalStats, setAdditionalStats] = useState({
+    tauxAbsence: 0,
+    performanceMoyenne: 0,
+    totalPostes: 0,
+    salaireMoyen: 0
+  });
+  const [showAllModules, setShowAllModules] = useState(false);
 
-  // Données pour le graphique KPI
-  const kpiData = [
-    { name: 'Jan', value: 45 },
-    { name: 'Fév', value: 52 },
-    { name: 'Mar', value: 48 },
-    { name: 'Avr', value: 61 },
-    { name: 'Mai', value: 55 },
-    { name: 'Juin', value: 67 },
-    { name: 'Juil', value: 65 },
-    { name: 'Août', value: 59 },
-    { name: 'Sep', value: 70 },
-    { name: 'Oct', value: 68 },
-    { name: 'Nov', value: 75 },
-    { name: 'Déc', value: 72 }
-  ];
+  // Charger les données du dashboard
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      if (!user) return;
+      
+      setLoading(true);
+      try {
+        // Charger les données utilisateur
+        const userResponse = await getDashboardUser();
+        if (userResponse.user) {
+          setUserData({
+            nom: userResponse.user.nom_utilisateur || "",
+            prenom: userResponse.user.prenom_utilisateur || "",
+            email: userResponse.user.email || "",
+            role: userResponse.user.role || "",
+            avatar: userResponse.user.avatar || null
+          });
+        }
 
-  // Données pour le format de travail
-  const workFormatData = [
-    { name: 'Remote', value: 210, color: '#8b5cf6' },
-    { name: 'Hybrid', value: 180, color: '#3b82f6' },
-    { name: 'On-site', value: 130, color: '#06b6d4' }
-  ];
+        // Charger les statistiques
+        const statsResponse = await getDashboardStats();
+        const statsInfo = statsResponse.stats || {};
+        setRawCounts(statsInfo);
+        
+        // Préparer les statistiques principales
+        const statsArray = [
+          {
+            title: "Employés",
+            value: statsInfo?.totalEmployes?.toLocaleString() || "0",
+            change: statsResponse.statsChange?.totalEmployes || "+0%",
+            isPositive: statsResponse.statsChange?.totalEmployes?.startsWith("+") || false,
+            icon: Users,
+            color: "from-blue-500 to-blue-600",
+            bgColor: "bg-blue-500/10",
+            iconColor: "text-blue-600"
+          },
+          {
+            title: "Utilisateurs",
+            value: statsInfo?.totalUtilisateurs?.toLocaleString() || "0",
+            change: statsResponse.statsChange?.totalUtilisateurs || "+0%",
+            isPositive: statsResponse.statsChange?.totalUtilisateurs?.startsWith("+") || false,
+            icon: UserCheck,
+            color: "from-purple-500 to-purple-600",
+            bgColor: "bg-purple-500/10",
+            iconColor: "text-purple-600"
+          },
+          {
+            title: "Contrats",
+            value: statsInfo?.totalContrats?.toLocaleString() || "0",
+            change: statsResponse.statsChange?.totalContrats || "+0%",
+            isPositive: statsResponse.statsChange?.totalContrats?.startsWith("+") || false,
+            icon: Briefcase,
+            color: "from-emerald-500 to-emerald-600",
+            bgColor: "bg-emerald-500/10",
+            iconColor: "text-emerald-600"
+          },
+          {
+            title: "Présences",
+            value: statsInfo?.totalPresences?.toLocaleString() || "0",
+            change: statsResponse.statsChange?.totalPresences || "+0%",
+            isPositive: statsResponse.statsChange?.totalPresences?.startsWith("+") || false,
+            icon: Clock,
+            color: "from-rose-500 to-rose-600",
+            bgColor: "bg-rose-500/10",
+            iconColor: "text-rose-600"
+          }
+        ];
+        
+        setStats(statsArray);
+        setKpiData(statsResponse.kpiData || []);
+        setOverviewData(statsResponse.overviewTotals || []);
+        setEmployeeStatus(statsResponse.employeeStatus || []);
+        setLeaveData(statsResponse.leaves || []);
+        setAdditionalStats(statsResponse.additionalStats || {
+          tauxAbsence: 0,
+          performanceMoyenne: 0,
+          totalPostes: 0,
+          salaireMoyen: 0
+        });
+      } catch (error) {
+        console.error("Erreur lors du chargement du dashboard:", error);
+        toast.error("Erreur lors du chargement des données");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Statut des employés
-  const employeeStatus = [
-    { 
-      id: 1, 
-      name: "Aina Rakoto", 
-      email: "aina.rakoto@gmail.com", 
-      role: "Développeur Full-Stack", 
-      status: "Actif",
-      avatar: null
-    },
-    { 
-      id: 2, 
-      name: "Rova Andria", 
-      email: "rova.andria@gmail.com", 
-      role: "Designer UI/UX", 
-      status: "Actif",
-      avatar: null
-    },
-    { 
-      id: 3, 
-      name: "Nivo Razaf", 
-      email: "nivo.razaf@gmail.com", 
-      role: "Chef de Projet", 
-      status: "En congé",
-      avatar: null
-    },
-    { 
-      id: 4, 
-      name: "Faly Randria", 
-      email: "faly.randria@gmail.com", 
-      role: "Analyste Business", 
-      status: "Disponible",
-      avatar: null
-    }
-  ];
-
-  // Planning hebdomadaire
-  const scheduleData = [
-    {
-      date: "02 Juil 24",
-      title: "Formation - Onboarding Designer",
-      time: "09:00 - 10:00",
-      type: "Formation"
-    },
-    {
-      date: "03 Juil 24",
-      title: "Meeting UI/UX Designer",
-      time: "10:00 - 13:00",
-      type: "Réunion"
-    },
-    {
-      date: "04 Juil 24",
-      title: "Retro Day - HR Department",
-      time: "09:30 - 17:00",
-      type: "Événement"
-    }
-  ];
+    loadDashboardData();
+  }, [user]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -197,28 +193,55 @@ export default function TableauDeBord() {
     }
   };
 
+  // Calculer les valeurs pour le graphique circulaire
+  const calculateOverviewChart = () => {
+    if (overviewData.length === 0) return { circles: [], total: 0 };
+    
+    const total = overviewData.reduce((sum, item) => sum + (item.value || 0), 0);
+    if (total === 0) return { circles: [], total: 0 };
+    
+    const circumference = 2 * Math.PI * 80; // r = 80
+    const circles = [];
+    let offset = 0;
+    
+    overviewData.forEach((item) => {
+      const percentage = (item.value / total) * 100;
+      const dashLength = (item.value / total) * circumference;
+      circles.push({
+        color: item.color,
+        dashLength,
+        offset: -offset,
+        percentage
+      });
+      offset += dashLength;
+    });
+    
+    return { circles, total };
+  };
+
+  const overviewChart = calculateOverviewChart();
+  const visibleOverview = showAllModules ? overviewData : overviewData.slice(0, 5);
+  const hasMoreModules = overviewData.length > 5;
+  const kpiChartData = kpiData.length > 0 ? kpiData.slice(Math.max(kpiData.length - 8, 0)) : [];
+  const radarData = kpiChartData.slice(-6).map((item) => ({
+    subject: item.name,
+    value: item.value
+  }));
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4 md:p-6 lg:p-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600 dark:text-slate-400">Chargement des données...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4 md:p-6 lg:p-8">
       <div className="max-w-[1600px] mx-auto space-y-6">
-        {/* Header avec recherche et notifications */}
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 md:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Rechercher..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <Button size="icon" variant="outline" className="rounded-xl">
-              <Bell className="h-5 w-5" />
-            </Button>
-            <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl px-6">
-              Inviter
-            </Button>
-          </div>
-        </div>
 
         {/* Carte de bienvenue avec image */}
         <Card className="border-0 shadow-xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700">
@@ -229,7 +252,7 @@ export default function TableauDeBord() {
                 <div className="space-y-4">
                   <div>
                     <h1 className="text-4xl md:text-5xl font-bold text-white mb-3">
-                      {getGreeting()}, {userData.prenom}! 👋
+                      {getGreeting()}, {userData.prenom || userData.nom || "Utilisateur"}! 👋
                     </h1>
                     <p className="text-blue-100 text-lg">
                       Bienvenue sur votre tableau de bord de gestion RH
@@ -252,16 +275,23 @@ export default function TableauDeBord() {
                     <div className="h-6 w-px bg-white/20 hidden sm:block"></div>
                     
                     <Badge className="bg-white/20 text-white border-0 hover:bg-white/30 transition-colors">
-                      <span className="font-semibold mr-1">Rôle:</span> {userData.role}
+                      <span className="font-semibold mr-1">Rôle:</span> {userData.role || "EMPLOYE"}
                     </Badge>
                   </div>
 
                   <div className="flex flex-wrap gap-3 pt-4">
-                    <Button className="bg-white text-blue-700 hover:bg-blue-50 rounded-lg shadow-lg">
+                    <Button 
+                      className="bg-white text-blue-700 hover:bg-blue-50 rounded-lg shadow-lg"
+                      onClick={() => navigate("/dashboard/employes")}
+                    >
                       <Users className="h-4 w-4 mr-2" />
                       Voir les employés
                     </Button>
-                    <Button variant="outline" className="border-white/30 text-white hover:bg-white/10 rounded-lg">
+                    <Button 
+                      variant="outline" 
+                      className="border-white/30 text-white hover:bg-white/10 rounded-lg"
+                      onClick={() => navigate("/dashboard/bulletins")}
+                    >
                       <FileText className="h-4 w-4 mr-2" />
                       Rapports
                     </Button>
@@ -311,7 +341,7 @@ export default function TableauDeBord() {
 
         {/* Statistiques principales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((stat, index) => (
+          {stats.length > 0 ? stats.map((stat, index) => (
             <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-white dark:bg-slate-800">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
@@ -329,73 +359,87 @@ export default function TableauDeBord() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )) : (
+            <div className="col-span-4 text-center py-8 text-slate-500">
+              Chargement des statistiques...
+            </div>
+          )}
         </div>
 
         {/* Section principale avec graphiques */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Format de travail */}
+          {/* Vue globale des modules */}
           <Card className="border-0 shadow-lg bg-white dark:bg-slate-800">
             <CardHeader>
-              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">
-                Format de travail
-              </CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">
+                  Vue globale des modules
+                </CardTitle>
+                {overviewData.length > 5 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAllModules((prev) => !prev)}
+                  >
+                    {showAllModules ? "Voir moins" : "Voir tout"}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-center mb-6">
                 <div className="relative">
                   <svg width="200" height="200" className="transform -rotate-90">
                     <circle cx="100" cy="100" r="80" fill="none" stroke="#e5e7eb" strokeWidth="20" />
-                    <circle 
-                      cx="100" 
-                      cy="100" 
-                      r="80" 
-                      fill="none" 
-                      stroke="#8b5cf6" 
-                      strokeWidth="20"
-                      strokeDasharray={`${(210/520) * 502} 502`}
-                      strokeLinecap="round"
-                    />
-                    <circle 
-                      cx="100" 
-                      cy="100" 
-                      r="80" 
-                      fill="none" 
-                      stroke="#3b82f6" 
-                      strokeWidth="20"
-                      strokeDasharray={`${(180/520) * 502} 502`}
-                      strokeDashoffset={`-${(210/520) * 502}`}
-                      strokeLinecap="round"
-                    />
-                    <circle 
-                      cx="100" 
-                      cy="100" 
-                      r="80" 
-                      fill="none" 
-                      stroke="#06b6d4" 
-                      strokeWidth="20"
-                      strokeDasharray={`${(130/520) * 502} 502`}
-                      strokeDashoffset={`-${((210+180)/520) * 502}`}
-                      strokeLinecap="round"
-                    />
+                    {overviewChart.circles.map((circle, idx) => {
+                      const circumference = 2 * Math.PI * 80;
+                      return (
+                        <circle
+                          key={idx}
+                          cx="100"
+                          cy="100"
+                          r="80"
+                          fill="none"
+                          stroke={circle.color}
+                          strokeWidth="20"
+                          strokeDasharray={`${circle.dashLength} ${circumference}`}
+                          strokeDashoffset={circle.offset}
+                          strokeLinecap="round"
+                        />
+                      );
+                    })}
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <p className="text-4xl font-bold text-slate-900 dark:text-white">520</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">Total</p>
+                    <p className="text-4xl font-bold text-slate-900 dark:text-white">
+                      {overviewChart.total}
+                    </p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Enregistrements</p>
                   </div>
                 </div>
               </div>
-              <div className="space-y-3">
-                {workFormatData.map((item, index) => (
+              <div className={`space-y-3 ${showAllModules ? '' : 'max-h-64 overflow-hidden'}`}>
+                {visibleOverview.length > 0 ? visibleOverview.map((item, index) => (
                   <div key={index} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full`} style={{ backgroundColor: item.color }}></div>
-                      <span className="text-sm text-slate-600 dark:text-slate-400">{item.name}</span>
+                      <span className="text-sm text-slate-600 dark:text-slate-400">{item.label}</span>
                     </div>
-                    <span className="text-sm font-medium text-slate-900 dark:text-white">{item.value}</span>
+                    <div className="text-right">
+                      <span className="text-sm font-semibold text-slate-900 dark:text-white block">{Number(item.value || 0).toLocaleString()}</span>
+                      <span className="text-xs text-slate-500">{Number(item.percentage || 0).toFixed(1)}%</span>
+                    </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-4 text-slate-500 text-sm">
+                    Aucune donnée disponible
+                  </div>
+                )}
               </div>
+              {!showAllModules && hasMoreModules && (
+                <p className="text-xs text-slate-500 mt-3">
+                  +{overviewData.length - visibleOverview.length} modules supplémentaires
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -408,7 +452,9 @@ export default function TableauDeBord() {
                     KPI Moyenne de l'équipe
                   </CardTitle>
                   <div className="flex items-center gap-2">
-                    <span className="text-3xl font-bold text-slate-900 dark:text-white">65.23%</span>
+                    <span className="text-3xl font-bold text-slate-900 dark:text-white">
+                      {additionalStats.performanceMoyenne.toFixed(2)}%
+                    </span>
                     <Badge variant="default" className="bg-emerald-100 text-emerald-700 border-0">
                       <ArrowUp className="h-3 w-3 mr-1" />
                       +4% last week
@@ -421,8 +467,9 @@ export default function TableauDeBord() {
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={kpiData}>
+              <ResponsiveContainer width="100%" height={220}>
+                {kpiChartData.length > 0 ? (
+                <BarChart data={kpiChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                   <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
                   <YAxis stroke="#94a3b8" fontSize={12} />
@@ -435,7 +482,37 @@ export default function TableauDeBord() {
                   />
                   <Bar dataKey="value" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
                 </BarChart>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-slate-500">
+                    Aucune donnée disponible
+                  </div>
+                )}
               </ResponsiveContainer>
+              <div className="mt-6">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-3">
+                  Radar des performances récentes
+                </p>
+                <ResponsiveContainer width="100%" height={200}>
+                  {radarData.length > 0 ? (
+                    <RadarChart data={radarData}>
+                      <PolarGrid stroke="#e5e7eb" radialLines={false} />
+                      <PolarAngleAxis dataKey="subject" stroke="#94a3b8" fontSize={12} />
+                      <PolarRadiusAxis stroke="#94a3b8" tick={false} axisLine={false} />
+                      <Radar
+                        name="Performance"
+                        dataKey="value"
+                        stroke="#8b5cf6"
+                        strokeWidth={2}
+                        fill="none"
+                      />
+                    </RadarChart>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-slate-500">
+                      Aucune donnée disponible
+                    </div>
+                  )}
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -449,7 +526,12 @@ export default function TableauDeBord() {
                 <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">
                   Statut des Employés
                 </CardTitle>
-                <Button variant="ghost" size="sm" className="text-blue-600">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-blue-600"
+                  onClick={() => navigate("/dashboard/employes")}
+                >
                   Voir tout <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
@@ -465,7 +547,7 @@ export default function TableauDeBord() {
                 </div>
                 
                 {/* Liste des employés */}
-                {employeeStatus.map((employee) => (
+                {employeeStatus.length > 0 ? employeeStatus.map((employee) => (
                   <div key={employee.id} className="grid grid-cols-12 gap-4 items-center py-3 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors rounded-lg">
                     <div className="col-span-4 flex items-center gap-3">
                       <Avatar className="h-10 w-10">
@@ -494,7 +576,11 @@ export default function TableauDeBord() {
                       </Badge>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-8 text-slate-500">
+                    Aucun employé trouvé
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -504,35 +590,57 @@ export default function TableauDeBord() {
             <CardHeader>
               <div className="flex items-center justify-between mb-2">
                 <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">
-                  Planning
+                  Employés en congé
                 </CardTitle>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/conges")}>
                   <MoreVertical className="h-5 w-5" />
                 </Button>
               </div>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                01 Juil - 30 Juil 2024
+                Vue temps réel des congés approuvés
               </p>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {scheduleData.map((item, index) => (
-                  <div key={index} className="relative pl-6 pb-4 border-l-2 border-slate-200 dark:border-slate-700 last:pb-0">
-                    <div className={`absolute left-[-9px] top-0 w-4 h-4 rounded-full ${getTypeColor(item.type)}`}></div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{item.date}</p>
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">{item.title}</p>
-                      <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                        <Clock className="h-3 w-3" />
-                        <span>{item.time}</span>
+                {leaveData.length > 0 ? leaveData.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-blue-100 text-blue-700">
+                          {item.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{item.name || "Employé"}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{item.role}</p>
                       </div>
                     </div>
+                    <div className="text-right">
+                      <Badge className={`${getTypeColor(item.type)} text-white border-0 mb-1`}>
+                        {item.type}
+                      </Badge>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 justify-end">
+                        <Clock className="h-3 w-3" /> {item.dateRange}
+                      </p>
+                    </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-4 text-slate-500 text-sm">
+                    Aucun employé en congé
+                  </div>
+                )}
               </div>
               
-              <Button variant="outline" className="w-full mt-4 rounded-xl border-dashed">
-                Voir le planning complet
+              <Button 
+                variant="outline" 
+                className="w-full mt-4 rounded-xl border-dashed"
+                onClick={() => navigate("/dashboard/conges")}
+              >
+                Consulter les congés
               </Button>
             </CardContent>
           </Card>
@@ -543,15 +651,15 @@ export default function TableauDeBord() {
           <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <UserCheck className="h-8 w-8 opacity-80" />
+                <AlertTriangle className="h-8 w-8 opacity-80" />
                 <Badge className="bg-white/20 text-white border-0">
                   <ArrowUp className="h-3 w-3 mr-1" />
-                  12%
+                  +1.1%
                 </Badge>
               </div>
-              <p className="text-sm opacity-90 mb-1">Taux de présence</p>
-              <p className="text-3xl font-bold">94.5%</p>
-              <Progress value={94.5} className="mt-3 h-2 bg-white/20" />
+              <p className="text-sm opacity-90 mb-1">Taux d'absence</p>
+              <p className="text-3xl font-bold">{additionalStats.tauxAbsence.toFixed(1)}%</p>
+              <Progress value={Math.min(additionalStats.tauxAbsence, 100)} className="mt-3 h-2 bg-white/20" />
             </CardContent>
           </Card>
 
@@ -564,24 +672,24 @@ export default function TableauDeBord() {
                   8%
                 </Badge>
               </div>
-              <p className="text-sm opacity-90 mb-1">Performance moyenne</p>
-              <p className="text-3xl font-bold">87.2%</p>
-              <Progress value={87.2} className="mt-3 h-2 bg-white/20" />
+              <p className="text-sm opacity-90 mb-1">Moyenne des performances</p>
+              <p className="text-3xl font-bold">{additionalStats.performanceMoyenne.toFixed(1)}%</p>
+              <Progress value={additionalStats.performanceMoyenne} className="mt-3 h-2 bg-white/20" />
             </CardContent>
           </Card>
 
           <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <Calendar className="h-8 w-8 opacity-80" />
+                <Layers className="h-8 w-8 opacity-80" />
                 <Badge className="bg-white/20 text-white border-0">
-                  <ArrowDown className="h-3 w-3 mr-1" />
-                  3%
+                  <ArrowUp className="h-3 w-3 mr-1" />
+                  5%
                 </Badge>
               </div>
-              <p className="text-sm opacity-90 mb-1">Congés en attente</p>
-              <p className="text-3xl font-bold">24</p>
-              <Progress value={45} className="mt-3 h-2 bg-white/20" />
+              <p className="text-sm opacity-90 mb-1">Total des postes</p>
+              <p className="text-3xl font-bold">{additionalStats.totalPostes}</p>
+              <Progress value={Math.min((additionalStats.totalPostes / Math.max(rawCounts.totalEmployes || 1, 1)) * 100, 100)} className="mt-3 h-2 bg-white/20" />
             </CardContent>
           </Card>
 
@@ -595,8 +703,13 @@ export default function TableauDeBord() {
                 </Badge>
               </div>
               <p className="text-sm opacity-90 mb-1">Salaire moyen</p>
-              <p className="text-3xl font-bold">2.4M Ar</p>
-              <Progress value={68} className="mt-3 h-2 bg-white/20" />
+              <p className="text-3xl font-bold">
+                {additionalStats.salaireMoyen > 0 
+                  ? `${(additionalStats.salaireMoyen / 1000000).toFixed(1)}M Ar`
+                  : "0 Ar"
+                }
+              </p>
+              <Progress value={Math.min((additionalStats.salaireMoyen / 3000000) * 100, 100)} className="mt-3 h-2 bg-white/20" />
             </CardContent>
           </Card>
         </div>

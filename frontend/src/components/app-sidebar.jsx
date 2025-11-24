@@ -250,47 +250,6 @@ export function AppSidebar({ ...props }) {
           ))}
         </div>
 
-        {/* Section Projets (si admin) */}
-        {(permissions.isAdmin || permissions.isSuperAdmin) && (
-          <div className="mt-6 px-1">
-            {!isCollapsed ? (
-              <>
-                <div className="flex items-center justify-between px-3 mb-2">
-                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Projets
-                  </h3>
-                  <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors">
-                    <Plus className="w-3.5 h-3.5 text-gray-500" />
-                  </button>
-                </div>
-                
-                <ul className="space-y-1">
-                  {projectItems.map((project, index) => (
-                    <li key={index} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
-                      <div className={`w-2 h-2 rounded-full ${project.color}`}></div>
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{project.label}</span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : (
-              <>
-                <div className="px-2 py-2">
-                  <div className="h-px bg-gray-200 dark:bg-gray-800"></div>
-                </div>
-                <ul className="space-y-1 mt-2">
-                  {projectItems.map((project, index) => (
-                    <li key={index} className="flex items-center justify-center">
-                      <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                        <div className={`w-3 h-3 rounded-full ${project.color}`}></div>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </div>
-        )}
 
         {/* Carte de mise à jour Premium */}
         {!isCollapsed && (

@@ -1,8 +1,8 @@
 //frontend/src/pages/Bulletins.jsx
 import { useEffect, useState } from "react";
-import { Plus, Trash2, FileText, Calendar, DollarSign, CheckCircle, Clock, Archive, X, TrendingUp, Edit2, Upload, FileSpreadsheet, ChevronDown, Eye, Pencil, AlertCircle } from "lucide-react";
+import { Plus, Trash2, FileText, Calendar, DollarSign, CheckCircle, Clock, Archive, TrendingUp, Edit2, Upload, FileSpreadsheet, ChevronDown, Eye, Pencil, AlertCircle, RefreshCcw } from "lucide-react";
 // Import Dialog and related components
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import * as bulletinService from "../services/bulletinService";
 import * as paiementService from "../services/paiementService";
 
 function Bulletins() {
-  const [list, setList] = useState([]);
+  const [bulletin, setBulletins] = useState([]);
   const [paiements, setPaiements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -33,6 +33,7 @@ function Bulletins() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
+  const [error, setError] = useState(null);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -61,7 +62,7 @@ function Bulletins() {
           bulletinService.getBulletins(),
           paiementService.getPaiements()
         ]);
-        setList(bulletinsData);
+        setBulletins(bulletinsData);
         setPaiements(paiementsData);
       } catch (err) {
         console.error("Erreur lors du chargement:", err);
@@ -80,7 +81,7 @@ function Bulletins() {
     }
 
     try {
-      const blob = await pdf(<BulletinsPDFDocument bulletins={list} paiements={paiements} />).toBlob();
+      const blob = await pdf(<BulletinsPDFDocument bulletins={bulletin} paiements={paiements} />).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); 
       a.href = url; 
@@ -113,6 +114,7 @@ function Bulletins() {
     }
     
     setSubmitting(true);
+    setError(null);
     try {
       const dateObj = new Date(form.periode);
       const mois = dateObj.getMonth() + 1;
@@ -137,12 +139,12 @@ function Bulletins() {
       }
 
       const bulletinsData = await bulletinService.getBulletins();
-      setList(bulletinsData);
+      setBulletins(bulletinsData);
       
-      setIsDialogOpen(false);
-      setForm({ periode: '', salaire_brut: '', salaire_net: '', paiementId: '', statut: 'valide' });
+      closeDialog();
     } catch (err) {
       console.error("Erreur:", err);
+      setError(err.message || "Une erreur est survenue");
       showToast(err.message || "Erreur lors de l'opération", 'error');
     } finally {
       setSubmitting(false);
@@ -154,8 +156,7 @@ function Bulletins() {
       showToast("Vous n'avez pas la permission de créer des bulletins", 'error');
       return;
     }
-    setEditingId(null);
-    setForm({ periode: '', salaire_brut: '', salaire_net: '', paiementId: '', statut: 'valide' });
+    resetForm();
     setIsDialogOpen(true);
   };
 
@@ -173,6 +174,7 @@ function Bulletins() {
       paiementId: bulletin.paiementId.toString(),
       statut: bulletin.statut
     });
+    setError(null);
     setIsDialogOpen(true);
   };
 
@@ -199,7 +201,7 @@ function Bulletins() {
 
   const handleSelectAll = (checked) => {
     if (checked) {
-      setSelectedRows(new Set(list.map(item => item.id)));
+      setSelectedRows(new Set(bulletin.map(item => item.id)));
     } else {
       setSelectedRows(new Set());
     }
@@ -232,7 +234,7 @@ function Bulletins() {
       }
       
       const bulletinsData = await bulletinService.getBulletins();
-      setList(bulletinsData);
+      setBulletins(bulletinsData);
       
       setDeleteId(null);
     } catch (err) {
@@ -245,10 +247,10 @@ function Bulletins() {
 
   // Statistiques
   const stats = {
-    total: list.length,
-    valides: list.filter(b => b.statut === 'valide').length,
-    brouillons: list.filter(b => b.statut === 'brouillon').length,
-    totalBrut: list.reduce((sum, b) => sum + b.salaire_brut, 0)
+    total: bulletin.length,
+    valides: bulletin.filter(b => b.statut === 'valide').length,
+    brouillons: bulletin.filter(b => b.statut === 'brouillon').length,
+    totalBrut: bulletin.reduce((sum, b) => sum + b.salaire_brut, 0)
   };
 
   const getStatusIcon = (statut) => {
@@ -272,6 +274,36 @@ function Bulletins() {
   const getMoisNom = (mois) => {
     const moisNoms = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
     return moisNoms[mois - 1] || mois;
+  };
+
+  const getBeneficiaryName = (paiement, paiementId) => {
+    if (!paiement) return `Paiement #${paiementId}`;
+    const utilisateur = paiement.employe?.utilisateur;
+    const prenom = utilisateur?.prenom_utilisateur || paiement.employe?.prenom || '';
+    const nom = utilisateur?.nom_utilisateur || paiement.employe?.nom || '';
+    const full = `${prenom} ${nom}`.trim();
+    return full || `Employé #${paiement.employe?.id || paiementId}`;
+  };
+
+  const getBeneficiaryInitials = (name) => {
+    if (!name) return '??';
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(part => part[0]?.toUpperCase())
+      .join('') || '??';
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setForm({ periode: '', salaire_brut: '', salaire_net: '', paiementId: '', statut: 'valide' });
+    setError(null);
+  };
+
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    resetForm();
   };
 
   // Si l'utilisateur n'a pas la permission de voir les bulletins
@@ -426,269 +458,312 @@ function Bulletins() {
         )}
 
         {/* Table */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  {permissions.canDelete('bulletins') && (
-                    <th className="px-6 py-4 text-left">
-                      <input
-                        type="checkbox"
-                        checked={selectedRows.size === list.length && list.length > 0}
-                        onChange={(e) => handleSelectAll(e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                      />
-                    </th>
-                  )}
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    ID
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Période
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Salaire Brut
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Salaire Net
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Paiement
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    Statut
-                  </th>
-                  {(permissions.canEdit('bulletins') || permissions.canDelete('bulletins')) && (
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {loading ? (
+        <Card className="border shadow-2xl rounded-2xl overflow-hidden bg-card backdrop-blur-xl">
+          <div className="bg-muted/50 p-6 border-b">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-primary-foreground" />
+                    </div>
+                  bulletine des bulletins de paie
+                  </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {bulletin.length} bulletin{bulletin.length > 1 ? 's' : ''} trouvé{bulletin.length > 1 ? 's' : ''}
+                  </p> 
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground border-border"
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    const data = await bulletinService.getBulletins();
+                    setBulletins(data);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+              >
+                <RefreshCcw className="w-4 h-4" />
+              </Button>
+            </div>
+            <Separator className="my-4 bg-border/60" />
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted border-b border-border/60 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
-                        <p className="text-slate-500">Chargement...</p>
-                      </div>
-                    </td>
+                    {permissions.canDelete('bulletins') && (
+                      <th className="px-6 py-4 text-left">
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.size === bulletin.length && bulletin.length > 0}
+                          onChange={(e) => handleSelectAll(e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </th>
+                    )}
+                    <th className="px-6 py-4">
+                      Référence
+                    </th>
+                     <th className="px-6 py-4">
+                      Bénéficiaire
+                    </th>
+                    <th className="px-6 py-4">
+                      Période
+                    </th>
+                    <th className="px-6 py-4">
+                      Salaire Brut
+                    </th>
+                    <th className="px-6 py-4">
+                      Salaire Net
+                    </th>
+                    <th className="px-6 py-4">
+                      Statut
+                    </th>
+                    {(permissions.canEdit('bulletins') || permissions.canDelete('bulletins')) && (
+                      <th className="px-6 py-4">
+                        Actions
+                      </th>
+                    )}
                   </tr>
-                ) : list.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <FileText className="h-12 w-12 text-slate-300" />
-                        <p className="text-slate-500">Aucun bulletin trouvé</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  list.map(b => {
-                    const paiement = paiements.find(p => p.id === b.paiementId);
-                    const isSelected = selectedRows.has(b.id);
-                    return (
-                      <tr 
-                        key={b.id} 
-                        className={`hover:bg-slate-50 transition-colors ${isSelected ? 'bg-blue-50' : ''}`}
-                      >
-                        {permissions.canDelete('bulletins') && (
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+                          <p className="text-slate-500">Chargement...</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : bulletin.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <FileText className="h-12 w-12 text-slate-300" />
+                          <p className="text-slate-500">Aucun bulletin trouvé</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    bulletin.map(b => {
+                      const paiement = paiements.find(p => p.id === b.paiementId);
+                      const isSelected = selectedRows.has(b.id);
+                      return (
+                        <tr 
+                          key={b.id} 
+                          className={`transition-colors ${isSelected ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-muted/40'}`}
+                        >
+                          {permissions.canDelete('bulletins') && (
+                            <td className="px-6 py-4">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleSelectRow(b.id)}
+                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                              />
+                            </td>
+                          )}
                           <td className="px-6 py-4">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => handleSelectRow(b.id)}
-                              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                            />
+                            <span className="font-semibold text-foreground">#{b.id}</span>
                           </td>
-                        )}
-                        <td className="px-6 py-4">
-                          <span className="font-medium text-slate-900">#{b.id}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-slate-400" />
-                            <span className="font-medium text-slate-700">
-                              {getMoisNom(b.mois)} {b.annee}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="font-semibold text-slate-900">
-                            {b.salaire_brut?.toLocaleString('fr-FR')} Ar
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="font-semibold text-blue-600">
-                            {b.salaire_net?.toLocaleString('fr-FR')} Ar
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-600">
-                          {paiement ? `${paiement.montant.toLocaleString('fr-FR')} Ar` : `#${b.paiementId}`}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(b.statut)}`}>
-                            {getStatusIcon(b.statut)}
-                            {b.statut}
-                          </span>
-                        </td>
-                        {(permissions.canEdit('bulletins') || permissions.canDelete('bulletins')) && (
                           <td className="px-6 py-4">
-                            <div className="flex items-center gap-2">
-                              {permissions.canEdit('bulletins') && (
-                                <button
-                                  onClick={() => handleEdit(b)}
-                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                  title="Modifier"
-                                >
-                                  <Edit2 className="w-4 h-4"/>
-                                </button>
-                              )}
-                              {permissions.canDelete('bulletins') && (
-                                <button
-                                  onClick={() => requestDelete(b.id)}
-                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                  title="Supprimer"
-                                >
-                                  <Trash2 className="w-4 h-4"/>
-                                </button>
-                              )}
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-100 flex items-center justify-center font-semibold">
+                                {getBeneficiaryInitials(getBeneficiaryName(paiement, b.paiementId))}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-foreground">
+                                  {getBeneficiaryName(paiement, b.paiementId)}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {paiement ? `${paiement.montant.toLocaleString('fr-FR')} Ar` : `Paiement #${b.paiementId}`}
+                                </p>
+                              </div>
                             </div>
                           </td>
-                        )}
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-slate-400" />
+                              <span className="font-medium text-slate-700">
+                                {getMoisNom(b.mois)} {b.annee}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="font-semibold text-foreground">
+                              {b.salaire_brut?.toLocaleString('fr-FR')} Ar
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="font-semibold text-blue-600 dark:text-blue-400">
+                              {b.salaire_net?.toLocaleString('fr-FR')} Ar
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(b.statut)}`}>
+                              {getStatusIcon(b.statut)}
+                              {b.statut}
+                            </span>
+                          </td>
+                          {(permissions.canEdit('bulletins') || permissions.canDelete('bulletins')) && (
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                {permissions.canEdit('bulletins') && (
+                                  <button
+                                    onClick={() => handleEdit(b)}
+                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                    title="Modifier"
+                                  >
+                                    <Edit2 className="w-4 h-4"/>
+                                  </button>
+                                )}
+                                {permissions.canDelete('bulletins') && (
+                                  <button
+                                    onClick={() => requestDelete(b.id)}
+                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Supprimer"
+                                  >
+                                    <Trash2 className="w-4 h-4"/>
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        </Card>
       </div>
+    
 
       {/* Modal d'ajout/modification */}
-      {isDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-[fadeIn_0.2s_ease-out]">
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-[slideUp_0.3s_ease-out] border border-blue-100">
-            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">{editingId ? 'Modifier le bulletin' : 'Créer un nouveau bulletin'}</h2>
-                <p className="text-sm text-slate-600 mt-1">
-                  {editingId ? 'Mettez à jour les informations du bulletin' : 'Saisie d\'un bulletin de paie lié à un paiement'}
-                </p>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => (open ? setIsDialogOpen(true) : closeDialog())}>
+        <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden border border-border bg-card shadow-2xl">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                <div className="h-11 w-11 rounded-2xl bg-white/20 flex items-center justify-center">
+                  {editingId ? <Edit2 className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                </div>
+                {editingId ? "Modifier le bulletin" : "Nouveau bulletin"}
+              </DialogTitle>
+              <DialogDescription className="text-blue-50/90">
+                {editingId
+                  ? "Mettez à jour les informations du bulletin sélectionné."
+                  : "Créez un bulletin de paie lié à un paiement existant."}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            {error && (
+              <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg p-4 text-sm text-red-600 dark:text-red-300 flex items-center gap-3">
+                <AlertCircle className="h-5 w-5" />
+                <span>{error}</span>
               </div>
-              <button
-                onClick={() => {
-                  setIsDialogOpen(false);
-                  setEditingId(null);
-                  setForm({ periode: '', salaire_brut: '', salaire_net: '', paiementId: '', statut: 'valide' });
-                }}
-                className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0"
-              >
-                <X className="h-6 w-6" />
-              </button>
+            )}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Calendar className="h-4 w-4 text-blue-600" />
+                Période de la paie *
+              </label>
+              <input
+                type="date"
+                value={form.periode}
+                onChange={e => setForm(f => ({ ...f, periode: e.target.value }))}
+                className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Sélectionnez la date du début de la période de paie
+              </p>
             </div>
 
-            <div className="p-6 space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                  <Calendar className="h-4 w-4 text-blue-600" />
-                  Période de la paie *
-                </label>
+                <label className="text-sm font-semibold text-foreground">Salaire Brut *</label>
                 <input
-                  type="date"
-                  value={form.periode}
-                  onChange={e => setForm(f => ({ ...f, periode: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  type="number"
+                  value={form.salaire_brut}
+                  onChange={e => setForm(f => ({ ...f, salaire_brut: e.target.value }))}
+                  placeholder="0.00"
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
-                <p className="text-xs text-slate-500 mt-1">
-                  Sélectionnez la date du début de la période de paie
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">Salaire Brut *</label>
-                  <input
-                    type="number"
-                    value={form.salaire_brut}
-                    onChange={e => setForm(f => ({ ...f, salaire_brut: e.target.value }))}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">Salaire Net *</label>
-                  <input
-                    type="number"
-                    value={form.salaire_net}
-                    onChange={e => setForm(f => ({ ...f, salaire_net: e.target.value }))}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700">Paiement lié *</label>
-                <select
+                <label className="text-sm font-semibold text-foreground">Salaire Net *</label>
+                <input
+                  type="number"
+                  value={form.salaire_net}
+                  onChange={e => setForm(f => ({ ...f, salaire_net: e.target.value }))}
+                  placeholder="0.00"
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
-                  value={form.paiementId}
-                  onChange={e => setForm(f => ({ ...f, paiementId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-md bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Sélectionne le paiement...</option>
-                  {paiements.map(p => (
-                    <option key={p.id} value={p.id}>
-                      ID#{p.id} | {p.montant.toLocaleString('fr-FR')} Ar | {new Date(p.date_paiement).toLocaleDateString('fr-FR')}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700">Statut</label>
-                <select
-                  value={form.statut}
-                  onChange={e => setForm(f => ({ ...f, statut: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-md bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="valide">Valide</option>
-                  <option value="brouillon">Brouillon</option>
-                  <option value="archivé">Archivé</option>
-                </select>
+                />
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
-              <button
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">Paiement lié *</label>
+              <select
+                required
+                value={form.paiementId}
+                onChange={e => setForm(f => ({ ...f, paiementId: e.target.value }))}
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Sélectionne le paiement...</option>
+                {paiements.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {getBeneficiaryName(p, p.id)} • {p.montant.toLocaleString('fr-FR')} Ar • {new Date(p.date_paiement).toLocaleDateString('fr-FR')}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">Statut</label>
+              <select
+                value={form.statut}
+                onChange={e => setForm(f => ({ ...f, statut: e.target.value }))}
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="valide">Valide</option>
+                <option value="brouillon">Brouillon</option>
+                <option value="archivé">Archivé</option>
+              </select>
+            </div>
+
+            <DialogFooter className="pt-4 flex-col sm:flex-row gap-3 sm:gap-2">
+              <Button
                 type="button"
-                onClick={() => {
-                  setIsDialogOpen(false);
-                  setEditingId(null);
-                  setForm({ periode: '', salaire_brut: '', salaire_net: '', paiementId: '', statut: 'valide' });
-                }}
-                className="px-4 py-2 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors text-slate-700"
+                variant="outline"
+                className="w-full sm:flex-1"
+                onClick={closeDialog}
               >
                 Annuler
-              </button>
-              <button
-                onClick={handleSubmit}
+              </Button>
+              <Button
+                type="submit"
                 disabled={submitting}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors disabled:opacity-50"
+                className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-700 text-white"
               >
                 {submitting ? (editingId ? "Modification..." : "Ajout en cours...") : (editingId ? "Modifier" : "Ajouter")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog de confirmation */}
       <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>

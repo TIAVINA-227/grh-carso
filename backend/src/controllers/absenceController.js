@@ -38,7 +38,8 @@ export const createAbsence = async (req, res) => {
 
 export const getAllAbsences = async (req, res) => {
   try {
-    const absences = await absenceService.getAllAbsences();
+    const { period } = req.query;
+    const absences = await absenceService.getAllAbsences({ period });
     res.json(absences);
   } catch (error) {
     console.error('❌ Erreur récupération absences:', error);

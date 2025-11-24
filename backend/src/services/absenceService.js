@@ -36,8 +36,24 @@ export const createAbsence = async (data) => {
   });
 };
 
-export const getAllAbsences = async () => {
+export const getAllAbsences = async ({ period = 'active' } = {}) => {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  const where = {};
+
+  if (period === 'active') {
+    where.date_fin = { gte: now };
+  } else if (period === 'month') {
+    where.AND = [
+      { date_debut: { lte: endOfMonth } },
+      { date_fin: { gte: startOfMonth } }
+    ];
+  }
+
   return await prisma.absence.findMany({ 
+    where,
     orderBy: { id: 'desc' },
     include: {
       employe: {

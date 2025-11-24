@@ -14,7 +14,25 @@ export const createPaiement = async (data) => {
   return await prisma.paiement.create({ data: payload });
 };
 
-export const getAllPaiements = async () => await prisma.paiement.findMany({ orderBy: { id: 'desc' } });
+export const getAllPaiements = async () =>
+  await prisma.paiement.findMany({
+    orderBy: { id: 'desc' },
+    include: {
+      employe: {
+        select: {
+          id: true,
+          nom: true,
+          prenom: true,
+          utilisateur: {
+            select: {
+              nom_utilisateur: true,
+              prenom_utilisateur: true
+            }
+          }
+        }
+      }
+    }
+  });
 export const getPaiementById = async (id) => await prisma.paiement.findUnique({ where: { id: Number(id) } });
 export const updatePaiement = async (id, data) => await prisma.paiement.update({ where: { id: Number(id) }, data });
 export const deletePaiement = async (id) => { await prisma.paiement.delete({ where: { id: Number(id) } }); return { success: true }; };

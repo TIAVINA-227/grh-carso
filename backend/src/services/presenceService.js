@@ -38,9 +38,36 @@ export const createPresence = async (data) => {
   });
 };
 
-export const getAllPresences = async () => {
+const cleanupOldPresences = async () => {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  await prisma.presence.deleteMany({
+    where: {
+      date_jour: { lt: startOfMonth }
+    }
+  });
+};  
+
+export const getAllPresences = async ({ period = 'today' } = {}) => {
+  await cleanupOldPresences();
+
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+  const where = {};
+
+  if (period === 'today') {
+    where.date_jour = { gte: startOfToday, lte: endOfToday };
+  } else if (period === 'month') {
+    where.date_jour = { gte: startOfMonth, lte: endOfMonth };
+  }
+
   return await prisma.presence.findMany({ 
-    orderBy: { id: 'desc' },
+    where,
+    orderBy: { date_jour: 'desc' },
     include: {
       employe: {
         select: {
