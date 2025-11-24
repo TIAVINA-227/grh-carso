@@ -46,6 +46,8 @@ export default function Presences() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [presenceToDelete, setPresenceToDelete] = useState(null);
+  
+  // ✅ UN SEUL ÉTAT FORM (suppression de formData)
   const [form, setForm] = useState({ 
     employeId: "", 
     date_jour: new Date().toISOString(),
@@ -55,14 +57,6 @@ export default function Presences() {
   });
 
   const [loadingEmployes, setLoadingEmployes] = useState(false);
-  const [formData, setFormData] = useState({
-    employeId: "",
-    date_jour: new Date().toISOString(),
-    statut: "PRESENT",
-    heures_travaillees: 8,
-    justification: ""
-  });
-
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString());
@@ -72,7 +66,7 @@ export default function Presences() {
 
   const [currentEmployeId, setCurrentEmployeId] = useState(null);
 
-     // Fonction pour charger les employés
+  // ✅ Fonction pour charger les employés
   const loadEmployes = async () => {
     try {
       setLoadingEmployes(true);
@@ -85,13 +79,17 @@ export default function Presences() {
         const employe = data.find(emp => emp.email === user.email);
         if (employe) {
           setCurrentEmployeId(employe.id);
-          setFormData(prev => ({ ...prev, employeId: employe.id.toString() }));
+          // ✅ CORRECTION : utiliser form au lieu de formData
+          setForm(prev => ({ ...prev, employeId: employe.id.toString() }));
+          console.log('✅ Employé auto-sélectionné:', employe.id);
         }
       }
     } catch (err) {
       console.error("Erreur chargement employés:", err);
-      toast.error("Erreur", { 
-        description: "Impossible de charger les employés" 
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les employés",
+        className: "bg-red-600 text-white",
       });
     } finally {
       setLoadingEmployes(false);
@@ -136,8 +134,14 @@ export default function Presences() {
 
   const openCreate = () => {
     setEditingId(null);
+    
+    // ✅ Si employé connecté, pré-remplir son ID
+    const initialEmployeId = permissions.isEmploye && currentEmployeId 
+      ? currentEmployeId.toString() 
+      : "";
+    
     setForm({ 
-      employeId: "", 
+      employeId: initialEmployeId, 
       date_jour: new Date().toISOString(),
       statut: "PRESENT", 
       heures_travaillees: 8,
@@ -149,7 +153,7 @@ export default function Presences() {
   const openEdit = (p) => {
     setEditingId(p.id);
     setForm({ 
-      employeId: p.employeId || "", 
+      employeId: p.employeId ? p.employeId.toString() : "", 
       date_jour: p.date_jour ? new Date(p.date_jour).toISOString() : new Date().toISOString(),
       statut: p.statut || "PRESENT", 
       heures_travaillees: p.heures_travaillees || 8,
@@ -158,10 +162,35 @@ export default function Presences() {
     setIsDialogOpen(true);
   };
 
+  // ✅ CORRECTION MAJEURE : handleSubmit avec validation
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    const updatedForm = { ...form, date_jour: new Date().toISOString() };
+    
+    // ✅ Logs de debug
+    console.log('📤 Form avant envoi:', form);
+    console.log('👤 EmployeId:', form.employeId);
+    
+    // ✅ Validation employeId
+    if (!form.employeId) {
+      const errorMsg = "Veuillez sélectionner un employé";
+      setError(errorMsg);
+      toast({
+        title: "Erreur ❌",
+        description: errorMsg,
+        className: "bg-red-600 text-white",
+      });
+      return;
+    }
+
+    const updatedForm = { 
+      ...form, 
+      date_jour: new Date().toISOString(),
+      employeId: Number(form.employeId), // ✅ Convertir en nombre
+      heures_travaillees: Number(form.heures_travaillees) || 0
+    };
+    
+    console.log('📤 Données envoyées au backend:', updatedForm);
 
     try {
       if (editingId) {
@@ -182,11 +211,11 @@ export default function Presences() {
       setIsDialogOpen(false);
       await load();
     } catch (err) {
-      console.error(err);
-      setError(err.message || "Erreur");
+      console.error('❌ Erreur complète:', err);
+      setError(err.message || "Erreur lors de l'enregistrement");
       toast({
         title: "Erreur ❌",
-        description: "Impossible d'enregistrer la présence.",
+        description: err.message || "Impossible d'enregistrer la présence.",
         className: "bg-red-600 text-white",
       });
     }
@@ -310,7 +339,6 @@ export default function Presences() {
         className: "bg-blue-600 text-white",
       });
 
-      // Générer le document PDF
       const blob = await pdf(
         <PresencesPDFDocument
           presences={presences}
@@ -320,7 +348,6 @@ export default function Presences() {
         />
       ).toBlob();
 
-      // Créer un lien de téléchargement
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -677,7 +704,7 @@ export default function Presences() {
               </div>
             )}
 
-            {/* Employé */}
+            {/* ✅ CORRECTION : Employé - utiliser form au lieu de formData */}
             <div className="space-y-2">
               <Label htmlFor="employeId" className="font-semibold flex items-center gap-2">
                 <Users className="w-4 h-4 text-primary" />
@@ -699,8 +726,11 @@ export default function Presences() {
                 </div>
               ) : (
                 <Select
-                  value={formData.employeId}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, employeId: value }))}
+                  value={form.employeId}
+                  onValueChange={(value) => {
+                    console.log('✅ Employé sélectionné:', value);
+                    setForm(prev => ({ ...prev, employeId: value }));
+                  }}
                   required
                 >
                   <SelectTrigger className="h-12 border-2 focus:border-primary transition-colors">
@@ -832,6 +862,7 @@ export default function Presences() {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog de confirmation de suppression */}
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <DialogContent className="sm:max-w-[400px] border border-border bg-card">
           <DialogHeader>

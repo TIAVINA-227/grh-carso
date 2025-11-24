@@ -1,19 +1,103 @@
+// Corrections pour backend/src/services/absenceService.js
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export const createAbsence = async (data) => {
+  console.log('🔍 Données reçues dans absenceService:', data);
+  
+  // ✅ CORRECTION: Construction propre sans undefined
   const payload = {
-    date_debut: data.date_debut ? new Date(data.date_debut) : undefined,
-    date_fin: data.date_fin ? new Date(data.date_fin) : undefined,
+    date_debut: new Date(data.date_debut),
+    date_fin: new Date(data.date_fin),
     type_absence: data.type_absence,
     justification: data.justification || null,
-    piece_jointe: data.piece_jointe || null,
-    employeId: data.employeId ? Number(data.employeId) : undefined,
+    employeId: Number(data.employeId) // ✅ Toujours défini
   };
-  return await prisma.absence.create({ data: payload });
+  
+  // Ajouter piece_jointe seulement si présente
+  if (data.piece_jointe) {
+    payload.piece_jointe = data.piece_jointe;
+  }
+  
+  console.log('📤 Payload envoyé à Prisma:', payload);
+  
+  return await prisma.absence.create({ 
+    data: payload,
+    include: {
+      employe: {
+        select: {
+          id: true,
+          nom: true,
+          prenom: true,
+          email: true
+        }
+      }
+    }
+  });
 };
 
-export const getAllAbsences = async () => await prisma.absence.findMany({ orderBy: { id: 'desc' } });
-export const getAbsenceById = async (id) => await prisma.absence.findUnique({ where: { id: Number(id) } });
-export const updateAbsence = async (id, data) => await prisma.absence.update({ where: { id: Number(id) }, data });
-export const deleteAbsence = async (id) => { await prisma.absence.delete({ where: { id: Number(id) } }); return { success: true }; };
+export const getAllAbsences = async () => {
+  return await prisma.absence.findMany({ 
+    orderBy: { id: 'desc' },
+    include: {
+      employe: {
+        select: {
+          id: true,
+          nom: true,
+          prenom: true,
+          email: true
+        }
+      }
+    }
+  });
+};
+
+export const getAbsenceById = async (id) => {
+  return await prisma.absence.findUnique({ 
+    where: { id: Number(id) },
+    include: {
+      employe: {
+        select: {
+          id: true,
+          nom: true,
+          prenom: true,
+          email: true
+        }
+      }
+    }
+  });
+};
+
+export const updateAbsence = async (id, data) => {
+  const payload = {};
+  
+  if (data.date_debut) payload.date_debut = new Date(data.date_debut);
+  if (data.date_fin) payload.date_fin = new Date(data.date_fin);
+  if (data.type_absence) payload.type_absence = data.type_absence;
+  if (data.justification !== undefined) payload.justification = data.justification;
+  if (data.piece_jointe !== undefined) payload.piece_jointe = data.piece_jointe;
+  if (data.employeId) payload.employeId = Number(data.employeId);
+  if (data.statut) payload.statut = data.statut;
+  
+  return await prisma.absence.update({ 
+    where: { id: Number(id) }, 
+    data: payload,
+    include: {
+      employe: {
+        select: {
+          id: true,
+          nom: true,
+          prenom: true,
+          email: true
+        }
+      }
+    }
+  });
+};
+
+export const deleteAbsence = async (id) => {
+  await prisma.absence.delete({ 
+    where: { id: Number(id) } 
+  });
+  return { success: true };
+};

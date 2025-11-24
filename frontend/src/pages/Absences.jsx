@@ -1,4 +1,4 @@
-// //frontend/src/pages/Absences.jsx
+// //frontend/src/pages/Absences.jsx - VERSION CORRIGÉE
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -46,6 +46,8 @@ export default function Absences() {
   const [employes, setEmployes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // ✅ UN SEUL ÉTAT FORM (suppression de formData)
   const [form, setForm] = useState({ 
     employeId: "", 
     date_debut: new Date().toISOString().split('T')[0], 
@@ -54,17 +56,8 @@ export default function Absences() {
     justification: "",
     piece_jointe: ""
   });
-  const [loadingEmployes, setLoadingEmployes] = useState(false);
-
-  const [formData, setFormData] = useState({
-    employeId: "",
-    date_debut: "",
-    date_fin: "",
-    type_absence: "Maladie",
-    justification: "",
-    piece_jointe: ""
-  });
   
+  const [loadingEmployes, setLoadingEmployes] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
   const [filterStatus, setFilterStatus] = useState("Tous les statuts");
@@ -75,7 +68,7 @@ export default function Absences() {
 
   const [currentEmployeId, setCurrentEmployeId] = useState(null);
 
-    // Fonction pour charger les employés
+  // ✅ Fonction pour charger les employés
   const loadEmployes = async () => {
     try {
       setLoadingEmployes(true);
@@ -88,14 +81,14 @@ export default function Absences() {
         const employe = data.find(emp => emp.email === user.email);
         if (employe) {
           setCurrentEmployeId(employe.id);
-          setFormData(prev => ({ ...prev, employeId: employe.id.toString() }));
+          // ✅ CORRECTION : utiliser form au lieu de formData
+          setForm(prev => ({ ...prev, employeId: employe.id.toString() }));
+          console.log('✅ Employé auto-sélectionné:', employe.id);
         }
       }
     } catch (err) {
       console.error("Erreur chargement employés:", err);
-      toast.error("Erreur", { 
-        description: "Impossible de charger les employés" 
-      });
+      toast.error("Impossible de charger les employés");
     } finally {
       setLoadingEmployes(false);
     }
@@ -129,13 +122,23 @@ export default function Absences() {
       const a = document.createElement('a');
       a.href = url; a.download = `absences_${new Date().toISOString().slice(0,10)}.pdf`; a.click();
       URL.revokeObjectURL(url);
-    } catch (err) { console.error(err); }
+      toast.success("PDF exporté avec succès");
+    } catch (err) { 
+      console.error(err);
+      toast.error("Erreur lors de l'export PDF");
+    }
   };
 
   const openCreate = () => {
     setEditingId(null);
+    
+    // ✅ Si employé connecté, pré-remplir son ID
+    const initialEmployeId = permissions.isEmploye && currentEmployeId 
+      ? currentEmployeId.toString() 
+      : "";
+    
     setForm({ 
-      employeId: "", 
+      employeId: initialEmployeId, 
       date_debut: new Date().toISOString().split('T')[0], 
       date_fin: new Date().toISOString().split('T')[0], 
       type_absence: "Maladie",
@@ -148,7 +151,7 @@ export default function Absences() {
   const openEdit = (a) => {
     setEditingId(a.id);
     setForm({ 
-      employeId: a.employeId || "", 
+      employeId: a.employeId ? a.employeId.toString() : "", 
       date_debut: a.date_debut ? new Date(a.date_debut).toISOString().split('T')[0] : new Date().toISOString().split('T')[0], 
       date_fin: a.date_fin ? new Date(a.date_fin).toISOString().split('T')[0] : new Date().toISOString().split('T')[0], 
       type_absence: a.type_absence || "Maladie",
@@ -158,23 +161,44 @@ export default function Absences() {
     setIsDialogOpen(true);
   };
 
+  // ✅ CORRECTION MAJEURE : handleSubmit avec validation
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    
+    // ✅ Logs de debug
+    console.log('📤 Form avant envoi:', form);
+    console.log('👤 EmployeId:', form.employeId);
+    
+    // ✅ Validation employeId
+    if (!form.employeId) {
+      const errorMsg = "Veuillez sélectionner un employé";
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+    
+    const updatedForm = {
+      ...form,
+      employeId: Number(form.employeId) // ✅ Convertir en nombre
+    };
+    
+    console.log('📤 Données envoyées au backend:', updatedForm);
+    
     try {
       if (editingId) {
-        await updateAbsence(editingId, form);
+        await updateAbsence(editingId, updatedForm);
         toast.success("Absence mise à jour avec succès");
       } else {
-        await createAbsence(form);
+        await createAbsence(updatedForm);
         toast.success("Absence déclarée avec succès");
       }
       setIsDialogOpen(false);
       await load();
     } catch (err) {
-      console.error(err);
+      console.error('❌ Erreur complète:', err);
       setError(err.message || "Erreur");
-      toast.error("Impossible d'enregistrer l'absence");
+      toast.error(err.message || "Impossible d'enregistrer l'absence");
     }
   };
 
@@ -675,7 +699,7 @@ export default function Absences() {
               </div>
             )}
 
-            {/* Employé */}
+            {/* ✅ CORRECTION : Employé - utiliser form au lieu de formData */}
             <div className="space-y-2">
               <Label htmlFor="employeId" className="font-semibold flex items-center gap-2">
                 <Users className="w-4 h-4 text-primary" />
@@ -697,8 +721,11 @@ export default function Absences() {
                 </div>
               ) : (
                 <Select
-                  value={formData.employeId}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, employeId: value }))}
+                  value={form.employeId}
+                  onValueChange={(value) => {
+                    console.log('✅ Employé sélectionné:', value);
+                    setForm(prev => ({ ...prev, employeId: value }));
+                  }}
                   required
                 >
                   <SelectTrigger className="h-12 border-2 focus:border-primary transition-colors">
@@ -851,6 +878,7 @@ export default function Absences() {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog de confirmation */}
       <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
         <DialogContent className="sm:max-w-[400px] border border-border bg-card">
           <DialogHeader>

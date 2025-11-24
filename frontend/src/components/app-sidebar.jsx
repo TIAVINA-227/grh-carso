@@ -1,4 +1,3 @@
-//frontend/srrc/components/app-sidebar.jsx
 import * as React from "react"
 import {
   Users,
@@ -16,7 +15,12 @@ import {
   UserCog,
   ChartColumnIncreasing,
   MonitorCog,
-  Layers
+  Layers,
+  Plus,
+  Sparkles,
+  Search,
+  Settings,
+  HelpCircle
 } from "lucide-react"
 
 import SidebarItem from "@/components/ui/sidebar-item"
@@ -28,19 +32,32 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  useSidebar
 } from "@/components/ui/sidebar"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useAuth } from "../hooks/useAuth"
 import { usePermissions } from "../hooks/usePermissions"
 
 export function AppSidebar({ ...props }) {
   const { user } = useAuth();
-  const permissions = usePermissions(); // ✅ Utilisation directe
+  const permissions = usePermissions();
+  const { state } = useSidebar();
+  const [showUpdateDialog, setShowUpdateDialog] = React.useState(false);
+
+  const isCollapsed = state === "collapsed";
 
   console.log('=== DEBUG APP-SIDEBAR ===');
   console.log('1. user:', user);
   console.log('2. permissions:', permissions);
   console.log('3. canAccess type:', typeof permissions.canAccess);
   console.log('4. Test canAccess("employes"):', permissions.canAccess('employes'));
+  console.log('5. Sidebar state:', state);
   console.log('========================');
 
   // Configuration des équipes
@@ -56,7 +73,7 @@ export function AppSidebar({ ...props }) {
       to: "/dashboard",
       icon: LayoutDashboard,
       label: "Tableau de bord",
-      show: true // Dashboard accessible à tous
+      show: true
     },
     {
       to: "/dashboard/employes",
@@ -120,7 +137,7 @@ export function AppSidebar({ ...props }) {
     },
     {
       to: "/dashboard/utilisateurs",
-      icon:MonitorCog,
+      icon: MonitorCog,
       label: "Gérer Utilisateurs",
       show: permissions.canAccess('utilisateurs')
     },
@@ -128,61 +145,256 @@ export function AppSidebar({ ...props }) {
       to: "/dashboard/profil",
       icon: UserCog,
       label: "Mon Profil",
-      show: true // Visible par tous
+      show: true
     },
   ];
 
   // Filtrer uniquement les items accessibles
   const visibleNavItems = navItems.filter(item => item.show);
 
+  // Groupes de navigation
+  const groupedNavItems = [
+    {
+      title: "Principal",
+      items: visibleNavItems.slice(0, 3)
+    },
+    {
+      title: "Gestion",
+      items: visibleNavItems.slice(3, 8)
+    },
+    {
+      title: "Finance",
+      items: visibleNavItems.slice(8, 10)
+    },
+    {
+      title: "Système",
+      items: visibleNavItems.slice(10)
+    }
+  ].filter(group => group.items.length > 0);
+
+  // Items de la section projets
+  const projectItems = [
+    { color: "bg-blue-400", label: "Personnel" },
+    { color: "bg-orange-400", label: "Business" },
+    { color: "bg-green-400", label: "Travel" }
+  ];
+
   return (
-    <Sidebar collapsible="icon" className="border-r" variant="outline" {...props}>
-      <SidebarHeader>
-        <TeamSwitcher teams={teams} />
+    <Sidebar collapsible="icon" className="border-r bg-white dark:bg-gray-950" variant="outline" {...props}>
+      <SidebarHeader className="border-b px-4 py-3">
+        {!isCollapsed && <TeamSwitcher teams={teams} />}
+        {isCollapsed && (
+          <div className="flex items-center justify-center">
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+              <Layers className="h-5 w-5 text-primary-foreground" />
+            </div>
+          </div>
+        )}
       </SidebarHeader>
       
-      <SidebarContent>
-        <div className="px-2">
-          <ul className="flex flex-col gap-2">
-            {visibleNavItems.map((item) => (
-              <SidebarItem 
-                key={item.to}
-                to={item.to}
-                icon={item.icon}
-                label={item.label}
+      <SidebarContent className="px-3 py-4 overflow-y-auto sidebar-scrollbar">
+        {/* Barre de recherche */}
+        {!isCollapsed ? (
+          <div className="mb-6 px-1">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Rechercher..."
+                className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
-            ))}
-          </ul>
+              <div className="absolute right-3 top-2.5 text-gray-400">
+                <Search className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-6 px-1 flex justify-center">
+            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+              <Search className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+        )}
+
+        {/* Navigation groupée */}
+        <div className={isCollapsed ? "space-y-2" : "space-y-6"}>
+          {groupedNavItems.map((group, groupIndex) => (
+            <div key={groupIndex}>
+              {/* Titre de groupe - caché en mode collapsed */}
+              {!isCollapsed && (
+                <div className="px-3 mb-2">
+                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {group.title}
+                  </h3>
+                </div>
+              )}
+              
+              {/* Séparateur visuel en mode collapsed */}
+              {isCollapsed && groupIndex > 0 && (
+                <div className="px-2 py-2">
+                  <div className="h-px bg-gray-200 dark:bg-gray-800"></div>
+                </div>
+              )}
+              
+              {/* Items du groupe */}
+              <ul className="space-y-1">
+                {group.items.map((item) => (
+                  <SidebarItem 
+                    key={item.to}
+                    to={item.to}
+                    icon={item.icon}
+                    label={item.label}
+                  />
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
-        
-        {/* Section info selon le rôle */}
-        <div className="px-4 py-3 mt-4 border-t">
-          {permissions.isSuperAdmin && (
-            <div className="flex items-center gap-2 text-xs text-red-100">
-              <span className="font-bold">Super Admin</span>
-              <span>• Accès complet </span>
+
+        {/* Section Projets (si admin) */}
+        {(permissions.isAdmin || permissions.isSuperAdmin) && (
+          <div className="mt-6 px-1">
+            {!isCollapsed ? (
+              <>
+                <div className="flex items-center justify-between px-3 mb-2">
+                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Projets
+                  </h3>
+                  <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors">
+                    <Plus className="w-3.5 h-3.5 text-gray-500" />
+                  </button>
+                </div>
+                
+                <ul className="space-y-1">
+                  {projectItems.map((project, index) => (
+                    <li key={index} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
+                      <div className={`w-2 h-2 rounded-full ${project.color}`}></div>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{project.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <>
+                <div className="px-2 py-2">
+                  <div className="h-px bg-gray-200 dark:bg-gray-800"></div>
+                </div>
+                <ul className="space-y-1 mt-2">
+                  {projectItems.map((project, index) => (
+                    <li key={index} className="flex items-center justify-center">
+                      <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                        <div className={`w-3 h-3 rounded-full ${project.color}`}></div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Carte de mise à jour Premium */}
+        {!isCollapsed && (
+          <div className="mt-6 mx-1">
+            <div 
+              onClick={() => setShowUpdateDialog(true)}
+              className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-600 via-emerald-500 to-indigo-600 p-4 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
+            >
+              {/* Illustration/Icon */}
+              <div className="flex justify-center mb-3">
+                <div className="relative">
+                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                    <Sparkles className="w-8 h-8 text-white" />
+                  </div>
+                  {/* Badge "New" */}
+                  <div className="absolute -top-1 -right-1 bg-yellow-400 text-emerald-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                    NEW
+                  </div>
+                </div>
+              </div>
+
+              {/* Texte */}
+              <div className="text-center space-y-1.5">
+                <h3 className="text-white font-bold text-sm">
+                  Mise à jour Premium
+                </h3>
+                <p className="text-white/90 text-xs leading-relaxed">
+                  Accédez à plus de fonctionnalités
+                </p>
+              </div>
+
+              {/* Bouton */}
+              <button className="w-full mt-3 bg-white text-emerald-700 font-semibold text-xs py-2 px-4 rounded-lg hover:bg-white/95 transition-colors duration-200 shadow-md">
+                VOIR LA MISE À JOUR
+              </button>
+
+              {/* Effet de brillance */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -z-0"></div>
             </div>
-          )}
-          {permissions.isAdmin && (
-            <div className="flex items-center gap-2 text-xs text-blue-300">
-              <span className="font-bold">Admin</span>
-              <span>• Gestion complète </span>
+          </div>
+        )}
+
+        {/* Version collapsed de la carte premium */}
+        {isCollapsed && (
+          <div className="mt-6 px-1 flex justify-center">
+            <button 
+              onClick={() => setShowUpdateDialog(true)}
+              className="relative p-2 bg-gradient-to-br from-emerald-600 to-indigo-600 rounded-lg hover:shadow-lg transition-all"
+            >
+              <Sparkles className="w-5 h-5 text-white" />
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full"></div>
+            </button>
+          </div>
+        )}
+
+        {/* Actions rapides en mode collapsed */}
+        {isCollapsed && (
+          <div className="mt-6 space-y-2 px-1">
+            <div className="px-2 py-2">
+              <div className="h-px bg-gray-200 dark:bg-gray-800"></div>
             </div>
-          )}
-          {permissions.isEmploye && (
-            <div className="flex items-center gap-2 text-xs text-green-300">
-              <span className="font-bold">Employé</span>
-              <span>• Espace personnel </span>
-            </div>
-          )}
-        </div>
+            <button className="w-full p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex items-center justify-center">
+              <Settings className="w-5 h-5 text-gray-500" />
+            </button>
+            <button className="w-full p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex items-center justify-center">
+              <HelpCircle className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+        )}
       </SidebarContent>
       
-      <SidebarFooter>
+      <SidebarFooter className="border-t p-3">
         <NavUser />
       </SidebarFooter>
       
       <SidebarRail />
+
+      {/* Dialog de mise à jour */}
+      <Dialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/30 rounded-full flex items-center justify-center">
+                <Sparkles className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+              </div>
+            </div>
+            <DialogTitle className="text-center text-xl">
+              Aucune mise à jour disponible
+            </DialogTitle>
+            <DialogDescription className="text-center pt-2">
+              Vous utilisez déjà la dernière version de l'application. 
+              Revenez plus tard pour découvrir de nouvelles fonctionnalités !
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={() => setShowUpdateDialog(false)}
+              className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+            >
+              Compris
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Sidebar>
   );
 }
@@ -258,7 +470,7 @@ export function AppSidebar({ ...props }) {
 //       <div
 //         className={cn(
 //           sizeClasses[size],
-//           "rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold overflow-hidden"
+//           "rounded-full bg-gradient-to-br from-blue-400 to-emerald-500 flex items-center justify-center text-white font-semibold overflow-hidden"
 //         )}
 //       >
 //         {user?.avatar ? (
@@ -294,7 +506,7 @@ export function AppSidebar({ ...props }) {
 //    LOGO ENTREPRISE
 // --------------------------------------------------------- */
 // const CompanyLogo = ({ name = "CARSO", logocarso }) => (
-//   <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
+//   <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-xl">
 //     <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
 //       {logocarso ? (
 //         <img src={logocarso} alt={name} className="w-6 h-6" />
@@ -323,7 +535,7 @@ export function AppSidebar({ ...props }) {
 //         cn(
 //           "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium no-underline",
 //           "text-gray-300 hover:bg-white/5 hover:text-white",
-//           isActive && "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg"
+//           isActive && "bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-lg"
 //         )
 //       }
 //     >
@@ -360,7 +572,7 @@ export function AppSidebar({ ...props }) {
 //    CARTE ESPACE UTILISÉ
 // --------------------------------------------------------- */
 // const SpaceUsageCard = ({ usedSpace, lastUpdate, updateDate }) => (
-//   <div className="p-4 bg-gradient-to-br from-blue-900/40 to-purple-900/40 rounded-xl border border-white/10">
+//   <div className="p-4 bg-gradient-to-br from-blue-900/40 to-emerald-900/40 rounded-xl border border-white/10">
 //     <div className="flex items-center justify-between mb-2">
 //       <h4 className="text-sm font-semibold text-white">Espace Utilisé</h4>
 //       <span className="text-xs text-gray-400">{usedSpace}%</span>
@@ -371,7 +583,7 @@ export function AppSidebar({ ...props }) {
 
 //     <div className="w-full h-1.5 bg-gray-700 rounded-full overflow-hidden">
 //       <div
-//         className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+//         className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-500"
 //         style={{ width: `${usedSpace}%` }}
 //       />
 //     </div>

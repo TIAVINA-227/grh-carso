@@ -168,9 +168,6 @@ export function NavUser() {
                 <span className="truncate font-medium">
                   {getNomComplet()}
                 </span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {isOnline ? "🟢 En ligne" : "⚪ Hors ligne"}
-                </span>
               </div>
 
               {/* Icône chevron */}
