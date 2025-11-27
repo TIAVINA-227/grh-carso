@@ -1,4 +1,4 @@
-// //frontend/src/pages/Presences.jsx
+// frontend/src/pages/Presences.jsx - VERSION CORRIGÉE COMPLÈTE
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -10,7 +10,8 @@ import { useToast } from "../components/ui/use-toast";
 import { getPresences, createPresence, updatePresence, deletePresence } from "../services/presenceService";
 import { getEmployes } from "../services/employeService";
 import { 
-  CalendarDays, 
+  CalendarDays,
+  Calendar,
   Clock, 
   User, 
   Plus,  
@@ -21,9 +22,8 @@ import {
   AlertCircle, 
   Users, 
   TrendingUp, 
-  TrendingDown, 
   Activity,
-  Upload
+  Upload,
 } from "lucide-react";
 import { Checkbox } from "../components/ui/checkbox";
 import { usePermissions } from "../hooks/usePermissions";
@@ -31,23 +31,23 @@ import { Separator } from "../components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
 import { useAuth } from "../hooks/useAuth.jsx";
-
-import { pdf } from '@react-pdf/renderer'
+import { pdf } from '@react-pdf/renderer';
 import PresencesPDFDocument from "../exportPdf/PresencesPDFDocument.jsx";
 import logoGauche from "../assets/carso 1.png";
 
 export default function Presences() {
-
   const { user } = useAuth();
+  const { toast } = useToast();
+  const permissions = usePermissions();
 
   const [presences, setPresences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [employes, setEmployes] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [presenceView, setPresenceView] = useState('today');
   const [presenceToDelete, setPresenceToDelete] = useState(null);
   
-  // ✅ UN SEUL ÉTAT FORM (suppression de formData)
   const [form, setForm] = useState({ 
     employeId: "", 
     date_jour: new Date().toISOString(),
@@ -60,13 +60,10 @@ export default function Presences() {
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString());
-  const { toast } = useToast();
   const [selectedPresences, setSelectedPresences] = useState(new Set());
-  const permissions = usePermissions();
-
   const [currentEmployeId, setCurrentEmployeId] = useState(null);
 
-  // ✅ Fonction pour charger les employés
+  // Fonction pour charger les employés
   const loadEmployes = async () => {
     try {
       setLoadingEmployes(true);
@@ -74,12 +71,10 @@ export default function Presences() {
       setEmployes(data);
       console.log('Employés chargés:', data.length);
       
-      // 🔹 Trouver l'employé correspondant à l'utilisateur connecté
       if (permissions.isEmploye && user) {
         const employe = data.find(emp => emp.email === user.email);
         if (employe) {
           setCurrentEmployeId(employe.id);
-          // ✅ CORRECTION : utiliser form au lieu de formData
           setForm(prev => ({ ...prev, employeId: employe.id.toString() }));
           console.log('✅ Employé auto-sélectionné:', employe.id);
         }
@@ -96,6 +91,7 @@ export default function Presences() {
     }
   };
 
+  // Mise à jour de l'heure actuelle
   useEffect(() => {
     const interval = setInterval(() => {
       setSelectedDate(new Date().toISOString());
@@ -103,16 +99,26 @@ export default function Presences() {
     return () => clearInterval(interval);
   }, []);
 
-  const load = async () => {
+  // Fonction de chargement des présences
+  const load = async (period = 'today') => {
     setLoading(true);
+    setPresenceView(period);
+    setSelectedPresences(new Set());
+    
     try {
-      const data = await getPresences();
+      const data = await getPresences({ period });
       const empData = await getEmployes();
-      const today = new Date().toISOString().split("T")[0];
-      const todayPresences = (data || []).filter(
-        (p) => p.date_jour && p.date_jour.split("T")[0] === today
-      );
-      setPresences(todayPresences);
+      
+      let filteredData = data || [];
+      
+      if (period === 'today') {
+        const today = new Date().toISOString().split("T")[0];
+        filteredData = filteredData.filter(
+          (p) => p.date_jour && p.date_jour.split("T")[0] === today
+        );
+      }
+      
+      setPresences(filteredData);
       setEmployes(empData || []);
     } catch (err) {
       console.error(err);
@@ -128,14 +134,13 @@ export default function Presences() {
   };
 
   useEffect(() => { 
-    load(); 
+    load('today'); 
     loadEmployes();
   }, []);
 
   const openCreate = () => {
     setEditingId(null);
     
-    // ✅ Si employé connecté, pré-remplir son ID
     const initialEmployeId = permissions.isEmploye && currentEmployeId 
       ? currentEmployeId.toString() 
       : "";
@@ -162,16 +167,13 @@ export default function Presences() {
     setIsDialogOpen(true);
   };
 
-  // ✅ CORRECTION MAJEURE : handleSubmit avec validation
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     
-    // ✅ Logs de debug
     console.log('📤 Form avant envoi:', form);
     console.log('👤 EmployeId:', form.employeId);
     
-    // ✅ Validation employeId
     if (!form.employeId) {
       const errorMsg = "Veuillez sélectionner un employé";
       setError(errorMsg);
@@ -186,7 +188,7 @@ export default function Presences() {
     const updatedForm = { 
       ...form, 
       date_jour: new Date().toISOString(),
-      employeId: Number(form.employeId), // ✅ Convertir en nombre
+      employeId: Number(form.employeId),
       heures_travaillees: Number(form.heures_travaillees) || 0
     };
     
@@ -209,7 +211,7 @@ export default function Presences() {
         });
       }
       setIsDialogOpen(false);
-      await load();
+      await load(presenceView);
     } catch (err) {
       console.error('❌ Erreur complète:', err);
       setError(err.message || "Erreur lors de l'enregistrement");
@@ -243,7 +245,7 @@ export default function Presences() {
         });
         setSelectedPresences(new Set());
       }
-      await load();
+      await load(presenceView);
     } catch (err) {
       console.error(err);
       toast({
@@ -284,21 +286,73 @@ export default function Presences() {
     }
   };
 
-  // Statistiques
-  const stats = {
-    presents: presences.filter(p => p.statut === "PRESENT").length,
-    absents: presences.filter(p => p.statut === "ABSENT").length,
-    retards: presences.filter(p => p.statut === "RETARD").length,
-    taux: presences.length > 0 ? Math.round((presences.filter(p => p.statut === "PRESENT").length / presences.length) * 100) : 0,
-    total: presences.length,
+  // ✅ STATISTIQUES CORRIGÉES POUR LES PRÉSENCES
+  const calculateStats = () => {
+    const today = new Date().toISOString().split("T")[0];
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
+    // Filtrer présences du jour
+    const presencesAujourdhui = presences.filter(p => 
+      p.date_jour && p.date_jour.split("T")[0] === today
+    );
+
+    // Filtrer présences du mois
+    const presencesDuMois = presences.filter(p => {
+      if (!p.date_jour) return false;
+      const date = new Date(p.date_jour);
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    });
+
+    // Calculer les présents du jour
+    const presentsDuJour = presencesAujourdhui.filter(p => p.statut === "PRESENT").length;
+    const totalEmployesDuJour = presencesAujourdhui.length;
+
+    // Calculer les présents du mois
+    const presentsDuMois = presencesDuMois.filter(p => p.statut === "PRESENT").length;
+    const totalEmployesDuMois = presencesDuMois.length;
+
+    // Calculer les taux de présence
+    const tauxJour = totalEmployesDuJour > 0 
+      ? Math.round((presentsDuJour / totalEmployesDuJour) * 100) 
+      : 0;
+
+    const tauxMois = totalEmployesDuMois > 0 
+      ? Math.round((presentsDuMois / totalEmployesDuMois) * 100) 
+      : 0;
+
+    return {
+      // Totaux
+      totalAujourdhui: presencesAujourdhui.length,
+      totalMois: presencesDuMois.length,
+      
+      // Présents
+      presentsDuJour,
+      presentsDuMois,
+      
+      // Absents et retards
+      absentsDuJour: presencesAujourdhui.filter(p => p.statut === "ABSENT").length,
+      absentsDuMois: presencesDuMois.filter(p => p.statut === "ABSENT").length,
+      retardsDuJour: presencesAujourdhui.filter(p => p.statut === "RETARD").length,
+      retardsDuMois: presencesDuMois.filter(p => p.statut === "RETARD").length,
+      
+      // Taux de présence
+      tauxJour,
+      tauxMois,
+      
+      // Total général
+      total: presences.length,
+    };
   };
+
+  const stats = calculateStats();
 
   const colorStatut = (statut) => {
     switch (statut) {
-      case "PRESENT": return "bg-emerald-100 text-emerald-700 border-emerald-200";
-      case "RETARD": return "bg-amber-100 text-amber-700 border-amber-200";
-      case "ABSENT": return "bg-rose-100 text-rose-700 border-rose-200";
-      default: return "bg-gray-100 text-gray-700 border-gray-200";
+      case "PRESENT": return "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800";
+      case "RETARD": return "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800";
+      case "ABSENT": return "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800";
+      default: return "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800";
     }
   };
 
@@ -327,7 +381,7 @@ export default function Presences() {
     if (presences.length === 0) {
       toast({
         title: "Aucune donnée à exporter",
-        description: "Aucune présence n'est enregistrée aujourd'hui.",
+        description: "Aucune présence n'est enregistrée.",
         className: "bg-yellow-500 text-white",
       });
       return;
@@ -373,124 +427,144 @@ export default function Presences() {
   };
 
   return (
-    <div className="min-h-screen bg-background dark:bg-background p-4 md:p-8">
+    <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="mx-auto max-w-7xl space-y-8">
 
         {/* Header moderne avec glassmorphism */}
-        <div className="relative overflow-hidden rounded-2xl bg-card/70 dark:bg-card backdrop-blur-xl border border-border shadow-2xl p-8">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/3 to-accent/5"></div>
+        <div className="relative overflow-hidden rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-2xl p-8">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-blue-500/5 to-cyan-500/10"></div>
           <div className="relative">
-            <div className="relative">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-700 shadow-2xl shadow-blue-500/30">
-                  <CalendarDays className="h-8 w-8 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
-                    Gestion des Présences
-                  </h1>
-                  <p className="text-sm text-muted-foreground mt-2">Suivez les présences quotidiennes en temps réel</p>
-                </div>
-                
-                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 backdrop-blur-sm border border-border shadow-sm">
-                  <CalendarDays className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">
-                    {formatDateTime(selectedDate)}
-                  </span>
-                </div>
-
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-700 shadow-2xl shadow-blue-500/30">
+                <CalendarDays className="h-8 w-8 text-white" />
               </div>
-              <Separator className="my-4 bg-border/40" />
+              <div className="flex-1">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
+                  Gestion des Présences
+                </h1>
+                <p className="text-sm text-muted-foreground mt-2">Suivez les présences quotidiennes en temps réel</p>
+              </div>
+              
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 backdrop-blur-sm border border-border shadow-sm">
+                <CalendarDays className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">
+                  {formatDateTime(selectedDate)}
+                </span>
+              </div>
+            </div>
+            
+            <Separator className="my-4 bg-border/40" />
                   
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="text-sm text-muted-foreground">
-                  {stats.total} presences{stats.total > 1 ? 's' : ''} au total
-                </div>
-                
-
-                <div className="flex items-center gap-2">
-                  {(permissions.canView('presences') || permissions.isEmploye) && (
-                    <button 
-                      onClick={exportToPDF} 
-                      className="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors border border-emerald-500/30 text-sm font-medium flex items-center gap-2"
-                    >
-                      <Upload className="h-4 w-4" />
-                      Exporter PDF
-                    </button>
-                  )}
-                  {(permissions.canCreate('bulletins') || permissions.canRequest || permissions.isEmploye) && (
-                    <button
-                      onClick={openCreate}
-                      className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all flex items-center gap-2 text-sm font-medium"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Nouvelle Présence
-                    </button>
-                  )}
-                </div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                {stats.total} présence{stats.total > 1 ? 's' : ''} 
+                {presenceView === 'today' ? " aujourd'hui" : presenceView === 'month' ? ' ce mois' : ' affichées'}
               </div>
+
+              <div className="flex items-center gap-2">
+                {(permissions.canView('presences') || permissions.isEmploye) && (
+                  <button 
+                    onClick={exportToPDF} 
+                    className="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors border border-emerald-500/30 text-sm font-medium flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Exporter PDF
+                  </button>
+                )}
+                {(permissions.canCreate('presences') || permissions.canRequest('presences') || permissions.isEmploye) && (
+                  <button
+                    onClick={openCreate}
+                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all flex items-center gap-2 text-sm font-medium"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nouvelle Présence
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                variant={presenceView === 'today' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => load('today')}
+              >
+                Présences d'aujourd'hui
+              </Button>
+              <Button
+                variant={presenceView === 'month' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => load('month')}
+              >
+                Présences du mois
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Cartes statistiques modernes */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* ✅ CARTES STATISTIQUES CORRIGÉES */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          {/* Carte 1: Total Présences du Jour */}
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white dark:from-blue-600 dark:to-blue-700">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-blue-100 text-sm font-medium">Présences Aujourd'hui</p>
+                <Calendar className="w-8 h-8 text-white/80" />
+              </div>
+              <p className="text-4xl font-bold">{stats.totalAujourdhui}</p>
+              <div className="flex items-center gap-1 mt-2 text-blue-100 text-xs">
+                <CheckCircle className="w-3 h-3" />
+                <span>{stats.presentsDuJour} présent(s)</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Carte 2: Total Présences du Mois */}
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-purple-500 to-purple-600 text-white dark:from-purple-600 dark:to-purple-700">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-purple-100 text-sm font-medium">Présences Ce Mois</p>
+                <CalendarDays className="w-8 h-8 text-white/80" />
+              </div>
+              <p className="text-4xl font-bold">{stats.totalMois}</p>
+              <div className="flex items-center gap-1 mt-2 text-purple-100 text-xs">
+                <CheckCircle className="w-3 h-3" />
+                <span>{stats.presentsDuMois} présent(s)</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Carte 3: Taux de Présence du Jour */}
           <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white dark:from-emerald-600 dark:to-emerald-700">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-emerald-100 text-sm font-medium">Présents</p>
-                <CheckCircle className="w-8 h-8 text-white/80" />
+                <p className="text-emerald-100 text-sm font-medium">Taux Aujourd'hui</p>
+                <TrendingUp className="w-8 h-8 text-white/80" />
               </div>
-              <p className="text-4xl font-bold">{stats.presents}</p>
+              <p className="text-4xl font-bold">{stats.tauxJour}%</p>
               <div className="flex items-center gap-1 mt-2 text-emerald-100 text-xs">
-                <TrendingUp className="w-3 h-3" />
-                <span>Aujourd'hui</span>
+                <Activity className="w-3 h-3" />
+                <span>Taux de présence</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white dark:from-rose-600 dark:to-rose-700">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-            <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-rose-100 text-sm font-medium">Absents</p>
-                <XCircle className="w-8 h-8 text-white/80" />
-              </div>
-              <p className="text-4xl font-bold">{stats.absents}</p>
-              <div className="flex items-center gap-1 mt-2 text-rose-100 text-xs">
-                <TrendingDown className="w-3 h-3" />
-                <span>Aujourd'hui</span>
-              </div>
-            </CardContent>
-          </Card>
-
+          {/* Carte 4: Taux de Présence du Mois */}
           <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white dark:from-amber-600 dark:to-amber-700">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-amber-100 text-sm font-medium">Retards</p>
-                <AlertCircle className="w-8 h-8 text-white/80" />
+                <p className="text-amber-100 text-sm font-medium">Taux Ce Mois</p>
+                <TrendingUp className="w-8 h-8 text-white/80" />
               </div>
-              <p className="text-4xl font-bold">{stats.retards}</p>
+              <p className="text-4xl font-bold">{stats.tauxMois}%</p>
               <div className="flex items-center gap-1 mt-2 text-amber-100 text-xs">
-                <Clock className="w-3 h-3" />
-                <span>Aujourd'hui</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-primary text-primary-foreground">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-            <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-primary-foreground/80 text-sm font-medium">Taux présence</p>
-                <Users className="w-8 h-8 text-primary-foreground/80" />
-              </div>
-              <p className="text-4xl font-bold">{stats.taux}%</p>
-              <div className="flex items-center gap-1 mt-2 text-primary-foreground/80 text-xs">
                 <Activity className="w-3 h-3" />
-                <span>Performance</span>
+                <span>Taux de présence</span>
               </div>
             </CardContent>
           </Card>
@@ -506,23 +580,21 @@ export default function Presences() {
                 </div>
                 <div>
                   <p className="font-semibold text-foreground">
-                    {selectedPresences.size} présence{selectedPresences.size > 1 ? 's' : ''} sélectionnée{selectedPresences.size > 1 ? 's' : ''}
+                    {selectedPresences.size} Présence{selectedPresences.size > 1 ? 's' : ''} sélectionnée{selectedPresences.size > 1 ? 's' : ''}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Cliquez sur supprimer pour effacer la sélection
                   </p>
                 </div>
               </div>
-              {permissions.canDelete('presences') && (
-                <Button
-                  variant="destructive"
-                  onClick={requestDeleteSelected}
-                  className="shadow-lg hover:shadow-xl transition-all"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Supprimer
-                </Button>
-              )}
+              <Button
+                variant="destructive"
+                onClick={requestDeleteSelected}
+                className="shadow-lg hover:shadow-xl transition-all"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Supprimer la sélection
+              </Button>
             </div>
           </div>
         )}
@@ -539,7 +611,7 @@ export default function Presences() {
                   Liste des Présences
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {presences.length} présence{presences.length > 1 ? 's' : ''} enregistrée{presences.length > 1 ? 's' : ''} pour le {formatDateTime(selectedDate)}
+                  {presences.length} présence{presences.length > 1 ? 's' : ''} enregistrée{presences.length > 1 ? 's' : ''}
                 </p>
               </div>
             </div>
@@ -558,7 +630,7 @@ export default function Presences() {
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-xl font-bold text-foreground">Aucune présence trouvée</h3>
-                  <p className="text-muted-foreground">Commencez par enregistrer une présence aujourd'hui</p>
+                  <p className="text-muted-foreground">Commencez par enregistrer une présence</p>
                 </div>
                 <Button 
                   onClick={openCreate} 
@@ -595,17 +667,17 @@ export default function Presences() {
                       }`}
                     >
                       <CardContent className="p-5">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-4 flex-1">
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                          <div className="flex items-start gap-4 flex-1">
                             {permissions.canDelete('presences') && (
                               <Checkbox
                                 checked={selectedPresences.has(presence.id)}
                                 onCheckedChange={() => handleSelectPresence(presence.id)}
-                                className="border-2"
+                                className="border-2 mt-1"
                               />
                             )}
                             
-                            <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                            <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform flex-shrink-0">
                               <User className="w-7 h-7 text-primary-foreground" />
                             </div>
                             
@@ -622,10 +694,10 @@ export default function Presences() {
                                   {formatDateTime(presence.date_jour)}
                                 </p>
                                 {presence.heures_travaillees && (
-                                  <p className="text-sm text-foreground flex items-center gap-1.5 px-2 py-1 rounded-lg bg-muted">
-                                    <Clock className="w-4 h-4 text-accent" />
-                                    {presence.heures_travaillees}h travaillées
-                                  </p>
+                                  <Badge variant="outline" className="text-xs">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    {presence.heures_travaillees}h
+                                  </Badge>
                                 )}
                               </div>
                               {presence.justification && (
@@ -636,14 +708,14 @@ export default function Presences() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
+                          <div className="flex flex-wrap items-center gap-3 lg:flex-col lg:items-end">
                             <Badge className={`${colorStatut(presence.statut)} flex items-center gap-2 px-4 py-2 text-sm font-semibold border shadow-sm`}>
                               {getStatutIcon(presence.statut)}
                               {presence.statut}
                             </Badge>
                             
                             <div className="flex gap-2">
-                              {permissions.canEdit('presences') && (
+                              {permissions.canUpdate('presences') && (
                                 <Button 
                                   variant="outline" 
                                   size="icon"
@@ -676,7 +748,7 @@ export default function Presences() {
         </Card>
       </div>
 
-      {/* Dialog principal modernisé */}
+      {/* Dialog créer/modifier */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border shadow-2xl">
           <div className="bg-primary p-6 text-primary-foreground">
@@ -688,7 +760,7 @@ export default function Presences() {
                 {editingId ? 'Modifier la Présence' : 'Nouvelle Présence'}
               </DialogTitle>
               <DialogDescription className="text-primary-foreground/80 mt-2">
-                {editingId ? 'Modifiez les informations de présence ci-dessous' : 'Enregistrez une nouvelle présence pour aujourd\'hui'}
+                {editingId ? 'Modifiez les informations de présence ci-dessous' : 'Enregistrez une nouvelle présence'}
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -704,7 +776,7 @@ export default function Presences() {
               </div>
             )}
 
-            {/* ✅ CORRECTION : Employé - utiliser form au lieu de formData */}
+            {/* Employé */}
             <div className="space-y-2">
               <Label htmlFor="employeId" className="font-semibold flex items-center gap-2">
                 <Users className="w-4 h-4 text-primary" />

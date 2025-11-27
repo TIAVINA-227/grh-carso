@@ -4,7 +4,13 @@ import {
   BadgeCheck, 
   Bell, 
   ChevronsUpDown, 
-  LogOut } from "lucide-react";
+  LogOut,
+  User,
+  Settings,
+  Shield,
+  Mail,
+  HelpCircle
+} from "lucide-react";
 import { 
   Avatar, 
   AvatarFallback, 
@@ -38,6 +44,7 @@ import {
 import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useSocket } from "../hooks/useSocket";
+import { Badge } from "@/components/ui/badge";
 
 export function NavUser() {
   const { user, logout } = useAuth();
@@ -101,19 +108,26 @@ export function NavUser() {
     handleLogout();
   };
 
-  // Générer les badges de rôle
-  const roleBadges = () => {
-    if (!user?.role) return [];
-    
-    const badges = [];
-    if (user.role === "SUPER_ADMIN") {
-      badges.push({ label: "Super Admin", color: "text-red-400 bg-red-50" });
-    } else if (user.role === "ADMIN") {
-      badges.push({ label: "Admin", color: "text-blue-400 bg-blue-50" });
-    } else if (user.role === "EMPLOYE") {
-      badges.push({ label: "Employé", color: "text-green-400 bg-green-50" });
-    }
-    return badges;
+  // Format du rôle
+  const getFormattedRole = (role) => {
+    const roles = {
+      'SUPER_ADMIN': 'Super Administrateur',
+      'ADMIN': 'Administrateur',
+      'MANAGER': 'Manager',
+      'EMPLOYE': 'Employé'
+    };
+    return roles[role] || role;
+  };
+
+  // Couleur du badge selon le rôle
+  const getRoleColor = (role) => {
+    const colors = {
+      'SUPER_ADMIN': 'bg-gradient-to-r from-purple-600 to-pink-600',
+      'ADMIN': 'bg-gradient-to-r from-blue-600 to-cyan-600',
+      'MANAGER': 'bg-gradient-to-r from-emerald-600 to-teal-600',
+      'EMPLOYE': 'bg-gradient-to-r from-gray-600 to-slate-600'
+    };
+    return colors[role] || 'bg-gradient-to-r from-gray-600 to-slate-600';
   };
 
   // Obtenir les initiales pour l'avatar
@@ -140,15 +154,15 @@ export function NavUser() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 rounded-2xl"
             >
               {/* Avatar avec indicateur de statut en ligne */}
               <div className="relative">
-                <Avatar className="h-8 w-8 ring-2 ring-primary/10">
+                <Avatar className="h-10 w-10 ring-2 ring-white dark:ring-gray-800 shadow-lg">
                   {profil.avatar ? (
                     <AvatarImage src={profil.avatar} alt={getNomComplet()} />
                   ) : (
-                    <AvatarFallback className="text-xs font-medium bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                    <AvatarFallback className="text-sm font-bold bg-gradient-to-br from-blue-500 to-purple-600 text-white">
                       {getInitiales()}
                     </AvatarFallback>
                   )}
@@ -156,8 +170,8 @@ export function NavUser() {
                 
                 {/* Point indicateur en ligne/hors ligne */}
                 <span
-                  className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white ${
-                    isOnline ? "bg-green-500" : "bg-gray-400"
+                  className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white dark:border-gray-800 ${
+                    isOnline ? "bg-green-500 animate-pulse" : "bg-gray-400"
                   }`}
                   title={isOnline ? "En ligne" : "Hors ligne"}
                 />
@@ -165,110 +179,145 @@ export function NavUser() {
 
               {/* Informations utilisateur */}
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">
+                <span className="truncate font-semibold text-gray-900 dark:text-white">
                   {getNomComplet()}
+                </span>
+                <span className="truncate text-xs text-gray-500 dark:text-gray-400">
+                  {getFormattedRole(user.role)}
                 </span>
               </div>
 
               {/* Icône chevron */}
-              <ChevronsUpDown className="ml-auto size-4" />
+              <ChevronsUpDown className="ml-auto size-4 text-gray-400" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
 
           {/* Menu déroulant */}
           <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+            className="w-80 p-0 border border-gray-200 dark:border-gray-800 shadow-2xl rounded-2xl bg-white dark:bg-gray-950"
             side={isMobile ? "bottom" : "right"}
             align="end"
-            sideOffset={4}
+            sideOffset={8}
           >
             {/* En-tête du menu */}
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <div className="relative pb-5">
-                  <Avatar className="h-10 w-10 rounded-lg">
-                    <AvatarImage src={profil.avatar} alt={getNomComplet()} />
-                    <AvatarFallback className="rounded-lg">
-                      {getInitiales()}
-                    </AvatarFallback>
+            <div className="p-6 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-t-2xl border-b border-gray-100 dark:border-gray-800">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Avatar className="h-14 w-14 ring-4 ring-white dark:ring-gray-800 shadow-lg">
+                    {profil.avatar ? (
+                      <AvatarImage src={profil.avatar} alt={getNomComplet()} />
+                    ) : (
+                      <AvatarFallback className="text-base font-bold bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                        {getInitiales()}
+                      </AvatarFallback>
+                    )}
                   </Avatar>
                   
-                  {/* Point indicateur */}
+                  {/* Point indicateur en ligne/hors ligne */}
                   <span
-                    className={`absolute bottom-5 right-0 h-3 w-3 rounded-full border-2 border-white ${
-                      isOnline ? "bg-green-500" : "bg-gray-400"
+                    className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white dark:border-gray-800 ${
+                      isOnline ? "bg-green-500 animate-pulse" : "bg-gray-400"
                     }`}
                   />
                 </div>
 
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <div className="flex flex-col items-center gap-2 flex-wrap">
-                    <span className="truncate font-medium">
-                      {getNomComplet()}
-                    </span>
-                  </div>
-                  <span className="truncate text-xs text-muted-foreground">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-gray-900 dark:text-white text-lg truncate">
+                    {getNomComplet()}
+                  </h3>
+                  <Badge className={`${getRoleColor(user.role)} text-white border-0 text-xs font-medium mt-2`}>
+                    {getFormattedRole(user.role)}
+                  </Badge>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 truncate flex items-center gap-1">
+                    <Mail className="h-3 w-3" />
                     {profil.email}
-                  </span>
-
-                  <DropdownMenuSeparator />
-
-                  {/* Badges de rôle */}
-                    {roleBadges().map((badge, index) => (
-                      <span
-                        key={index}
-                        className={`text-xs font-semibold ${badge.color} px-2 py-0.5 rounded-full`}
-                      >
-                        {badge.label}
-                      </span>
-                    ))}
+                  </p>
                 </div>
               </div>
-            </DropdownMenuLabel>
-
-            <DropdownMenuSeparator />
+            </div>
 
             {/* Options du menu */}
-            <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => navigate("/dashboard/profil")}>
-                <BadgeCheck className="mr-2 h-4 w-4" />
-                Mon compte
-              </DropdownMenuItem>
+            <div className="p-2">
+              <DropdownMenuGroup>
+                <DropdownMenuItem 
+                  onClick={() => navigate("/dashboard/profil")}
+                  className="flex items-center gap-3 p-3 rounded-xl cursor-pointer text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200"
+                >
+                  <User className="h-5 w-5" />
+                  <div>
+                    <span className="font-medium">Mon profil</span>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Gérer vos informations personnelles
+                    </p>
+                  </div>
+                </DropdownMenuItem>
 
-              <DropdownMenuItem onClick={() => navigate("/dashboard/notifications")}>
-                <Bell className="mr-2 h-4 w-4" />
-                Notifications
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
+                <DropdownMenuItem 
+                  onClick={() => navigate("/dashboard/notifications")}
+                  className="flex items-center gap-3 p-3 rounded-xl cursor-pointer text-gray-700 dark:text-gray-300 hover:bg-amber-50 dark:hover:bg-amber-950/20 hover:text-amber-600 dark:hover:text-amber-400 transition-all duration-200"
+                >
+                  <Bell className="h-5 w-5" />
+                  <div>
+                    <span className="font-medium">Notifications</span>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Gérer vos alertes et préférences
+                    </p>
+                  </div>
+                </DropdownMenuItem>
 
-            <DropdownMenuSeparator />
+              </DropdownMenuGroup>
+            </div>
+
+            <DropdownMenuSeparator className="bg-gray-100 dark:bg-gray-800" />
 
             {/* Déconnexion */}
-            <DropdownMenuItem
-              onClick={() => setConfirmDeconexionOpen(true)}
-              className="cursor-pointer text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Se déconnecter
-            </DropdownMenuItem>
+            <div className="p-2">
+              <DropdownMenuItem
+                onClick={() => setConfirmDeconexionOpen(true)}
+                className="flex items-center gap-3 p-3 rounded-xl cursor-pointer text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-700 dark:hover:text-red-300 transition-all duration-200 font-medium"
+              >
+                <LogOut className="h-5 w-5" />
+                <div>
+                  <span>Se déconnecter</span>
+                  <p className="text-xs text-red-400/70 dark:text-red-300/70 mt-0.5">
+                    Déconnexion sécurisée de votre compte
+                  </p>
+                </div>
+              </DropdownMenuItem>
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
 
         {/* Modal de confirmation de déconnexion */}
         <AlertDialog open={confirmDeconexionOpen} onOpenChange={setConfirmDeconexionOpen}>
-          <AlertDialogContent>
+          <AlertDialogContent className="border border-gray-200 dark:border-gray-800 shadow-2xl rounded-2xl bg-white dark:bg-gray-950">
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirmer la déconnexion</AlertDialogTitle>
-              <AlertDialogDescription>
-                Êtes-vous sûr de vouloir vous déconnecter ? 
-                Vous devrez vous reconnecter pour accéder à votre compte.
-              </AlertDialogDescription>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-12 w-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+                  <LogOut className="h-6 w-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <AlertDialogTitle className="text-lg font-bold text-gray-900 dark:text-white">
+                    Confirmer la déconnexion
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-gray-600 dark:text-gray-400">
+                    Êtes-vous sûr de vouloir vous déconnecter ?
+                  </AlertDialogDescription>
+                </div>
+              </div>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Vous devrez vous reconnecter pour accéder à votre compte et continuer à utiliser l'application.
+              </p>
+            </div>
+            <AlertDialogFooter className="flex gap-3">
+              <AlertDialogCancel className="flex-1 rounded-xl border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                Annuler
+              </AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmLogout}
-                className="bg-red-600 text-white hover:bg-red-700"
+                className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 Se déconnecter
               </AlertDialogAction>

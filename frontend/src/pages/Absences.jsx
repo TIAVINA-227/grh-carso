@@ -250,12 +250,51 @@ export default function Absences() {
     }
   };
 
-  const stats = {
-    total: absences.length,
-    attente: absences.filter(a => a.statut === "SOUMIS").length,
-    approuvees: absences.filter(a => a.statut === "APPROUVE").length,
-    refusees: absences.filter(a => a.statut === "REJETE").length,
-  };
+// ... vos imports et état ...
+
+// ✅ DÉPLACER calculateDays ICI (avant les stats)
+const calculateDays = (dateDebut, dateFin) => {
+  const debut = new Date(dateDebut);
+  const fin = new Date(dateFin);
+  const diffTime = Math.abs(fin - debut);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  return diffDays;
+};
+
+// Ensuite vos stats
+const stats = {
+  total: absences.length,
+  attente: absences.filter(a => a.statut === "SOUMIS").length,
+  approuvees: absences.filter(a => a.statut === "APPROUVE").length,
+  refusees: absences.filter(a => a.statut === "REJETE").length,
+  
+  // Vos nouvelles statistiques
+  aujourdhui: absences.filter(a => {
+    const today = new Date().toISOString().split('T')[0];
+    return a.date_debut <= today && a.date_fin >= today;
+  }).length,
+  
+  ceMois: absences.filter(a => {
+    const now = new Date();
+    const absenceDate = new Date(a.date_debut);
+    return absenceDate.getMonth() === now.getMonth() && 
+           absenceDate.getFullYear() === now.getFullYear();
+  }).length,
+  
+  moyenneDuree: absences.length > 0 
+    ? (absences.reduce((total, a) => total + calculateDays(a.date_debut, a.date_fin), 0) / absences.length).toFixed(1)
+    : 0,
+  
+  typePlusFrequent: () => {
+    const types = absences.reduce((acc, a) => {
+      acc[a.type_absence] = (acc[a.type_absence] || 0) + 1;
+      return acc;
+    }, {});
+    return Object.keys(types).length > 0 
+      ? Object.keys(types).reduce((a, b) => types[a] > types[b] ? a : b)
+      : 'Aucun';
+  }
+};
 
   const colorStatut = (statut) => {
     switch (statut) {
@@ -278,15 +317,7 @@ export default function Absences() {
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('fr-FR');
   };
-
-  const calculateDays = (dateDebut, dateFin) => {
-    const debut = new Date(dateDebut);
-    const fin = new Date(dateFin);
-    const diffTime = Math.abs(fin - debut);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return diffDays;
-  };
-
+  
   const getTypeColor = (type) => {
     switch (type) {
       case "Maladie": return "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800";
@@ -394,62 +425,66 @@ export default function Absences() {
 
         {/* Cartes statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-primary text-primary-foreground">
+          {/* Carte 1: Absences du jour */}
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white dark:from-blue-600 dark:to-blue-700">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-primary-foreground/80 text-sm font-medium">Total Absences</p>
-                <FileText className="w-8 h-8 text-primary-foreground/80" />
+                <p className="text-blue-100 text-sm font-medium">Absences Aujourd'hui</p>
+                <Calendar className="w-8 h-8 text-white/80" />
               </div>
-              <p className="text-4xl font-bold">{stats.total}</p>
-              <div className="flex items-center gap-1 mt-2 text-primary-foreground/80 text-xs">
+              <p className="text-4xl font-bold">{stats.aujourdhui}</p>
+              <div className="flex items-center gap-1 mt-2 text-blue-100 text-xs">
+                <Clock className="w-3 h-3" />
+                <span>Personnes absentes</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Carte 2: Absences du mois */}
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-purple-500 to-purple-600 text-white dark:from-purple-600 dark:to-purple-700">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-purple-100 text-sm font-medium">Absences Ce Mois</p>
+                <CalendarDays className="w-8 h-8 text-white/80" />
+              </div>
+              <p className="text-4xl font-bold">{stats.ceMois}</p>
+              <div className="flex items-center gap-1 mt-2 text-purple-100 text-xs">
                 <Activity className="w-3 h-3" />
-                <span>{absenceView === 'month' ? 'Ce mois' : 'En cours'}</span>
+                <span>Absences déclarées</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white dark:from-amber-600 dark:to-amber-700">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-            <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-amber-100 text-sm font-medium">En Attente</p>
-                <Clock className="w-8 h-8 text-white/80" />
-              </div>
-              <p className="text-4xl font-bold">{stats.attente}</p>
-              <div className="flex items-center gap-1 mt-2 text-amber-100 text-xs">
-                <AlertCircle className="w-3 h-3" />
-                <span>À traiter</span>
-              </div>
-            </CardContent>
-          </Card>
-
+          {/* Carte 3: Durée moyenne */}
           <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white dark:from-emerald-600 dark:to-emerald-700">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-emerald-100 text-sm font-medium">Approuvées</p>
-                <CheckCircle className="w-8 h-8 text-white/80" />
+                <p className="text-emerald-100 text-sm font-medium">Durée Moyenne</p>
+                <Clock className="w-8 h-8 text-white/80" />
               </div>
-              <p className="text-4xl font-bold">{stats.approuvees}</p>
+              <p className="text-4xl font-bold">{stats.moyenneDuree}</p>
               <div className="flex items-center gap-1 mt-2 text-emerald-100 text-xs">
-                <CheckCircle className="w-3 h-3" />
-                <span>Validées</span>
+                <TrendingDown className="w-3 h-3" />
+                <span>jours par absence</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white dark:from-rose-600 dark:to-rose-700">
+          {/* Carte 4: Type le plus fréquent */}
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white dark:from-amber-600 dark:to-amber-700">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-rose-100 text-sm font-medium">Refusées</p>
-                <XCircle className="w-8 h-8 text-white/80" />
+                <p className="text-amber-100 text-sm font-medium">Type Principal</p>
+                <Activity className="w-8 h-8 text-white/80" />
               </div>
-              <p className="text-4xl font-bold">{stats.refusees}</p>
-              <div className="flex items-center gap-1 mt-2 text-rose-100 text-xs">
-                <TrendingDown className="w-3 h-3" />
-                <span>Non validées</span>
+              <p className="text-2xl font-bold truncate">{stats.typePlusFrequent()}</p>
+              <div className="flex items-center gap-1 mt-2 text-amber-100 text-xs">
+                <FileText className="w-3 h-3" />
+                <span>Le plus déclaré</span>
               </div>
             </CardContent>
           </Card>
@@ -499,36 +534,6 @@ export default function Absences() {
                   {filteredAbsences.length} absence{filteredAbsences.length > 1 ? 's' : ''} trouvée{filteredAbsences.length > 1 ? 's' : ''}
                 </p>
               </div>
-              
-              {/* <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-muted-foreground" />
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-[200px] border-2">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Tous les statuts">Tous les statuts</SelectItem>
-                    <SelectItem value="SOUMIS">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-amber-500" />
-                        En attente
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="APPROUVE">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-emerald-500" />
-                        Approuvées
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="REJETE">
-                      <div className="flex items-center gap-2">
-                        <XCircle className="w-4 h-4 text-rose-500" />
-                        Refusées
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div> */}
             </div>
           </div>
 

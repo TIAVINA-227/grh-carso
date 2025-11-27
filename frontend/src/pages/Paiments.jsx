@@ -1,13 +1,13 @@
 //frontend/src/pages/Paiments.jsx
 import { useEffect, useState } from "react";
-import { Plus, Trash2, DollarSign, CreditCard, Calendar, User, TrendingUp, Banknote, CheckCircle2, X, Edit2, Upload, FileSpreadsheet, ChevronDown, FileText, AlertCircle } from "lucide-react";
+import { Plus, Trash2, DollarSign, CreditCard, Calendar, CalendarDays, User, TrendingUp, Banknote, CheckCircle2, X, Edit2, Upload, FileSpreadsheet, ChevronDown, FileText, AlertCircle, Wallet, Wallet2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { pdf } from '@react-pdf/renderer';
 import PaiementsPDFDocument from '../exportPdf/PaiementsPDFDocument';
 import * as paiementService from "../services/paiementService";
 import * as employeService from "../services/employeService";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,   DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 export default function Paiments() {
@@ -16,13 +16,16 @@ export default function Paiments() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [error, setError] = useState(null);
   const [form, setForm] = useState({
-    montant: "",
-    mode_paiement: "Espèces",
-    periode_debut: "",
-    periode_fin: "",
-    employeId: ""
-  });
+  montant: "",
+  mode_paiement: "Espèces",
+  periode_debut: '',
+  periode_fin: '',
+  employeId: '',
+  date_paiement: new Date().toISOString().split('T')[0],
+  statut: "payé"
+});
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -177,6 +180,19 @@ export default function Paiments() {
       setConfirmDeleteOpen(true);
     }
   };
+  const closeDialog = () => {
+  setIsDialogOpen(false);
+  setEditingId(null);
+  setForm({ 
+    montant: "", 
+    mode_paiement: "Espèces", 
+    periode_debut: '', 
+    periode_fin: '', 
+    employeId: '',
+    date_paiement: new Date().toISOString().split('T')[0],
+    statut: "payé"
+  });
+};
 
   // Calculer les statistiques
   const stats = {
@@ -348,7 +364,7 @@ export default function Paiments() {
               <div>
                 <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
                   <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-                    <CreditCard className="w-5 h-5 text-primary-foreground" />
+                    <Wallet2 className="w-5 h-5 text-primary-foreground" />
                   </div>
                   Liste des Paiements
                 </h2>
@@ -359,7 +375,7 @@ export default function Paiments() {
             </div>
           </div>
 
-          <CardContent className="p-0">
+          <CardContent className="p-6">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-muted/50 border-b border-border">
@@ -488,141 +504,172 @@ export default function Paiments() {
         </Card>
       </div>
 
-      {/* Modal d'ajout */}
-      {isDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-[fadeIn_0.2s_ease-out]">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-[slideUp_0.3s_ease-out]">
-            <div className="p-6 border-b border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold flex items-center gap-2 text-slate-900">
-                    <DollarSign className="h-6 w-6 text-blue-600" />
-                    {editingId ? 'Modifier le Paiement' : 'Nouveau Paiement'}
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-1">
-                    {editingId ? 'Mettez à jour les informations du paiement' : 'Enregistrez un paiement de salaire pour un employé'}
-                  </p>
-                </div>
-                <button 
-                  onClick={() => {
-                    setIsDialogOpen(false);
-                    setEditingId(null);
-                    setForm({ montant: "", mode_paiement: "Espèces", periode_debut: '', periode_fin: '', employeId: '' });
-                  }}
-                  className="text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-5">
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                  <User className="h-4 w-4 text-blue-600" />
-                  Employé *
-                </label>
-                <select
-                  required
-                  value={form.employeId}
-                  onChange={e => setForm(f => ({ ...f, employeId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Sélectionnez un employé...</option>
-                  {employes.map(e => (
-                    <option key={e.id} value={e.id}>
-                      {e.nom} {e.prenom}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                  <DollarSign className="h-4 w-4 text-blue-600" />
-                  Montant (Ar) *
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  required
-                  value={form.montant}
-                  onChange={e => setForm(f => ({ ...f, montant: e.target.value }))}
-                  placeholder="Ex: 2500000"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                  <CreditCard className="h-4 w-4 text-blue-600" />
-                  Mode de paiement *
-                </label>
-                <select
-                  value={form.mode_paiement}
-                  onChange={e => setForm(f => ({ ...f, mode_paiement: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option>Espèces</option>
-                  <option>Virement</option>
-                  <option>Chèque</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                    <Calendar className="h-4 w-4 text-blue-600" />
-                    Période début *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={form.periode_debut}
-                    onChange={e => setForm(f => ({ ...f, periode_debut: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                    <Calendar className="h-4 w-4 text-blue-600" />
-                    Période fin *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={form.periode_fin}
-                    onChange={e => setForm(f => ({ ...f, periode_fin: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsDialogOpen(false);
-                  setEditingId(null);
-                  setForm({ montant: "", mode_paiement: "Espèces", periode_debut: '', periode_fin: '', employeId: '' });
-                }}
-                className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition-all disabled:opacity-50"
-              >
-                {submitting ? (editingId ? "Modification..." : "Enregistrement...") : (editingId ? "Modifier le paiement" : "Ajouter le paiement")}
-              </button>
-            </div>
+     {/* Modal d'ajout/modification */}
+{/* Modal d'ajout/modification */}
+<Dialog open={isDialogOpen} onOpenChange={(open) => (open ? setIsDialogOpen(true) : closeDialog())}>
+  <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden border border-border bg-card shadow-2xl">
+    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6">
+      <DialogHeader>
+        <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+          <div className="h-11 w-11 rounded-2xl bg-white/20 flex items-center justify-center">
+            {editingId ? <Edit2 className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
           </div>
+          {editingId ? "Modifier le paiement" : "Nouveau paiement"}
+        </DialogTitle>
+        <DialogDescription className="text-blue-50/90">
+          {editingId
+            ? "Mettez à jour les informations du paiement sélectionné."
+            : "Enregistrez un paiement de salaire pour un employé."}
+        </DialogDescription>
+      </DialogHeader>
+    </div>
+
+    <form onSubmit={handleSubmit} className="p-6 space-y-5">
+      {error && (
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg p-4 text-sm text-red-600 dark:text-red-300 flex items-center gap-3">
+          <AlertCircle className="h-5 w-5" />
+          <span>{error}</span>
         </div>
       )}
+
+      {/* Employé */}
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <User className="h-4 w-4 text-blue-600" />
+          Employé *
+        </label>
+        <select
+          required
+          value={form.employeId}
+          onChange={e => setForm(f => ({ ...f, employeId: e.target.value }))}
+          className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Sélectionnez un employé...</option>
+          {employes.map(e => (
+            <option key={e.id} value={e.id}>
+              {e.nom} {e.prenom}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Montant */}
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <DollarSign className="h-4 w-4 text-blue-600" />
+          Montant (Ar) *
+        </label>
+        <input
+          type="number"
+          min={0}
+          required
+          value={form.montant}
+          onChange={e => setForm(f => ({ ...f, montant: e.target.value }))}
+          placeholder="Ex: 2500000"
+          className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      {/* Mode de paiement */}
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <CreditCard className="h-4 w-4 text-blue-600" />
+          Mode de paiement *
+        </label>
+        <select
+          value={form.mode_paiement}
+          onChange={e => setForm(f => ({ ...f, mode_paiement: e.target.value }))}
+          className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="Espèces">Espèces</option>
+          <option value="Virement">Virement</option>
+          <option value="Chèque">Chèque</option>
+        </select>
+      </div>
+
+      {/* Période */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Calendar className="h-4 w-4 text-blue-600" />
+            Période début *
+          </label>
+          <input
+            type="date"
+            required
+            value={form.periode_debut}
+            onChange={e => setForm(f => ({ ...f, periode_debut: e.target.value }))}
+            className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Calendar className="h-4 w-4 text-blue-600" />
+            Période fin *
+          </label>
+          <input
+            type="date"
+            required
+            value={form.periode_fin}
+            onChange={e => setForm(f => ({ ...f, periode_fin: e.target.value }))}
+            className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      {/* Date de paiement */}
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <CalendarDays className="h-4 w-4 text-blue-600" />
+          Date de paiement *
+        </label>
+        <input
+          type="date"
+          required
+          value={form.date_paiement}
+          onChange={e => setForm(f => ({ ...f, date_paiement: e.target.value }))}
+          className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      {/* Statut */}
+      <div className="space-y-2">
+        <label className="text-sm font-semibold text-foreground">Statut</label>
+        <select
+          value={form.statut}
+          onChange={e => setForm(f => ({ ...f, statut: e.target.value }))}
+          className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="payé">Payé</option>
+          <option value="en_attente">En attente</option>
+          <option value="annulé">Annulé</option>
+        </select>
+      </div>
+
+      <DialogFooter className="pt-4 flex-col sm:flex-row gap-3 sm:gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full sm:flex-1"
+          onClick={closeDialog}
+        >
+          Annuler
+        </Button>
+        <Button
+          type="submit"
+          disabled={submitting}
+          className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          {submitting ? 
+            (editingId ? "Modification..." : "Enregistrement...") : 
+            (editingId ? "Modifier" : "Ajouter le paiement")
+          }
+        </Button>
+      </DialogFooter>
+    </form>
+  </DialogContent>
+</Dialog>
 
       <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
         <DialogContent className="sm:max-w-[400px] border border-border bg-card">

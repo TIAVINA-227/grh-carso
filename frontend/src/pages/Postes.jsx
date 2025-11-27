@@ -629,6 +629,7 @@ export default function PostesWithFileStorage() {
         </div>
 
         {/* Section Postes */}
+        
         {activeTab === "postes" && (
           <div>
             <div className="mb-6 flex items-center justify-between">
