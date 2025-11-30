@@ -415,7 +415,7 @@ export default function Departements() {
                 className="shadow-lg hover:shadow-xl transition-all"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Supprimer la sélection
+                Supprimer 
               </Button>
             </div>
           </div>

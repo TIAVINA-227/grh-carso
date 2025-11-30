@@ -1,32 +1,34 @@
-// frontend/src/pages/Conges.jsx - Modernized
+// frontend/src/pages/Conges.jsx
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { getConges, createConge, updateConge, deleteConge } from "../services/congeService";
+import { 
+  getConges, 
+  createConge, 
+  updateConge, 
+  deleteConge,
+  getSoldeConges
+} from "../services/congeService";
 import { usePermissions } from "../hooks/usePermissions";
 import { getEmployes } from "../services/employeService";
 import { toast } from "sonner";
 import { pdf } from '@react-pdf/renderer';
 import CongesPDFDocument from "../exportPdf/CongesPDFDocument.jsx";
 import logoDroite from "../assets/carso 1.png";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Separator } from "../components/ui/separator";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "../components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
+  DialogFooter
 } from "../components/ui/dialog";
 import {
   Select,
@@ -35,25 +37,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { Label } from "../components/ui/label";
-import { Textarea } from "../components/ui/textarea";
-import { Badge } from "../components/ui/badge";
-import { Checkbox } from "../components/ui/checkbox";
 import { 
-  Plus, 
-  Pencil, 
-  Trash2, 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox"
+
+import {
   Calendar,
-  Filter,
-  Search,
+  Upload,
+  Plus,
+  Clock,
   CheckCircle,
   XCircle,
-  Clock,
+  Search,
+  Filter,
   Users,
-  Edit,
-  Upload,
-  AlertCircle
+  AlertCircle,
+  Pencil,
+  Trash2,
 } from "lucide-react";
+import { Separator } from "../components/ui/separator";
+import { Button } from "../components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "../components/ui/badge";
+// ... reste des imports (Card, Button, etc.)
 
 export default function CongesPage() {
   const { user } = useAuth();
@@ -74,8 +88,10 @@ export default function CongesPage() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   
-  // 🔹 ID de l'employé connecté
+  // ID de l'employé connecté
   const [currentEmployeId, setCurrentEmployeId] = useState(null);
+ // État pour le solde de congés
+  const [soldeConges, setSoldeConges] = useState(null);
   
   const [formData, setFormData] = useState({
     type_conge: "",
@@ -131,11 +147,29 @@ export default function CongesPage() {
     }
   };
 
-  // Charger au montage
+  // 1️⃣ Premier useEffect : Charger congés et employés au montage
   useEffect(() => {
     load();
     loadEmployes();
   }, []);
+
+// 2️⃣ Deuxième useEffect : Charger le solde quand currentEmployeId change
+useEffect(() => {
+  const loadSolde = async () => {
+    if (permissions.isEmploye && currentEmployeId) {
+      try {
+        console.log('🔄 Chargement du solde pour employé:', currentEmployeId);
+        const solde = await getSoldeConges(currentEmployeId);
+        setSoldeConges(solde);
+        console.log('✅ Solde chargé:', solde);
+      } catch (err) {
+        console.error("❌ Erreur chargement solde:", err);
+      }
+    }
+  };
+  
+  loadSolde();
+}, [currentEmployeId, permissions.isEmploye]);
 
   // Fonction async de soumission
   const handleSubmit = async (e) => {
@@ -447,6 +481,55 @@ export default function CongesPage() {
             </div>
           </div>
         </div>
+
+        {/* 💼 Carte du solde de congés - uniquement pour les employés */}
+        {permissions.isEmploye && soldeConges && (
+          <Card className="col-span-full border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 shadow-xl">
+            <CardContent className="p-6">
+
+              <div className="flex items-center justify-between">
+                
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    Votre Solde de Congés Annuels
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Année {new Date().getFullYear()}
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-5xl font-bold text-primary">
+                    {soldeConges.soldeRestant}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    sur {soldeConges.soldeTotal} jours
+                  </p>
+                </div>
+
+              </div>
+
+              <div className="mt-4 h-3 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-500"
+                  style={{
+                    width: `${(soldeConges.joursUtilises / soldeConges.soldeTotal) * 100}%`,
+                  }}
+                />
+              </div>
+
+              <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
+                <span>{soldeConges.joursUtilises} jours utilisés</span>
+                <span className="font-semibold text-primary">
+                  {soldeConges.soldeRestant} jours disponibles
+                </span>
+              </div>
+
+            </CardContent>
+          </Card>
+        )}
+
 
         {/* Cartes statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -831,16 +914,18 @@ export default function CongesPage() {
                 <SelectTrigger className="h-12 border-2 focus:border-primary transition-colors">
                   <SelectValue placeholder="Sélectionner un type de congé" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Congé annuel">Congé annuel</SelectItem>
-                  <SelectItem value="Congé maladie">Congé maladie</SelectItem>
-                  <SelectItem value="Congé sans solde">Congé sans solde</SelectItem>
-                  <SelectItem value="Congé maternité">Congé maternité</SelectItem>
-                  <SelectItem value="Congé paternité">Congé paternité</SelectItem>
-                  <SelectItem value="RTT">RTT</SelectItem>
-                  <SelectItem value="Formation">Formation</SelectItem>
-                  <SelectItem value="Autre">Autre</SelectItem>
-                </SelectContent>
+               <SelectContent>
+                <SelectItem value="Congé annuel">Congé annuel (30j/an)</SelectItem>
+                <SelectItem value="Congé maladie">Congé maladie (15j/an)</SelectItem>
+                <SelectItem value="Congé maternité">Congé maternité (98j)</SelectItem>
+                <SelectItem value="Congé paternité">Congé paternité (10j)</SelectItem>
+                <SelectItem value="Congé sans solde">Congé sans solde</SelectItem>
+                <SelectItem value="Événement familial - Mariage">Mariage (3j)</SelectItem>
+                <SelectItem value="Événement familial - Décès">Décès (3j)</SelectItem>
+                <SelectItem value="Événement familial - Naissance">Naissance (3j)</SelectItem>
+                <SelectItem value="RTT">RTT (12j/an)</SelectItem>
+                <SelectItem value="Formation">Formation</SelectItem>
+              </SelectContent>
               </Select>
             </div>
 

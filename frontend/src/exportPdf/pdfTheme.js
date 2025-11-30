@@ -1,0 +1,9 @@
+export const PRIMARY = '#2563eb'
+export const PRIMARY_DARK = '#1d4ed8'
+export const PAGE_BG = '#f9fafb'
+export const TABLE_BG = '#ffffff'
+export const TABLE_HEADER_TOP = '#2563eb'
+export const TABLE_HEADER_BOTTOM = '#2563eb'
+export const PAGE_PADDING = 20
+export const PAGE_EDGE_GAP = 20
+export const LOGO_SIZE = 60

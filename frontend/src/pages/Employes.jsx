@@ -335,23 +335,27 @@ export default function EmployeeList() {
                       </div>
               {permissions.canCreate("employes") && (
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                {/* <DialogTrigger asChild>
-                  <Button className="gap-2 h-11 md:h-auto">
-                    <Plus className="h-5 w-5" /> Nouvel Employé
-                  </Button>
-                </DialogTrigger> */}
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl">
-                      {editingId ? "Modifier l'employé" : "Nouvel employé"}
-                    </DialogTitle>
-                    <DialogDescription className="text-base">
-                      {editingId
-                        ? "Modifiez les informations de l'employé"
-                        : "Ajoutez un nouvel employé à l'entreprise"}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+                <DialogContent className="sm:max-w-[750px] p-0 overflow-hidden border shadow-2xl">
+                  <div className="bg-primary p-6 text-primary-foreground">
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center">
+                          {editingId ? (
+                            <Users className="w-5 h-5 text-primary-foreground" />
+                          ) : (
+                            <Plus className="w-5 h-5 text-primary-foreground" />
+                          )}
+                        </div>
+                        {editingId ? "Modifier l'employé" : "Nouvel employé"}
+                      </DialogTitle>
+                      <DialogDescription className="text-primary-foreground/80 mt-2">
+                        {editingId
+                          ? "Modifiez les informations de l'employé"
+                          : "Ajoutez un nouvel employé à l'entreprise"}
+                      </DialogDescription>
+                    </DialogHeader>
+                  </div>
+                  <form onSubmit={handleSubmit} className="p-6 space-y-6 bg-card max-h-[70vh] overflow-y-auto">
                     {errorMessage && (
                       <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{errorMessage}</div>
                     )}
@@ -477,7 +481,8 @@ export default function EmployeeList() {
                         />
                       </div>
                     </div>
-                    <div className="flex justify-end gap-3 pt-4">
+                    <Separator className="my-4" />
+                    <div className="flex flex-col gap-3 md:flex-row">
                       <Button
                         type="button"
                         variant="outline"
@@ -496,11 +501,15 @@ export default function EmployeeList() {
                             departementId: "",
                           })
                         }}
-                        className="rounded-lg"
+                        className="flex-1 h-12 border-2"
                       >
                         Annuler
                       </Button>
-                      <Button type="submit" disabled={submitting} className="rounded-lg gap-2">
+                      <Button
+                        type="submit"
+                        disabled={submitting}
+                        className="flex-1 h-12 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all gap-2"
+                      >
                         {submitting ? "Traitement..." : editingId ? "Enregistrer" : "Ajouter"}
                       </Button>
                     </div>

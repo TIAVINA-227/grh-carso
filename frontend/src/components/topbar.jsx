@@ -1,10 +1,11 @@
 //frontend/src/components/topbar.jsx
 import React, { useState, useEffect } from "react";
-import { Sun, Moon, Bell, Search, Menu, User, Settings, LogOut, X } from "lucide-react";
+import { Sun, Moon, Bell, Search, X, Loader2 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "../hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useSocket } from "../hooks/useSocket";
+import { useNotifications } from "../hooks/useNotifications";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,40 +32,39 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+const formatRelativeTime = (value) => {
+  if (!value) return "";
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return "";
+  const diff = Date.now() - timestamp;
+  if (diff < 60_000) return "À l'instant";
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 60) return `Il y a ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Il y a ${hours} h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `Il y a ${days} j`;
+  return new Date(value).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
+};
+
 export default function Topbar() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const token = user?.token || localStorage.getItem("token");
+  const { socket } = useSocket(user?.id || null);
+  const {
+    notifications,
+    unreadCount,
+    loading: notificationsLoading,
+    error: notificationsError,
+    markOneAsRead,
+    markAllAsRead,
+    deleteOne,
+  } = useNotifications({ userId: user?.id || null, token, socket });
   
   // États
   const [theme, setTheme] = useState("light");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: "info",
-      title: "Nouveau congé en attente",
-      message: "Jean Dupont a soumis une demande de congé",
-      time: "Il y a 5 min",
-      read: false
-    },
-    {
-      id: 2,
-      type: "success",
-      title: "Validation effectuée",
-      message: "La demande de congé de Marie Martin a été approuvée",
-      time: "Il y a 1h",
-      read: false
-    },
-    {
-      id: 3,
-      type: "warning",
-      title: "Rappel",
-      message: "3 demandes en attente de validation",
-      time: "Il y a 2h",
-      read: true
-    }
-  ]);
 
   // Profil utilisateur
   const [profil, setProfil] = useState({
@@ -126,25 +126,23 @@ export default function Topbar() {
     }
   };
 
-  // Marquer une notification comme lue
-  const markAsRead = (id) => {
-    setNotifications(notifications.map(notif => 
-      notif.id === id ? { ...notif, read: true } : notif
-    ));
+  const handleNotificationClick = async (notification) => {
+    if (notification.lue) return;
+    try {
+      await markOneAsRead(notification.id);
+    } catch (err) {
+      console.error("❌ Impossible de marquer la notification :", err);
+    }
   };
 
-  // Marquer toutes comme lues
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(notif => ({ ...notif, read: true })));
+  const handleDeleteNotification = async (notificationId, event) => {
+    event.stopPropagation();
+    try {
+      await deleteOne(notificationId);
+    } catch (err) {
+      console.error("❌ Impossible de supprimer la notification :", err);
+    }
   };
-
-  // Supprimer une notification
-  const deleteNotification = (id) => {
-    setNotifications(notifications.filter(notif => notif.id !== id));
-  };
-
-  // Nombre de notifications non lues
-  const unreadCount = notifications.filter(n => !n.read).length;
 
   // Initiales pour l'avatar
   const getInitiales = () => {
@@ -273,7 +271,17 @@ export default function Topbar() {
               </div>
               
               <div className="max-h-[400px] overflow-y-auto">
-                {notifications.length === 0 ? (
+                {notificationsError && (
+                  <div className="p-3 text-sm text-red-500 border-b border-destructive/20">
+                    {notificationsError}
+                  </div>
+                )}
+                {notificationsLoading ? (
+                  <div className="p-6 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <p>Chargement des notifications...</p>
+                  </div>
+                ) : notifications.length === 0 ? (
                   <div className="p-8 text-center text-muted-foreground">
                     <Bell className="h-12 w-12 mx-auto mb-2 opacity-50" />
                     <p>Aucune notification</p>
@@ -283,20 +291,17 @@ export default function Topbar() {
                     <div
                       key={notif.id}
                       className={`p-4 border-b hover:bg-muted/50 transition-colors cursor-pointer ${
-                        !notif.read ? "bg-blue-50 dark:bg-blue-950/20" : ""
+                        !notif.lue ? "bg-blue-50 dark:bg-blue-950/20" : ""
                       }`}
-                      onClick={() => markAsRead(notif.id)}
+                      onClick={() => handleNotificationClick(notif)}
                     >
                       <div className="flex items-start gap-3">
                         <span className="text-2xl">{getNotifIcon(notif.type)}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
-                            <p className="font-medium text-sm">{notif.title}</p>
+                            <p className="font-medium text-sm">{notif.titre}</p>
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteNotification(notif.id);
-                              }}
+                              onClick={(e) => handleDeleteNotification(notif.id, e)}
                               className="text-muted-foreground hover:text-foreground"
                             >
                               <X size={14} />
@@ -306,7 +311,7 @@ export default function Topbar() {
                             {notif.message}
                           </p>
                           <p className="text-xs text-muted-foreground mt-2">
-                            {notif.time}
+                            {formatRelativeTime(notif.date_creation)}
                           </p>
                         </div>
                       </div>

@@ -16,6 +16,7 @@ import Bulletins from "./pages/Bulletins";
 import Performances from "./pages/Performances";
 import UtilisateursPage from "./pages/Utilisateurs";
 import ProfilPage from "./pages/Profil";
+import NotificationsPage from "./pages/Notifications";
 import { AuthProvider } from "./hooks/useAuth";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import TableauDeBord from "./pages/TableauDeBord";
@@ -143,6 +144,7 @@ function AppContainer() {
               }
             />
             <Route path="profil" element={<ProfilPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
 
           </Route>
           

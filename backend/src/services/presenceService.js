@@ -3,7 +3,16 @@
 // backend/src/services/presenceService.js
 // ========================================
 import { PrismaClient } from '@prisma/client';
+import { createNotificationsForRoles } from './notificationService.js';
+
 const prisma = new PrismaClient();
+
+const formatDateFr = (date) =>
+  new Date(date).toLocaleDateString('fr-FR', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+  });
 
 export const createPresence = async (data) => {
   console.log('🔍 Données avant traitement:', data);
@@ -23,7 +32,7 @@ export const createPresence = async (data) => {
   
   console.log('📤 Payload envoyé à Prisma:', payload);
   
-  return await prisma.presence.create({ 
+  const presence = await prisma.presence.create({ 
     data: payload,
     include: {
       employe: {
@@ -36,6 +45,23 @@ export const createPresence = async (data) => {
       }
     }
   });
+
+  try {
+    const employe = presence.employe;
+    const nomEmploye = `${employe?.prenom || ""} ${employe?.nom || ""}`.trim() || "Un employé";
+    await createNotificationsForRoles({
+      roles: ["ADMIN", "SUPER_ADMIN"],
+      titre: "Nouvelle présence déclarée",
+      message: `${nomEmploye} a enregistré sa présence (${presence.statut}) pour ${formatDateFr(presence.date_jour)}.`,
+      type: "info",
+      categorie: "presence",
+      metadata: { entity: "presence", entityId: presence.id, employeId: presence.employeId },
+    });
+  } catch (notificationError) {
+    console.error("⚠️ Notification présence échouée:", notificationError);
+  }
+
+  return presence;
 };
 
 const cleanupOldPresences = async () => {

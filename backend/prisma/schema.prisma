@@ -82,6 +82,7 @@ model Utilisateur {
   employe                 Employe?            @relation(fields: [employeId], references: [id])
   employeId               Int?                @unique
   conges                  Conge[]
+  notifications           Notification[]
 
   @@map("utilisateurs")
 }
@@ -161,14 +162,14 @@ model Presence {
   employe         Employe  @relation(fields: [employeId], references: [id])
   employeId       Int
 }
-
 model Conge {
   id             Int      @id @default(autoincrement())
   type_conge     String?
   date_debut     DateTime
   date_fin       DateTime
   statut         StatutConge @default(SOUMIS)
-  motif         String? 
+  motif          String?
+  duree_jours    Int?      // 🆕 Ajout de la durée calculée
 
   // Relations
   utilisateur    Utilisateur @relation(fields: [utilisateurId], references: [id])
@@ -176,6 +177,25 @@ model Conge {
 
   employe        Employe @relation(fields: [employeId], references: [id])
   employeId      Int
+}
+
+model Notification {
+  id             Int       @id @default(autoincrement())
+  titre          String
+  message        String
+  type           String    @default("info")
+  categorie      String?
+  lue            Boolean   @default(false)
+  date_creation  DateTime  @default(now())
+  date_lue       DateTime?
+  metadata       Json?
+
+  utilisateur    Utilisateur @relation(fields: [utilisateurId], references: [id])
+  utilisateurId  Int
+
+  @@index([utilisateurId])
+  @@index([lue])
+  @@map("notifications")
 }
 
 model SuiviPerformance {

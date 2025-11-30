@@ -661,7 +661,7 @@ import { getPerformances, createPerformance, updatePerformance, deletePerformanc
 import { getEmployes } from "../services/employeService";
 import { usePermissions } from "../hooks/usePermissions";
 import { useToast } from "../components/ui/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 export default function Performances() {
@@ -769,6 +769,7 @@ export default function Performances() {
       toast({ title: "Évaluation supprimée" });
       await load();
     } catch (err) {
+      console.error("Erreur suppression évaluation:", err);
       toast({ title: "Erreur", description: "Impossible de supprimer.", variant: "destructive" });
     } finally {
       setConfirmDeleteOpen(false);
@@ -1107,32 +1108,39 @@ export default function Performances() {
 
       {/* MODAL AJOUT / MODIFICATION */}
       {isDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold flex items-center gap-2 text-slate-900 dark:text-white">
-                    <Award className="h-6 w-6 text-blue-600" />
-                    {editingId ? "Modifier l'Évaluation" : "Nouvelle Évaluation de Performance"}
-                  </h2>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    {editingId ? "Modifiez les informations et enregistrez." : "Complétez tous les champs pour créer une nouvelle évaluation"}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setIsDialogOpen(false);
-                    setEditingId(null);
-                  }}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) {
+              setEditingId(null);
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-[850px] p-0 overflow-hidden border shadow-2xl">
+            <div className="bg-primary p-6 text-primary-foreground">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center">
+                    <Award className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                  {editingId ? "Modifier l'évaluation" : "Nouvelle évaluation de performance"}
+                </DialogTitle>
+                <DialogDescription className="text-primary-foreground/80 mt-2">
+                  {editingId
+                    ? "Modifiez les informations et enregistrez les changements."
+                    : "Complétez les champs pour créer une nouvelle évaluation."}
+                </DialogDescription>
+              </DialogHeader>
             </div>
 
-            <div className="p-6 space-y-5">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSubmit();
+              }}
+              className="p-6 space-y-5 bg-card max-h-[75vh] overflow-y-auto"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -1247,28 +1255,30 @@ export default function Performances() {
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 min-h-[100px] resize-none"
                 />
               </div>
-            </div>
-
-            <div className="p-6 border-t border-slate-200 dark:border-slate-700 flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  setIsDialogOpen(false);
-                  setEditingId(null);
-                }}
-                className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-lg transition-all disabled:opacity-50"
-              >
-                {submitting ? "Enregistrement..." : editingId ? "Enregistrer" : "Enregistrer l'évaluation"}
-              </button>
-            </div>
-          </div>
-        </div>
+              <Separator className="my-4" />
+              <div className="flex flex-col gap-3 md:flex-row">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsDialogOpen(false);
+                    setEditingId(null);
+                  }}
+                  className="flex-1 h-12 border-2"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 h-12 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                >
+                  {submitting ? "Enregistrement..." : editingId ? "Enregistrer" : "Enregistrer l'évaluation"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* CONFIRMATION SUPPRESSION */}

@@ -996,17 +996,26 @@ export default function PostesWithFileStorage() {
 
       {/* Dialog pour créer/modifier un poste */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-foreground dark:text-white">
-              {editingId ? 'Modifier le Poste' : 'Nouveau Poste'}
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground dark:text-gray-400">
-              {editingId ? 'Modifiez les informations du poste' : 'Créez un nouveau poste dans l\'entreprise'}
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden border shadow-2xl">
+          <div className="bg-primary p-6 text-primary-foreground">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center">
+                  {editingId ? (
+                    <Edit className="w-5 h-5 text-primary-foreground" />
+                  ) : (
+                    <Briefcase className="w-5 h-5 text-primary-foreground" />
+                  )}
+                </div>
+                {editingId ? "Modifier le poste" : "Nouveau poste"}
+              </DialogTitle>
+              <DialogDescription className="text-primary-foreground/80 mt-2">
+                {editingId ? "Modifiez les informations du poste" : "Créez un nouveau poste dans l'entreprise"}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
           
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="p-6 space-y-6 bg-card max-h-[65vh] overflow-y-auto">
             {error && (
               <div className="bg-destructive/10 dark:bg-red-900/20 border border-destructive/20 dark:border-red-800 rounded-lg p-3">
                 <div className="text-sm text-destructive dark:text-red-400">{error}</div>
@@ -1059,22 +1068,23 @@ export default function PostesWithFileStorage() {
               />
             </div>
             
-            <DialogFooter className="flex gap-3 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+            <Separator className="my-4" />
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setIsDialogOpen(false)}
-                className="flex-1"
+                className="flex-1 h-12 border-2"
               >
                 Annuler
               </Button>
               <Button 
                 type="submit" 
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                className="flex-1 h-12 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all"
               >
                 {editingId ? 'Enregistrer' : 'Créer le poste'}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>

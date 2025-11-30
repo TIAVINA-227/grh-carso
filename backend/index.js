@@ -297,7 +297,9 @@
 //   console.log(`   - /api/performances`);
 //   console.log(`   - /api/paiements`);
 //   console.log(`   - /api/bulletins`);
-// });
+// });// ===========================
+// IMPORTS
+// ===========================
 import { PrismaClient } from "@prisma/client";
 import express from "express";
 import dotenv from "dotenv";
@@ -306,6 +308,9 @@ import jwt from "jsonwebtoken";
 import cors from "cors";
 import http from "http";
 import { Server } from "socket.io";
+import { startCongesCronJob } from './src/jobs/congesCronJob.js';
+import notificationRoutes from "./src/routes/notificationRoutes.js";
+import { registerNotificationSocket } from "./src/services/notificationService.js";
 
 // ✅ Import des routes principales
 import employeRoutes from "./src/routes/employeRoutes.js";
@@ -321,8 +326,11 @@ import bulletinRoutes from "./src/routes/bulletinRoutes.js";
 import utilisateurRoutes from "./src/routes/utilisateurRoutes.js";
 import uploadRoutes from "./src/routes/uploadRoutes.js";
 
-// Configuration
+// ===========================
+// CONFIGURATION
+// ===========================
 dotenv.config();
+
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
@@ -334,12 +342,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: function (origin, callback) {
-      // Autoriser les requêtes sans origin (Postman, apps mobiles, etc.)
       if (!origin) return callback(null, true);
-      
-      // Pattern pour localhost avec n'importe quel port
       const localhostPattern = /^http:\/\/localhost:\d+$/;
-      
       if (localhostPattern.test(origin)) {
         callback(null, true);
       } else {
@@ -350,6 +354,7 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+registerNotificationSocket(io);
 
 // ===========================
 // Middleware
@@ -360,12 +365,8 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Autoriser les requêtes sans origin
       if (!origin) return callback(null, true);
-      
-      // Pattern pour localhost avec n'importe quel port
       const localhostPattern = /^http:\/\/localhost:\d+$/;
-      
       if (localhostPattern.test(origin)) {
         callback(null, true);
       } else {
@@ -382,22 +383,40 @@ app.use(
 // Gestion des utilisateurs en ligne
 // ===========================
 let onlineUsers = new Set();
+const userSockets = new Map();
 
 io.on("connection", (socket) => {
   console.log("⚡ Nouvelle connexion Socket.io :", socket.id);
 
-  // Écouter l'événement de connexion utilisateur
   socket.on("user-online", (userId) => {
-    if (userId) {
-      onlineUsers.add(userId);
-      io.emit("online-users", Array.from(onlineUsers));
+    if (!userId) return;
+
+    const safeId = String(userId);
+    socket.data.userId = safeId;
+    socket.join(`user:${safeId}`);
+
+    if (!userSockets.has(safeId)) {
+      userSockets.set(safeId, new Set());
     }
+    userSockets.get(safeId).add(socket.id);
+    onlineUsers.add(safeId);
+
+    io.emit("online-users", Array.from(onlineUsers));
   });
 
-  // Déconnexion
   socket.on("disconnect", () => {
     console.log("❌ Utilisateur déconnecté :", socket.id);
-    // Pour simplifier, on rafraîchit tous les utilisateurs côté frontend
+    const userId = socket.data.userId;
+
+    if (userId && userSockets.has(userId)) {
+      const sockets = userSockets.get(userId);
+      sockets.delete(socket.id);
+      if (sockets.size === 0) {
+        userSockets.delete(userId);
+        onlineUsers.delete(userId);
+      }
+    }
+
     io.emit("online-users", Array.from(onlineUsers));
   });
 });
@@ -578,7 +597,6 @@ app.get("/api/dashboard/stats", async (req, res) => {
     const last30Days = new Date();
     last30Days.setDate(last30Days.getDate() - 30);
     
-    // Récupérer toutes les statistiques en parallèle
     const [
       totalEmployes,
       totalUtilisateurs,
@@ -667,7 +685,6 @@ app.get("/api/dashboard/stats", async (req, res) => {
       })
     ]);
 
-    // Calculer les moyennes et statistiques
     const moyennePerformance = performancesRecent.length > 0
       ? performancesRecent.reduce((sum, p) => sum + p.note, 0) / performancesRecent.length
       : 0;
@@ -676,19 +693,16 @@ app.get("/api/dashboard/stats", async (req, res) => {
       ? paiementsCeMois._sum.montant / paiementsCeMois._count
       : 0;
 
-    // Calculer le taux de présence (30 derniers jours)
     const totalPresences30j = presencesRecent.filter(p => p.statut === "PRESENT").length;
     const tauxPresence = presencesRecent.length > 0
       ? (totalPresences30j / presencesRecent.length) * 100
       : 0;
 
-    // Préparer les données pour les graphiques
     const kpiData = performancesRecent.slice(0, 12).map(p => ({
       name: new Date(p.date_eval).toLocaleDateString('fr-FR', { month: 'short' }),
       value: p.note
     }));
 
-    // Synthèse globale pour le donut
     const overviewTotals = [
       { key: 'employes', label: 'Employés', value: totalEmployes, color: '#2563eb' },
       { key: 'utilisateurs', label: 'Utilisateurs', value: totalUtilisateurs, color: '#7c3aed' },
@@ -709,7 +723,6 @@ app.get("/api/dashboard/stats", async (req, res) => {
       percentage: totalOverview ? (item.value / totalOverview) * 100 : 0
     }));
 
-    // Liste des personnes actuellement en congé
     const leaves = congesActifs.map((conge) => ({
       id: conge.id,
       name: `${conge.employe?.nom || ''} ${conge.employe?.prenom || ''}`.trim(),
@@ -718,7 +731,6 @@ app.get("/api/dashboard/stats", async (req, res) => {
       dateRange: `${new Date(conge.date_debut).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} - ${new Date(conge.date_fin).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}`
     }));
 
-    // Préparer la liste des employés avec statut
     const employeeStatus = employesList.map(emp => ({
       id: emp.id,
       name: `${emp.nom} ${emp.prenom}`,
@@ -777,29 +789,46 @@ app.use("/api/conges", congeRoutes);
 app.use("/api/performances", performanceRoutes);
 app.use("/api/paiements", paiementRoutes);
 app.use("/api/bulletins", bulletinRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // ===========================
-// Lancement serveur HTTP + Socket.io
+// 🚀 DÉMARRAGE DU SERVEUR
 // ===========================
 server.listen(PORT, () => {
-  console.log(`✅ Serveur démarré sur http://localhost:${PORT}`);
-  console.log(`📁 Routes disponibles :`);
-  console.log(`   - POST /api/auth/register`);
-  console.log(`   - POST /api/auth/login`);
-  console.log(`   - GET  /api/auth/verify`);
-  console.log(`   - GET  /api/dashboard`);
-  console.log(`   - POST /api/upload/avatar (Cloudinary)`);
-  console.log(`   - /api/utilisateurs`);
-  console.log(`   - /api/employes`);
-  console.log(`   - /api/postes`);
-  console.log(`   - /api/departements`);
-  console.log(`   - /api/contrats`);
-  console.log(`   - /api/absences`);
-  console.log(`   - /api/presences`);
-  console.log(`   - /api/conges`);
-  console.log(`   - /api/performances`);
-  console.log(`   - /api/paiements`);
-  console.log(`   - /api/bulletins`);
+  console.log(`✅ Serveur HTTP + Socket.io démarré sur http://localhost:${PORT}`);
+  console.log(`🌐 Socket.io configuré et prêt`);
+  console.log(`🕐 Démarrage de la tâche CRON des congés...`);
+  
+  startCongesCronJob();
+  
+  console.log(`\n📁 Routes API disponibles :`);
+  console.log(`   - POST   /api/auth/register`);
+  console.log(`   - POST   /api/auth/login`);
+  console.log(`   - GET    /api/auth/verify`);
+  console.log(`   - GET    /api/dashboard`);
+  console.log(`   - GET    /api/dashboard/stats`);
+  console.log(`   - POST   /api/upload/avatar`);
+  console.log(`   - CRUD   /api/utilisateurs`);
+  console.log(`   - CRUD   /api/employes`);
+  console.log(`   - CRUD   /api/postes`);
+  console.log(`   - CRUD   /api/departements`);
+  console.log(`   - CRUD   /api/contrats`);
+  console.log(`   - CRUD   /api/absences`);
+  console.log(`   - CRUD   /api/presences`);
+  console.log(`   - CRUD   /api/conges`);
+  console.log(`   - CRUD   /api/performances`);
+  console.log(`   - CRUD   /api/paiements`);
+  console.log(`   - CRUD   /api/bulletins`);
+  console.log(`   - CRUD   /api/notifications`);
+});
+
+// ===========================
+// Gestion propre de la déconnexion
+// ===========================
+process.on('SIGINT', async () => {
+  console.log('\n🛑 Arrêt du serveur...');
+  await prisma.$disconnect();
+  process.exit(0);
 });
 
 export { io, onlineUsers };

@@ -19,6 +19,7 @@ import {
   Search,
   Settings,
   HelpCircle,
+  Bell,
   X
 } from "lucide-react"
 
@@ -114,6 +115,12 @@ export function AppSidebar({ ...props }) {
       label: "Volet",
       show: permissions.canAccess('departements')
     },
+    { 
+      to: "/dashboard/performances",
+      icon: ChartColumnIncreasing,
+      label: permissions.isEmploye ? "Performances" : "Performances",
+      show: permissions.canAccess('performances')
+    },
     {
       to: "/dashboard/paiements",
       icon: Wallet,
@@ -126,23 +133,23 @@ export function AppSidebar({ ...props }) {
       label: permissions.isEmploye ? "Bulletins" : "Bulletins",
       show: permissions.canAccess('bulletins')
     },
+        {
+      to: "/dashboard/profil",
+      icon: UserCog,
+      label: "Mon Profil",
+      show: true
+    },
     {
-      to: "/dashboard/performances",
-      icon: ChartColumnIncreasing,
-      label: permissions.isEmploye ? "Performances" : "Performances",
-      show: permissions.canAccess('performances')
+      to: "/dashboard/notifications",
+      icon: Bell,
+      label: "Notifications",
+      show: true, // ou permissions.canAccess('notifications') si tu gères ce droit
     },
     {
       to: "/dashboard/utilisateurs",
       icon: MonitorCog,
       label: "Gérer Utilisateurs",
       show: permissions.canAccess('utilisateurs')
-    },
-    {
-      to: "/dashboard/profil",
-      icon: UserCog,
-      label: "Mon Profil",
-      show: true
     },
   ];
 
@@ -164,15 +171,15 @@ export function AppSidebar({ ...props }) {
     },
     {
       title: "Gestion",
-      items: filteredNavItems.slice(3, 8)
+      items: filteredNavItems.slice(3, 9)
     },
     {
       title: "Finance",
-      items: filteredNavItems.slice(8, 10)
+      items: filteredNavItems.slice(9, 11)
     },
     {
       title: "Système",
-      items: filteredNavItems.slice(10)
+      items: filteredNavItems.slice(11)
     }
   ].filter(group => group.items.length > 0);
 

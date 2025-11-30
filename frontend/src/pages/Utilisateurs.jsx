@@ -496,16 +496,21 @@ export default function UtilisateursPage() {
         </Card>
 
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="sm:max-w-[450px] border border-border bg-card">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <UserPlus className="h-4 w-4 text-primary" />
-              </div>
-              Ajouter un utilisateur
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={ajouterUtilisateur} className="space-y-4">
+        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border shadow-2xl">
+          <div className="bg-primary p-6 text-primary-foreground">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center">
+                  <UserPlus className="w-5 h-5 text-primary-foreground" />
+                </div>
+                Ajouter un utilisateur
+              </DialogTitle>
+              <DialogDescription className="text-primary-foreground/80 mt-2">
+                Créez un nouvel accès en renseignant les informations requises.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <form onSubmit={ajouterUtilisateur} className="p-6 space-y-4 bg-card max-h-[65vh] overflow-y-auto">
             <div>
               <Label className="text-sm font-semibold text-foreground">Prénom</Label>
               <Input
@@ -561,37 +566,44 @@ export default function UtilisateursPage() {
                 </SelectContent>
               </Select>
             </div>
-            <DialogFooter className="gap-2 pt-4">
+            <Separator className="my-4" />
+            <div className="flex flex-col gap-3 sm:flex-row">
               <Button 
                 type="button"
                 variant="outline"
                 onClick={() => setShowAddModal(false)}
+                className="flex-1 h-12 border-2"
               >
                 Annuler
               </Button>
               <Button 
                 type="submit"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="flex-1 h-12 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all"
               >
                 Créer l'utilisateur
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="sm:max-w-[450px] border border-border bg-card">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Pencil className="h-4 w-4 text-primary" />
-              </div>
-              Modifier l'utilisateur
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border shadow-2xl">
+          <div className="bg-primary p-6 text-primary-foreground">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center">
+                  <Pencil className="w-5 h-5 text-primary-foreground" />
+                </div>
+                Modifier l'utilisateur
+              </DialogTitle>
+              <DialogDescription className="text-primary-foreground/80 mt-2">
+                Mettez à jour les accès et les informations personnelles de l'utilisateur sélectionné.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
           {editingUser && (
-            <form onSubmit={modifierUtilisateur} className="space-y-4">
+            <form onSubmit={modifierUtilisateur} className="p-6 space-y-4 bg-card max-h-[65vh] overflow-y-auto">
               <div>
                 <Label className="text-sm font-semibold text-foreground">Nom d'utilisateur</Label>
                 <Input
@@ -649,21 +661,23 @@ export default function UtilisateursPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <DialogFooter className="gap-2 pt-4">
+              <Separator className="my-4" />
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <Button 
                   type="button"
                   variant="outline"
                   onClick={() => setShowEditModal(false)}
+                  className="flex-1 h-12 border-2"
                 >
                   Annuler
                 </Button>
                 <Button 
                   type="submit"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  className="flex-1 h-12 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all"
                 >
-                  Enregistrer
+                  Mettre à jour
                 </Button>
-              </DialogFooter>
+              </div>
             </form>
           )}
         </DialogContent>
