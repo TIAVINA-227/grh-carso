@@ -309,7 +309,7 @@ export default function Departements() {
                     <DropdownMenu open={importMenuOpen} onOpenChange={setImportMenuOpen}>
                       <DropdownMenuTrigger asChild>
                         <button
-                          className="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors border border-emerald-500/30 text-sm font-medium flex items-center gap-2"
+                          className="px-4 py-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors border border-blue-500/30 text-sm font-medium flex items-center gap-2"
                         >
                           <Upload className="h-4 w-4" />
                           Importer
@@ -415,7 +415,7 @@ export default function Departements() {
                 className="shadow-lg hover:shadow-xl transition-all"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Supprimer 
+                Supprimer la sélection
               </Button>
             </div>
           </div>
@@ -480,13 +480,13 @@ export default function Departements() {
 
                 <Separator className="my-4" />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {departements.map((d) => {
                     const pourcentage = getPourcentagePlein(d.employes?.length || 0);
                     return (
                       <Card 
                         key={d.id} 
-                        className={`group hover:shadow-xl transition-all duration-300 border-2 ${
+                        className={`group hover:shadow-xl transition-all duration-200 border-2 ${
                           selectedDepartements.has(d.id) 
                             ? 'border-primary shadow-lg shadow-primary/20 bg-primary/5' 
                             : 'border-transparent hover:border-border'
@@ -618,7 +618,7 @@ export default function Departements() {
 
             <div className="space-y-2">
               <Label htmlFor="responsable" className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Users className="w-4 h-4 text-accent" />
+                <Users className="w-4 h-4 text-primary" />
                 Responsable
               </Label>
               <Input 

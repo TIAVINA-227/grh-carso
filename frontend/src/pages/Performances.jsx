@@ -928,8 +928,8 @@ export default function Performances() {
         <Card className="border-0 shadow-2xl overflow-hidden">
           <CardContent className="p-8">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold flex items-center gap-3 bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-transparent">
-                <TrendingUp className="h-7 w-7 text-violet-600" />
+              <h2 className="text-2xl font-bold flex items-center gap-3 bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">
+                <TrendingUp className="h-7 w-7 text-blue-600" />
                 Évolution des Performances
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
@@ -940,7 +940,7 @@ export default function Performances() {
             {loading ? (
               <div className="flex items-center justify-center h-96">
                 <div className="text-center space-y-4">
-                  <div className="animate-spin h-12 w-12 border-4 border-violet-600 border-t-transparent rounded-full mx-auto" />
+                  <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto" />
                   <p className="text-muted-foreground">Chargement des données...</p>
                 </div>
               </div>
@@ -961,7 +961,7 @@ export default function Performances() {
                     <linearGradient id="colorNote" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.9} />
                       <stop offset="50%" stopColor="#3b82f6" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
+                      <stop offset="95%" stopColor="#a9bfe3ff" stopOpacity={0.05} />
                     </linearGradient>
                   </defs>
 
@@ -998,7 +998,7 @@ export default function Performances() {
                         return (
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 font-semibold">
-                              <User className="h-4 w-4 text-violet-600" />
+                              <User className="h-4 w-4 text-blue-600" />
                               {d.nom}
                             </div>
                             <div className="flex items-center gap-3">

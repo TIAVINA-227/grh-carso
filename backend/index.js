@@ -297,7 +297,10 @@
 //   console.log(`   - /api/performances`);
 //   console.log(`   - /api/paiements`);
 //   console.log(`   - /api/bulletins`);
-// });// ===========================
+// });
+
+//backend/index.js
+// ===========================
 // IMPORTS
 // ===========================
 import { PrismaClient } from "@prisma/client";

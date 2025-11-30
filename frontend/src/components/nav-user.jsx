@@ -62,7 +62,7 @@ export function NavUser() {
 
   // Statut en ligne via Socket.io
   const { onlineUsers } = useSocket(user?.id || null);
-  const isOnline = user && onlineUsers.includes(user.id);
+  const isOnline = user && onlineUsers.includes(String(user.id));
 
   // Charger le profil au montage du composant
   useEffect(() => {

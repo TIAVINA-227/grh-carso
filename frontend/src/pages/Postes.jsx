@@ -720,7 +720,7 @@ export default function PostesWithFileStorage() {
                   </label>
                 </div>
                 {postes.map((poste) => (
-                  <Card key={poste.id} className={`bg-card dark:bg-slate-900 hover:shadow-lg transition-shadow ${selectedPostes.has(poste.id) ? 'ring-2 ring-blue-500' : ''}`}>
+                  <Card key={poste.id} className={`bg-card dark:bg-slate-900 hover:shadow-lg transition-shadow backdrop-blur-xl ${selectedPostes.has(poste.id) ? 'ring-2 ring-blue-500' : ''}`}>
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
