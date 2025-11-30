@@ -1,3 +1,4 @@
+//frontend/src/hooks/useNotifications.js
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   fetchNotifications,

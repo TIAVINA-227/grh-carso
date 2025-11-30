@@ -1,5 +1,5 @@
 // frontend/src/pages/Conges.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { 
   getConges, 
@@ -77,8 +77,8 @@ export default function CongesPage() {
   const [conges, setConges] = useState([]);
   const [employes, setEmployes] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [loadingEmployes, setLoadingEmployes] = useState(false);
-  const [error, setError] = useState("");
+  const [_loadingEmployes, setLoadingEmployes] = useState(false);
+  const [_error, setError] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [current, setCurrent] = useState(null);
@@ -151,11 +151,11 @@ export default function CongesPage() {
   useEffect(() => {
     load();
     loadEmployes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-// 2️⃣ Deuxième useEffect : Charger le solde quand currentEmployeId change
-useEffect(() => {
-  const loadSolde = async () => {
+  // ✅ Fonction pour charger le solde (réutilisable avec useCallback)
+  const loadSolde = useCallback(async () => {
     if (permissions.isEmploye && currentEmployeId) {
       try {
         console.log('🔄 Chargement du solde pour employé:', currentEmployeId);
@@ -164,12 +164,15 @@ useEffect(() => {
         console.log('✅ Solde chargé:', solde);
       } catch (err) {
         console.error("❌ Erreur chargement solde:", err);
+        // Ne pas afficher d'erreur toast pour éviter le spam
       }
     }
-  };
-  
-  loadSolde();
-}, [currentEmployeId, permissions.isEmploye]);
+  }, [permissions.isEmploye, currentEmployeId]);
+
+  // 2️⃣ Deuxième useEffect : Charger le solde quand currentEmployeId change
+  useEffect(() => {
+    loadSolde();
+  }, [loadSolde]);
 
   // Fonction async de soumission
   const handleSubmit = async (e) => {
@@ -210,6 +213,8 @@ useEffect(() => {
       setIsDialogOpen(false);
       resetForm();
       await load();
+      // ✅ Recharger le solde après création/modification
+      await loadSolde();
       
     } catch (err) {
       console.error("Erreur soumission:", err);
@@ -257,11 +262,6 @@ useEffect(() => {
     setCurrent(null);
   };
 
-  //open create
-  const openCreate = () => {
-    resetForm();
-    setIsDialogOpen(true);
-  };
 
   // Gérer les changements de formulaire
   const handleChange = (e) => {
@@ -317,6 +317,8 @@ useEffect(() => {
         setSelectedConges(new Set());
       }
       await load();
+      // ✅ Recharger le solde après suppression (peut libérer des jours si c'était un congé annuel approuvé)
+      await loadSolde();
     } catch (err) {
       console.error("Erreur suppression:", err);
       toast.error("Erreur", { description: err.message });
@@ -332,6 +334,8 @@ useEffect(() => {
       await updateConge(id, { statut: "APPROUVE" });
       toast.success("Congé approuvé");
       await load();
+      // ✅ Recharger le solde après approbation (affecte le solde si c'est un congé annuel)
+      await loadSolde();
     } catch (err) {
       console.error("Erreur approbation:", err);
       toast.error("Erreur", { description: err.message });
@@ -344,6 +348,8 @@ useEffect(() => {
       await updateConge(id, { statut: "REJETE" });
       toast.success("Congé refusé");
       await load();
+      // ✅ Recharger le solde après refus (peut libérer des jours si c'était un congé annuel approuvé)
+      await loadSolde();
     } catch (err) {
       console.error("Erreur refus:", err);
       toast.error("Erreur", { description: err.message });
@@ -533,62 +539,54 @@ useEffect(() => {
 
         {/* Cartes statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-primary text-primary-foreground">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-primary-foreground/80 text-sm font-medium">Total Congés</p>
-                <Calendar className="w-8 h-8 text-primary-foreground/80" />
-              </div>
-              <p className="text-4xl font-bold">{filteredConges.length}</p>
-              <div className="flex items-center gap-1 mt-2 text-primary-foreground/80 text-xs">
-                <Calendar className="w-3 h-3" />
-                <span>Enregistrés</span>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium mb-2">Total Congés</p>
+                  <p className="text-3xl font-bold">{filteredConges.length}</p>
+                </div>
+                <Calendar className="h-8 w-8 text-blue-200" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-yellow-500 to-yellow-600 text-white dark:from-yellow-600 dark:to-yellow-700">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-yellow-100 text-sm font-medium">En Attente</p>
-                <Clock className="w-8 h-8 text-white/80" />
-              </div>
-              <p className="text-4xl font-bold">{filteredConges.filter(c => c.statut === "SOUMIS").length}</p>
-              <div className="flex items-center gap-1 mt-2 text-yellow-100 text-xs">
-                <Clock className="w-3 h-3" />
-                <span>Soumis</span>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium mb-2">En Attente</p>
+                  <p className="text-3xl font-bold">{filteredConges.filter(c => c.statut === "SOUMIS").length}</p>
+                </div>
+                <Clock className="h-8 w-8 text-blue-200" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white dark:from-emerald-600 dark:to-emerald-700">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-emerald-100 text-sm font-medium">Approuvés</p>
-                <CheckCircle className="w-8 h-8 text-white/80" />
-              </div>
-              <p className="text-4xl font-bold">{filteredConges.filter(c => c.statut === "APPROUVE").length}</p>
-              <div className="flex items-center gap-1 mt-2 text-emerald-100 text-xs">
-                <CheckCircle className="w-3 h-3" />
-                <span>Accordés</span>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-emerald-100 text-sm font-medium mb-2">Approuvés</p>
+                  <p className="text-3xl font-bold">{filteredConges.filter(c => c.statut === "APPROUVE").length}</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-emerald-200" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-red-500 to-red-600 text-white dark:from-red-600 dark:to-red-700">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-red-100 text-sm font-medium">Refusés</p>
-                <XCircle className="w-8 h-8 text-white/80" />
-              </div>
-              <p className="text-4xl font-bold">{filteredConges.filter(c => c.statut === "REJETE").length}</p>
-              <div className="flex items-center gap-1 mt-2 text-red-100 text-xs">
-                <XCircle className="w-3 h-3" />
-                <span>Refusés</span>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-rose-100 text-sm font-medium mb-2">Refusés</p>
+                  <p className="text-3xl font-bold">{filteredConges.filter(c => c.statut === "REJETE").length}</p>
+                </div>
+                <XCircle className="h-8 w-8 text-rose-200" />
               </div>
             </CardContent>
           </Card>

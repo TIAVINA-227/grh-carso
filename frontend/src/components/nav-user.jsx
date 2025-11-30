@@ -41,16 +41,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useSocket } from "../hooks/useSocket";
 import { Badge } from "@/components/ui/badge";
 
 export function NavUser() {
   const { user, logout } = useAuth();
-  const { isMobile } = useSidebar();
+  const { isMobile, state } = useSidebar();
   const navigate = useNavigate();
   const [confirmDeconexionOpen, setConfirmDeconexionOpen] = useState(false);
+  const isCollapsed = state === "collapsed";
   
   // État du profil utilisateur
   const [profil, setProfil] = useState({
@@ -64,15 +65,10 @@ export function NavUser() {
   const { onlineUsers } = useSocket(user?.id || null);
   const isOnline = user && onlineUsers.includes(String(user.id));
 
-  // Charger le profil au montage du composant
-  useEffect(() => {
-    if (user?.id) {
-      fetchProfil();
-    }
-  }, [user?.id]);
-
   // Récupérer les données du profil depuis l'API
-  const fetchProfil = async () => {
+  const fetchProfil = useCallback(async () => {
+    if (!user?.id) return;
+    
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`http://localhost:5000/api/utilisateurs/${user.id}`, {
@@ -93,7 +89,12 @@ export function NavUser() {
     } catch (error) {
       console.error("❌ Erreur chargement profil:", error);
     }
-  };
+  }, [user?.id]);
+
+  // Charger le profil au montage du composant
+  useEffect(() => {
+    fetchProfil();
+  }, [fetchProfil]);
 
   // Gestion de la déconnexion
   const handleLogout = () => {
@@ -154,15 +155,15 @@ export function NavUser() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 rounded-2xl"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-gradient-to-r hover:from-blue-500/10 hover:to-purple-500/10 dark:hover:from-blue-500/20 dark:hover:to-purple-500/20 transition-all duration-200 rounded-xl group"
             >
               {/* Avatar avec indicateur de statut en ligne */}
-              <div className="relative">
-                <Avatar className="h-10 w-10 ring-2 ring-white dark:ring-gray-800 shadow-lg">
+              <div className="relative flex-shrink-0">
+                <Avatar className="h-9 w-9 ring-2 ring-sidebar-border shadow-md group-hover:shadow-lg transition-all duration-200 group-hover:ring-blue-500/50">
                   {profil.avatar ? (
                     <AvatarImage src={profil.avatar} alt={getNomComplet()} />
                   ) : (
-                    <AvatarFallback className="text-sm font-bold bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                    <AvatarFallback className="text-xs font-bold bg-gradient-to-br from-blue-500 to-purple-600 text-white">
                       {getInitiales()}
                     </AvatarFallback>
                   )}
@@ -170,25 +171,29 @@ export function NavUser() {
                 
                 {/* Point indicateur en ligne/hors ligne */}
                 <span
-                  className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white dark:border-gray-800 ${
-                    isOnline ? "bg-green-500 " : "bg-gray-400"
+                  className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-sidebar shadow-sm ${
+                    isOnline ? "bg-green-500 animate-pulse" : "bg-gray-400"
                   }`}
                   title={isOnline ? "En ligne" : "Hors ligne"}
                 />
               </div>
 
-              {/* Informations utilisateur */}
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold text-gray-900 dark:text-white">
-                  {getNomComplet()}
-                </span>
-                <span className="truncate text-xs text-gray-500 dark:text-gray-400">
-                  {getFormattedRole(user.role)}
-                </span>
-              </div>
+              {/* Informations utilisateur - Masqué en mode collapsed */}
+              {!isCollapsed && (
+                <>
+                  <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
+                    <span className="truncate font-semibold text-sidebar-foreground">
+                      {getNomComplet()}
+                    </span>
+                    <span className="truncate text-xs text-sidebar-foreground/70">
+                      {getFormattedRole(user.role)}
+                    </span>
+                  </div>
 
-              {/* Icône chevron */}
-              <ChevronsUpDown className="ml-auto size-4 text-gray-400" />
+                  {/* Icône chevron */}
+                  <ChevronsUpDown className="ml-auto size-4 text-sidebar-foreground/50 group-hover:text-sidebar-foreground transition-colors" />
+                </>
+              )}
             </SidebarMenuButton>
           </DropdownMenuTrigger>
 

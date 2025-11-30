@@ -1,3 +1,4 @@
+//backend/src/controllers/notificationController.js
 import {
   getNotificationsForUser,
   markNotificationAsRead,

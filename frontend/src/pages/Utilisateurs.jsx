@@ -310,48 +310,42 @@ export default function UtilisateursPage() {
         </div>
 
         {/* Cartes statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-primary text-primary-foreground">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-primary-foreground/80 text-sm font-medium">Total Utilisateurs</p>
-                <Users className="w-8 h-8 text-primary-foreground/80" />
-              </div>
-              <p className="text-4xl font-bold">{utilisateurs.length}</p>
-              <div className="flex items-center gap-1 mt-2 text-primary-foreground/80 text-xs">
-                <Users className="w-3 h-3" />
-                <span>Actifs</span>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium mb-2">Total Utilisateurs</p>
+                  <p className="text-3xl font-bold">{utilisateurs.length}</p>
+                </div>
+                <Users className="h-8 w-8 text-blue-200" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white dark:from-emerald-600 dark:to-emerald-700">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-emerald-100 text-sm font-medium">Administrateurs</p>
-                <Shield className="w-8 h-8 text-white/80" />
-              </div>
-              <p className="text-4xl font-bold">{utilisateurs.filter(u => u.role === "ADMIN").length}</p>
-              <div className="flex items-center gap-1 mt-2 text-emerald-100 text-xs">
-                <Shield className="w-3 h-3" />
-                <span>Admins</span>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-emerald-100 text-sm font-medium mb-2">Administrateurs</p>
+                  <p className="text-3xl font-bold">{utilisateurs.filter(u => u.role === "ADMIN").length}</p>
+                </div>
+                <Shield className="h-8 w-8 text-emerald-200" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white dark:from-blue-600 dark:to-blue-700">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-blue-100 text-sm font-medium">Super Admin</p>
-                <Shield className="w-8 h-8 text-white/80" />
-              </div>
-              <p className="text-4xl font-bold">{utilisateurs.filter(u => u.role === "SUPER_ADMIN").length}</p>
-              <div className="flex items-center gap-1 mt-2 text-blue-100 text-xs">
-                <Shield className="w-3 h-3" />
-                <span>Super Admins</span>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium mb-2">Super Admin</p>
+                  <p className="text-3xl font-bold">{utilisateurs.filter(u => u.role === "SUPER_ADMIN").length}</p>
+                </div>
+                <Shield className="h-8 w-8 text-blue-200" />
               </div>
             </CardContent>
           </Card>

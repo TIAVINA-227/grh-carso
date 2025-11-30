@@ -1,5 +1,6 @@
+
 //frontend/src/ pages/Contrats.jsx
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -10,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Separator } from "../components/ui/separator";
 import { getContrats, createContrat, updateContrat, deleteContrat } from "../services/contratService";
 import { usePermissions } from "../hooks/usePermissions";
+import { useAuth } from "../hooks/useAuth";
 import { getEmployes } from "../services/employeService";
 import { FileText, User, Plus, Edit, Trash2, Calendar, DollarSign, Eye, Activity, Briefcase, TrendingUp, Clock, Upload, FileSpreadsheet, ChevronDown, Mail, Phone, MapPin, Building2, AlertCircle } from "lucide-react";
 import { pdf } from '@react-pdf/renderer';
@@ -18,9 +20,12 @@ import { useToast } from "../components/ui/use-toast";
 import { Checkbox } from "../components/ui/checkbox";
 
 export default function Contrats() {
+  const { user } = useAuth();
+  const permissions = usePermissions();
   const [contrats, setContrats] = useState([]);
   const [employes, setEmployes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentEmployeId, setCurrentEmployeId] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [form, setForm] = useState({ 
     employeId: "", 
@@ -38,7 +43,6 @@ export default function Contrats() {
   const [selectedContrats, setSelectedContrats] = useState(new Set());
   const [importMenuOpen, setImportMenuOpen] = useState(false);
   const csvInputRef = useRef(null);
-  const permissions = usePermissions();
   
   // États pour le modal de détails
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
@@ -48,8 +52,29 @@ export default function Contrats() {
     setLoading(true);
     try {
       const data = await getContrats();
-      setContrats(data || []);
       const empData = await getEmployes();
+      
+      // ✅ Trouver l'employé correspondant à l'utilisateur connecté
+      if (permissions.isEmploye && user) {
+        // Méthode 1: Utiliser employeId si disponible dans user
+        if (user.employeId) {
+          setCurrentEmployeId(user.employeId);
+          console.log('✅ Employé trouvé via user.employeId:', user.employeId);
+        } else {
+          // Méthode 2: Chercher par email
+          const employe = empData.find(emp => 
+            emp.email?.toLowerCase() === user.email?.toLowerCase()
+          );
+          if (employe) {
+            setCurrentEmployeId(employe.id);
+            console.log('✅ Employé trouvé par email pour les contrats:', employe.id, employe.prenom, employe.nom);
+          } else {
+            console.warn('⚠️ Aucun employé trouvé pour l\'email:', user.email);
+          }
+        }
+      }
+      
+      setContrats(data || []);
       // S'assurer que les employés ont bien leurs relations (poste et departement)
       setEmployes(empData || []);
     } catch (err) {
@@ -64,9 +89,27 @@ export default function Contrats() {
       setLoading(false);
     }
   };
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(); }, []);
+  
+  useEffect(() => { 
+    load(); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permissions.isEmploye, user]);
+  
+  // ✅ Filtrer les contrats selon le rôle et les permissions
+  const filteredContrats = useMemo(() => {
+    // Admin et SuperAdmin voient tout
+    if (permissions.isSuperAdmin || permissions.isAdmin) {
+      return contrats;
+    }
+    
+    // Employé ne voit que son propre contrat
+    if (permissions.isEmploye && currentEmployeId) {
+      return contrats.filter(c => c.employeId === currentEmployeId);
+    }
+    
+    // Par défaut, retourner un tableau vide si l'employé n'est pas trouvé
+    return [];
+  }, [contrats, permissions.isSuperAdmin, permissions.isAdmin, permissions.isEmploye, currentEmployeId]);
 
   const handleCsvContratsImport = async (event) => {
     const file = event.target.files?.[0];
@@ -108,7 +151,7 @@ export default function Contrats() {
 
   const exportToPDF = async () => {
     try {
-      const blob = await pdf(<ContratsPDFDocument contrats={contrats} employes={employes} />).toBlob();
+      const blob = await pdf(<ContratsPDFDocument contrats={filteredContrats} employes={employes} />).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -132,6 +175,16 @@ export default function Contrats() {
   };
 
   const openEdit = (c) => {
+    // ✅ Vérifier les permissions
+    if (!permissions.canEdit('contrats')) {
+      toast({
+        title: "Erreur ❌",
+        description: "Vous n'avez pas la permission de modifier un contrat",
+        className: "bg-red-600 text-white",
+      });
+      return;
+    }
+    
     setEditingId(c.id);
     setForm({ 
       employeId: c.employeId || "", 
@@ -153,6 +206,26 @@ export default function Contrats() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    
+    // ✅ Vérifier les permissions
+    if (!permissions.canCreate('contrats') && !editingId) {
+      toast({
+        title: "Erreur ❌",
+        description: "Vous n'avez pas la permission de créer un contrat",
+        className: "bg-red-600 text-white",
+      });
+      return;
+    }
+    
+    if (!permissions.canEdit('contrats') && editingId) {
+      toast({
+        title: "Erreur ❌",
+        description: "Vous n'avez pas la permission de modifier un contrat",
+        className: "bg-red-600 text-white",
+      });
+      return;
+    }
+    
     if (!form.employeId) return setError("Veuillez sélectionner un employé valide");
     try {
       if (editingId) {
@@ -184,6 +257,16 @@ export default function Contrats() {
   };
 
   const requestDelete = (id) => {
+    // ✅ Vérifier les permissions
+    if (!permissions.canDelete('contrats')) {
+      toast({
+        title: "Erreur ❌",
+        description: "Vous n'avez pas la permission de supprimer un contrat",
+        className: "bg-red-600 text-white",
+      });
+      return;
+    }
+    
     setDeleteId(id);
     setConfirmDeleteOpen(true);
   };
@@ -231,8 +314,9 @@ export default function Contrats() {
   };
 
   const handleSelectAll = (checked) => {
+    // ✅ Utiliser filteredContrats au lieu de refiltrer
     if (checked) {
-      setSelectedContrats(new Set(contrats.map(item => item.id)));
+      setSelectedContrats(new Set(filteredContrats.map(item => item.id)));
     } else {
       setSelectedContrats(new Set());
     }
@@ -245,13 +329,13 @@ export default function Contrats() {
     }
   };
 
-  // Statistiques
+  // Statistiques avec les contrats filtrés
   const stats = {
-    total: contrats.length,
-    actifs: contrats.filter(c => c.statut === "ACTIF").length,
-    termines: contrats.filter(c => c.statut === "TERMINE").length,
-    cdi: contrats.filter(c => c.type_contrat === "CDI").length,
-    cdd: contrats.filter(c => c.type_contrat === "CDD").length,
+    total: filteredContrats.length,
+    actifs: filteredContrats.filter(c => c.statut === "ACTIF").length,
+    termines: filteredContrats.filter(c => c.statut === "TERMINE").length,
+    cdi: filteredContrats.filter(c => c.type_contrat === "CDI").length,
+    cdd: filteredContrats.filter(c => c.type_contrat === "CDD").length,
   };
 
   const getTypeColor = (type) => {
@@ -284,6 +368,14 @@ export default function Contrats() {
     return employes.find(e => e.id === employeId);
   };
 
+  // Nouveau loader réutilisable pour uniformiser l'apparence des loaders
+  const PageLoader = ({ message = "Chargement..." }) => (
+    <div className="flex flex-col items-center justify-center py-16 space-y-4">
+      <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+      <p className="text-muted-foreground font-medium">{message}</p>
+    </div>
+  );
+  
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="mx-auto max-w-7xl space-y-8">
@@ -300,10 +392,12 @@ export default function Contrats() {
               </div>
               <div className="flex-1">
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-teal-500 to-blue-500 bg-clip-text text-transparent">
-                  Gestion des Contrats
+                  {permissions.isEmploye ? 'Mon Contrat' : 'Gestion des Contrats'}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Consultez et gérez les contrats de travail
+                  {permissions.isEmploye 
+                    ? 'Consultez les informations de votre contrat de travail'
+                    : 'Consultez et gérez les contrats de travail'}
                 </p>
               </div>
             </div>
@@ -318,7 +412,7 @@ export default function Contrats() {
 
               {/* Boutons d'action */}
               <div className="flex flex-wrap items-center gap-2">
-                {/* Bouton Exporter PDF */}
+                {/* ✅ Bouton Exporter PDF - accessible à tous (employés exportent leur contrat) */}
                 <button
                   onClick={exportToPDF}
                   className="px-4 py-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors border border-blue-500/30 text-sm font-medium flex items-center gap-2"
@@ -327,7 +421,8 @@ export default function Contrats() {
                   Exporter PDF
                 </button>
 
-                {permissions.canCreate && permissions.canCreate('contrats') && (
+                {/* ✅ Boutons de création/modification - seulement pour admins */}
+                {(permissions.isSuperAdmin || permissions.isAdmin) && permissions.canCreate && permissions.canCreate('contrats') && (
                   <>
                     {/* Bouton Nouveau Contrat */}
                     <button
@@ -337,8 +432,6 @@ export default function Contrats() {
                       <Plus className="h-4 w-4" />
                       Nouveau Contrat
                     </button>
-                    
-                    
                     
                     {/* Input file caché */}
                     <input 
@@ -357,62 +450,54 @@ export default function Contrats() {
 
         {/* Cartes statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-primary text-primary-foreground">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-primary-foreground/80 text-sm font-medium">Total Contrats</p>
-                <FileText className="w-8 h-8 text-primary-foreground/80" />
-              </div>
-              <p className="text-4xl font-bold">{stats.total}</p>
-              <div className="flex items-center gap-1 mt-2 text-primary-foreground/80 text-xs">
-                <Activity className="w-3 h-3" />
-                <span>Tous types</span>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium mb-2">Total Contrats</p>
+                  <p className="text-3xl font-bold">{stats.total}</p>
+                </div>
+                <FileText className="h-8 w-8 text-blue-200" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white dark:from-emerald-600 dark:to-emerald-700">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-emerald-100 text-sm font-medium">Actifs</p>
-                <TrendingUp className="w-8 h-8 text-white/80" />
-              </div>
-              <p className="text-4xl font-bold">{stats.actifs}</p>
-              <div className="flex items-center gap-1 mt-2 text-emerald-100 text-xs">
-                <Clock className="w-3 h-3" />
-                <span>En cours</span>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-emerald-100 text-sm font-medium mb-2">Actifs</p>
+                  <p className="text-3xl font-bold">{stats.actifs}</p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-emerald-200" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white dark:from-blue-600 dark:to-blue-700">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-blue-100 text-sm font-medium">CDI</p>
-                <Briefcase className="w-8 h-8 text-white/80" />
-              </div>
-              <p className="text-4xl font-bold">{stats.cdi}</p>
-              <div className="flex items-center gap-1 mt-2 text-blue-100 text-xs">
-                <FileText className="w-3 h-3" />
-                <span>Permanents</span>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium mb-2">CDI</p>
+                  <p className="text-3xl font-bold">{stats.cdi}</p>
+                </div>
+                <Briefcase className="h-8 w-8 text-blue-200" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white dark:from-amber-600 dark:to-amber-700">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-amber-100 text-sm font-medium">CDD</p>
-                <Calendar className="w-8 h-8 text-white/80" />
-              </div>
-              <p className="text-4xl font-bold">{stats.cdd}</p>
-              <div className="flex items-center gap-1 mt-2 text-amber-100 text-xs">
-                <Clock className="w-3 h-3" />
-                <span>Temporaires</span>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-rose-100 text-sm font-medium mb-2">CDD</p>
+                  <p className="text-3xl font-bold">{stats.cdd}</p>
+                </div>
+                <Calendar className="h-8 w-8 text-rose-200" />
               </div>
             </CardContent>
           </Card>
@@ -461,12 +546,12 @@ export default function Contrats() {
                   Liste des Contrats
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {contrats.length} contrat{contrats.length > 1 ? 's' : ''} trouvé{contrats.length > 1 ? 's' : ''}
+                  {filteredContrats.length} contrat{filteredContrats.length > 1 ? 's' : ''} trouvé{filteredContrats.length > 1 ? 's' : ''}
                 </p>
               </div>
 
               {/* Partie droite - Bouton Import */}
-              {permissions.canCreate && permissions.canCreate('contrats') && (
+              {(permissions.isSuperAdmin || permissions.isAdmin) && permissions.canCreate && permissions.canCreate('contrats') && (
                 <div className="relative">
                   <button
                     onClick={() => setImportMenuOpen(!importMenuOpen)}
@@ -516,11 +601,8 @@ export default function Contrats() {
 
           <CardContent className="p-6">
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-16 space-y-4">
-                <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-                <p className="text-muted-foreground font-medium">Chargement des contrats...</p>
-              </div>
-            ) : contrats.length === 0 ? (
+              <PageLoader message="Chargement des contrats..." />
+            ) : filteredContrats.length === 0 ? (
               <div className="text-center py-16 space-y-6">
                 <div className="mx-auto w-24 h-24 rounded-full bg-muted flex items-center justify-center">
                   <FileText className="w-12 h-12 text-muted-foreground" />
@@ -541,22 +623,24 @@ export default function Contrats() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/30 border">
-                  <Checkbox
-                    id="select-all"
-                    checked={selectedContrats.size === contrats.length && contrats.length > 0}
-                    onCheckedChange={handleSelectAll}
-                    className="border-2"
-                  />
-                  <label htmlFor="select-all" className="text-sm font-semibold text-foreground cursor-pointer">
-                    Tout sélectionner ({contrats.length} contrat{contrats.length > 1 ? 's' : ''})
-                  </label>
-                </div>
+                {permissions.canDelete('contrats') && (
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/30 border">
+                    <Checkbox
+                      id="select-all"
+                      checked={selectedContrats.size === filteredContrats.length && filteredContrats.length > 0}
+                      onCheckedChange={handleSelectAll}
+                      className="border-2"
+                    />
+                    <label htmlFor="select-all" className="text-sm font-semibold text-foreground cursor-pointer">
+                      Tout sélectionner ({filteredContrats.length} contrat{filteredContrats.length > 1 ? 's' : ''})
+                    </label>
+                  </div>
+                )}
 
                 <Separator className="my-4" />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {contrats.map((contrat) => (
+                  {filteredContrats.map((contrat) => (
                     <Card 
                       key={contrat.id} 
                       className={`group hover:shadow-xl transition-all duration-300 border-2 ${
@@ -1092,4 +1176,4 @@ export default function Contrats() {
       )}
     </div>
   );
-} 
+}

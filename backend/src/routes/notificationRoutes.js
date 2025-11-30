@@ -1,3 +1,4 @@
+//backend/src/routes/notificationRoutes.js
 import express from "express";
 import { verifyToken } from "../midleware/authMidllewares.js";
 import {

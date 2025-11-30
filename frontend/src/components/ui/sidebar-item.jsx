@@ -20,7 +20,12 @@ export function SidebarItem({
 
   return (
     <li {...itemDataAttributes}>
-      <NavLink to={to} end={exact} className="no-underline" aria-current={(navData) => (navData.isActive ? 'page' : undefined)}>
+      <NavLink 
+        to={to} 
+        end={true}
+        className="no-underline" 
+        aria-current={(navData) => (navData.isActive ? 'page' : undefined)}
+      >
         {({ isActive }) => (
           <SidebarMenuButton isActive={isActive} className={className} {...buttonProps}>
             {Icon && <Icon className="size-4" />}

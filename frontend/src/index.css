@@ -3,6 +3,42 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================
+   GUIDE DE MODIFICATION DES STYLES
+   ============================================
+   
+   COMMENT MODIFIER LES STYLES DE VOTRE PROJET :
+   
+   📍 NAVIGATION RAPIDE :
+   - Variables CSS (couleurs) : lignes 6-124
+   - Classes personnalisées : lignes 276-729
+   - Styles globaux formulaires : lignes 731-870
+   - Exemples pratiques : lignes 872-1050
+   
+   1. MODIFIER LES COULEURS GLOBALES :
+      ✅ Lignes 6-58 : Variables pour le mode clair
+      ✅ Lignes 61-124 : Variables pour le mode sombre
+      💡 Exemple : Changez --primary (ligne 13) pour modifier la couleur primaire partout
+   
+   2. MODIFIER LES STYLES DE FORMULAIRES :
+      ✅ Lignes 731-870 : Styles globaux (s'appliquent automatiquement)
+      ✅ Lignes 276-729 : Classes personnalisées (.form-*)
+      💡 Les styles globaux affectent TOUS les formulaires sans modifier les composants
+   
+   3. MODIFIER UN STYLE SPÉCIFIQUE :
+      ✅ Lignes 872-1050 : 20 exemples commentés prêts à utiliser
+      💡 Décommentez l'exemple souhaité et modifiez-le selon vos besoins
+   
+   4. EXEMPLES RAPIDES :
+      🔹 Hauteur inputs : ligne 749, changez "h-10" en "h-12"
+      🔹 Bordures : ligne 749, changez "border" en "border-2"
+      🔹 Espacement : ligne 738, changez "space-y-4" en "space-y-6"
+      🔹 Couleur primaire : ligne 13, modifiez la valeur oklch()
+   
+   💡 ASTUCE : Utilisez Ctrl+F pour chercher rapidement un style !
+   
+   ============================================ */
+
 :root {
   --background: oklch(1.0000 0 0);
   --foreground: oklch(26.862% 0.00003 271.152);
@@ -203,25 +239,7 @@
   }
 }
 
-/* Topbar fixes */
-@layer components {
-  .topbar-fixed {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    width: 100%;
-    border-bottom: 1px solid hsl(var(--border));
-    background-color: hsl(var(--background) / 0.95);
-    backdrop-filter: blur(8px);
-  }
-  
-  .main-content {
-    flex: 1;
-    overflow: auto;
-    padding-top: 0;
-  }
-}
-/* Scrollbar personnalisée pour la sidebar */
+/* Topbar fixes et Scrollbar personnalisée pour la sidebar */
 @layer components {
   .topbar-fixed {
     position: sticky;
@@ -272,4 +290,774 @@
   .dark .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.25);
   }
+
+  /* ============================================
+     STYLES DE FORMULAIRES
+     ============================================ */
+
+  /* Conteneur de formulaire principal */
+  .form-container {
+    @apply p-6 space-y-6 bg-card;
+  }
+
+  .form-container-scrollable {
+    @apply p-6 space-y-6 bg-card max-h-[70vh] overflow-y-auto;
+  }
+
+  .form-container-dialog {
+    @apply p-6 space-y-6 bg-card max-h-[65vh] overflow-y-auto;
+  }
+
+  /* Grille de formulaire */
+  .form-grid {
+    @apply grid gap-4 md:grid-cols-2;
+  }
+
+  .form-grid-full {
+    @apply grid gap-4 md:grid-cols-2;
+  }
+
+  .form-grid-single {
+    @apply space-y-2;
+  }
+
+  /* Champs de formulaire */
+  .form-field {
+    @apply space-y-2;
+  }
+
+  .form-field-label {
+    @apply text-sm font-semibold text-foreground;
+  }
+
+  .form-field-label-required {
+    @apply text-sm font-semibold text-foreground flex items-center gap-2;
+  }
+
+  .form-field-label-required::after {
+    content: "*";
+    @apply text-destructive;
+  }
+
+  /* Inputs */
+  .form-input {
+    @apply h-10 rounded-lg bg-background text-foreground border border-border;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+    @apply transition-colors duration-200;
+  }
+
+  .form-input-lg {
+    @apply h-12 rounded-lg bg-background text-foreground border-2 border-border;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary;
+    @apply transition-colors duration-200;
+  }
+
+  .form-input-dark {
+    @apply dark:bg-slate-900 dark:text-white;
+  }
+
+  /* Select */
+  .form-select {
+    @apply w-full px-3 py-2 border border-border rounded-md;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+    @apply bg-background text-foreground;
+    @apply transition-colors duration-200;
+  }
+
+  .form-select-lg {
+    @apply h-12 border-2 focus:border-primary transition-colors;
+  }
+
+  .form-select-dark {
+    @apply dark:bg-slate-900 dark:text-white;
+  }
+
+  /* Textarea */
+  .form-textarea {
+    @apply w-full px-3 py-2 border border-border rounded-md;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+    @apply bg-background text-foreground resize-none;
+    @apply transition-colors duration-200;
+  }
+
+  .form-textarea-dark {
+    @apply dark:bg-slate-900 dark:text-white;
+  }
+
+  /* Labels */
+  .form-label {
+    @apply text-sm font-medium text-foreground;
+  }
+
+  .form-label-bold {
+    @apply text-sm font-semibold text-foreground;
+  }
+
+  .form-label-with-icon {
+    @apply text-sm font-semibold text-foreground flex items-center gap-2;
+  }
+
+  /* Messages d'erreur */
+  .form-error {
+    @apply p-3 rounded-lg bg-destructive/10 text-destructive text-sm;
+  }
+
+  .form-error-dark {
+    @apply dark:bg-red-900/20 dark:border-red-800 dark:text-red-400;
+    @apply border border-destructive/20;
+  }
+
+  /* Boutons de formulaire */
+  .form-button-group {
+    @apply flex flex-col gap-3 md:flex-row;
+  }
+
+  .form-button-cancel {
+    @apply flex-1 h-12 border-2 hover:bg-muted transition-all;
+  }
+
+  .form-button-submit {
+    @apply flex-1 h-12 bg-primary hover:bg-primary/90 text-primary-foreground;
+    @apply shadow-lg hover:shadow-xl transition-all gap-2;
+  }
+
+  .form-button-submit-disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  /* Séparateur de formulaire */
+  .form-separator {
+    @apply my-4 border-border;
+  }
+
+  .form-separator-lg {
+    @apply my-6 border-border;
+  }
+
+  /* Formulaire de login/signup */
+  .auth-form {
+    @apply p-6 md:p-8;
+  }
+
+  .auth-form-container {
+    @apply flex flex-col gap-6;
+  }
+
+  .auth-form-header {
+    @apply flex flex-col items-center text-center;
+  }
+
+  .auth-form-title {
+    @apply text-2xl font-bold;
+  }
+
+  .auth-form-subtitle {
+    @apply text-balance text-muted-foreground;
+  }
+
+  .auth-form-field-group {
+    @apply flex flex-col gap-6;
+  }
+
+  .auth-form-password-toggle {
+    @apply absolute right-3 top-1/2 -translate-y-1/2;
+    @apply text-muted-foreground hover:text-foreground;
+    @apply transition-colors duration-200;
+  }
+
+  /* Formulaire dans dialog */
+  .dialog-form {
+    @apply p-6 space-y-6 bg-card;
+  }
+
+  .dialog-form-scrollable {
+    @apply p-6 space-y-6 bg-card max-h-[60vh] overflow-y-auto;
+  }
+
+  .dialog-form-header {
+    @apply bg-primary p-6 text-primary-foreground;
+  }
+
+  .dialog-form-header-gradient {
+    @apply bg-gradient-to-r from-primary via-primary/90 to-accent p-6 text-primary-foreground;
+  }
+
+  .dialog-form-title {
+    @apply text-2xl font-bold flex items-center gap-3;
+  }
+
+  .dialog-form-title-icon {
+    @apply h-10 w-10 rounded-xl bg-primary-foreground/20 backdrop-blur-sm;
+    @apply flex items-center justify-center;
+  }
+
+  .dialog-form-description {
+    @apply text-primary-foreground/80 mt-2;
+  }
+
+  /* Champs de formulaire avec icônes */
+  .form-field-with-icon {
+    @apply flex items-center gap-2;
+  }
+
+  .form-field-icon {
+    @apply w-4 h-4 text-primary;
+  }
+
+  /* Grille responsive */
+  .form-grid-2 {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+  }
+
+  .form-grid-3 {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-4;
+  }
+
+  .form-col-span-2 {
+    @apply col-span-2;
+  }
+
+  /* Input avec icône */
+  .form-input-with-icon {
+    @apply relative;
+  }
+
+  .form-input-icon-left {
+    @apply absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground;
+  }
+
+  .form-input-icon-right {
+    @apply absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground;
+  }
+
+  .form-input-padding-left {
+    @apply pl-10;
+  }
+
+  .form-input-padding-right {
+    @apply pr-10;
+  }
+
+  /* États de validation */
+  .form-input-valid {
+    @apply border-green-500 focus:ring-green-500;
+  }
+
+  .form-input-invalid {
+    @apply border-destructive focus:ring-destructive;
+  }
+
+  /* Placeholder personnalisé */
+  .form-input::placeholder {
+    @apply text-muted-foreground;
+  }
+
+  /* Focus visible amélioré */
+  .form-input:focus-visible {
+    @apply ring-2 ring-primary ring-offset-2;
+  }
+
+  .form-select:focus-visible {
+    @apply ring-2 ring-primary ring-offset-2;
+  }
+
+  .form-textarea:focus-visible {
+    @apply ring-2 ring-primary ring-offset-2;
+  }
+
+  /* Disabled state */
+  .form-input:disabled {
+    @apply opacity-50 cursor-not-allowed bg-muted;
+  }
+
+  .form-select:disabled {
+    @apply opacity-50 cursor-not-allowed bg-muted;
+  }
+
+  .form-textarea:disabled {
+    @apply opacity-50 cursor-not-allowed bg-muted;
+  }
+
+  /* Animation de chargement */
+  .form-loading {
+    @apply opacity-50 pointer-events-none;
+  }
+
+  .form-spinner {
+    @apply animate-spin rounded-full h-12 w-12 border-b-2 border-primary;
+  }
+
+  /* Styles pour les formulaires de recherche */
+  .form-search-container {
+    @apply relative flex-1;
+  }
+
+  .form-search-input {
+    @apply pl-10 pr-4;
+  }
+
+  .form-search-icon {
+    @apply absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground;
+  }
+
+  /* Styles pour les formulaires de filtres */
+  .form-filter-container {
+    @apply flex flex-col lg:flex-row gap-4;
+  }
+
+  .form-filter-field {
+    @apply flex-1;
+  }
+
+  /* Styles pour les formulaires en mode sombre */
+  .dark .form-input {
+    @apply dark:bg-slate-900 dark:text-white dark:border-slate-700;
+  }
+
+  .dark .form-select {
+    @apply dark:bg-slate-900 dark:text-white dark:border-slate-700;
+  }
+
+  .dark .form-textarea {
+    @apply dark:bg-slate-900 dark:text-white dark:border-slate-700;
+  }
+
+  /* Styles pour les formulaires de profil */
+  .form-profile-container {
+    @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+  }
+
+  .form-profile-section {
+    @apply lg:col-span-2 space-y-6;
+  }
+
+  .form-profile-sidebar {
+    @apply space-y-6;
+  }
+
+  /* Styles pour les formulaires de tableau */
+  .form-table-container {
+    @apply rounded-2xl bg-card border border-border shadow-sm overflow-hidden;
+  }
+
+  .form-table-header {
+    @apply bg-muted/50 p-6 md:p-8 border-b border-border;
+  }
+
+  .form-table-content {
+    @apply p-6 md:p-8 border-b border-border space-y-4;
+  }
+
+  /* Styles pour les formulaires de modal */
+  .form-modal-overlay {
+    @apply fixed inset-0 z-50 bg-background/80 backdrop-blur-sm;
+  }
+
+  .form-modal-content {
+    @apply fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200;
+  }
+
+  /* Styles pour les formulaires de confirmation */
+  .form-confirm-container {
+    @apply sm:max-w-[400px] border border-border bg-card;
+  }
+
+  .form-confirm-header {
+    @apply text-xl font-bold text-foreground flex items-center gap-2;
+  }
+
+  .form-confirm-icon {
+    @apply p-2 rounded-lg bg-destructive/10;
+  }
+
+  /* Styles pour les formulaires avec upload */
+  .form-upload-container {
+    @apply border-2 border-dashed border-border rounded-lg p-6 text-center;
+    @apply hover:border-primary transition-colors cursor-pointer;
+  }
+
+  .form-upload-icon {
+    @apply mx-auto h-12 w-12 text-muted-foreground mb-4;
+  }
+
+  /* Styles pour les formulaires avec date picker */
+  .form-date-container {
+    @apply relative;
+  }
+
+  .form-date-icon {
+    @apply absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none;
+  }
+
+  /* Styles pour les formulaires avec select multiple */
+  .form-select-multiple {
+    @apply min-h-[120px] max-h-[200px] overflow-y-auto;
+  }
+
+  /* Styles pour les formulaires avec tags */
+  .form-tags-container {
+    @apply flex flex-wrap gap-2 p-2 border border-border rounded-md min-h-[40px];
+  }
+
+  .form-tag {
+    @apply px-2 py-1 bg-primary/10 text-primary rounded-md text-sm;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .form-grid {
+      @apply grid-cols-1;
+    }
+
+    .form-button-group {
+      @apply flex-col;
+    }
+
+    .form-button-cancel,
+    .form-button-submit {
+      @apply w-full;
+    }
+  }
+
+  /* ============================================
+     STYLES GLOBAUX POUR FORMULAIRES
+     Ces styles s'appliquent automatiquement à tous les formulaires
+     ============================================ */
+
+  /* Styles globaux pour tous les formulaires */
+  form {
+    @apply space-y-4;
+  }
+
+  /* Styles globaux pour les inputs dans les formulaires */
+  form input[type="text"],
+  form input[type="email"],
+  form input[type="password"],
+  form input[type="tel"],
+  form input[type="date"],
+  form input[type="number"],
+  form input[type="search"] {
+    @apply h-10 rounded-lg bg-background text-foreground border border-border;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+    @apply transition-colors duration-200;
+    @apply px-3 py-1;
+  }
+
+  /* Styles globaux pour les selects dans les formulaires */
+  form select {
+    @apply w-full px-3 py-2 border border-border rounded-md;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+    @apply bg-background text-foreground;
+    @apply transition-colors duration-200;
+    @apply h-10;
+  }
+
+  /* Styles globaux pour les textareas dans les formulaires */
+  form textarea {
+    @apply w-full px-3 py-2 border border-border rounded-md;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+    @apply bg-background text-foreground resize-none;
+    @apply transition-colors duration-200;
+    @apply min-h-[80px];
+  }
+
+  /* Styles globaux pour les labels dans les formulaires */
+  form label {
+    @apply text-sm font-medium text-foreground;
+    @apply block mb-1;
+  }
+
+  /* Styles pour les inputs avec hauteur personnalisée (h-12) */
+  form input.h-12,
+  form select.h-12 {
+    @apply h-12;
+  }
+
+  /* Styles pour les inputs avec border-2 */
+  form input.border-2,
+  form select.border-2 {
+    @apply border-2;
+  }
+
+  /* Styles pour les conteneurs de formulaire dans les dialogs */
+  [role="dialog"] form,
+  .dialog form {
+    @apply p-6 space-y-6 bg-card;
+  }
+
+  /* Styles pour les grilles de formulaire */
+  form .grid.gap-4 {
+    @apply gap-4;
+  }
+
+  /* Styles pour les espaces dans les formulaires */
+  form .space-y-2 {
+    @apply space-y-2;
+  }
+
+  form .space-y-4 {
+    @apply space-y-4;
+  }
+
+  form .space-y-6 {
+    @apply space-y-6;
+  }
+
+  /* Styles pour les boutons dans les formulaires */
+  form button[type="submit"],
+  form button[type="button"] {
+    @apply transition-all duration-200;
+  }
+
+  /* Styles pour les messages d'erreur dans les formulaires */
+  form .text-destructive,
+  form .text-red-600 {
+    @apply text-destructive;
+  }
+
+  form .bg-destructive\/10 {
+    @apply bg-destructive/10;
+  }
+
+  /* Mode sombre - styles globaux */
+  .dark form input[type="text"],
+  .dark form input[type="email"],
+  .dark form input[type="password"],
+  .dark form input[type="tel"],
+  .dark form input[type="date"],
+  .dark form input[type="number"],
+  .dark form input[type="search"] {
+    @apply dark:bg-slate-900 dark:text-white dark:border-slate-700;
+  }
+
+  .dark form select {
+    @apply dark:bg-slate-900 dark:text-white dark:border-slate-700;
+  }
+
+  .dark form textarea {
+    @apply dark:bg-slate-900 dark:text-white dark:border-slate-700;
+  }
+
+  /* Styles pour les formulaires avec classe spécifique */
+  .form-scrollable {
+    @apply max-h-[70vh] overflow-y-auto;
+  }
+
+  /* Amélioration du focus pour l'accessibilité */
+  form input:focus-visible,
+  form select:focus-visible,
+  form textarea:focus-visible {
+    @apply ring-2 ring-primary ring-offset-2 outline-none;
+  }
+
+  /* États disabled */
+  form input:disabled,
+  form select:disabled,
+  form textarea:disabled {
+    @apply opacity-50 cursor-not-allowed bg-muted;
+  }
+
+  /* Placeholder personnalisé */
+  form input::placeholder,
+  form textarea::placeholder {
+    @apply text-muted-foreground;
+  }
+
+  /* ============================================
+     EXEMPLES DE MODIFICATIONS PRATIQUES
+     Décommentez et modifiez selon vos besoins
+     ============================================ */
+
+  /* EXEMPLE 1: Augmenter la hauteur de tous les inputs */
+  /*
+  form input[type="text"],
+  form input[type="email"],
+  form input[type="password"],
+  form input[type="tel"],
+  form input[type="date"],
+  form input[type="number"],
+  form input[type="search"] {
+    @apply h-12;  // Changez h-10 en h-12 pour des inputs plus grands
+  }
+  */
+
+  /* EXEMPLE 2: Changer la couleur de bordure au focus */
+  /*
+  form input:focus,
+  form select:focus,
+  form textarea:focus {
+    @apply border-primary ring-primary;  // Bordure bleue au focus
+    // Ou utilisez une couleur personnalisée :
+    // border-color: #3B82F6;
+  }
+  */
+
+  /* EXEMPLE 3: Ajouter une ombre aux inputs */
+  /*
+  form input[type="text"],
+  form input[type="email"],
+  form input[type="password"] {
+    @apply shadow-sm;  // Ombre légère
+    // Ou pour une ombre plus prononcée :
+    // @apply shadow-md;
+  }
+  */
+
+  /* EXEMPLE 4: Changer le style des bordures (plus épaisses) */
+  /*
+  form input[type="text"],
+  form select,
+  form textarea {
+    @apply border-2;  // Bordure de 2px au lieu de 1px
+  }
+  */
+
+  /* EXEMPLE 5: Modifier l'espacement entre les champs */
+  /*
+  form {
+    @apply space-y-6;  // Changez space-y-4 en space-y-6 pour plus d'espace
+  }
+  */
+
+  /* EXEMPLE 6: Changer la couleur de fond des inputs */
+  /*
+  form input[type="text"],
+  form select,
+  form textarea {
+    @apply bg-muted;  // Fond gris clair au lieu de blanc
+    // Ou une couleur personnalisée :
+    // background-color: #F3F4F6;
+  }
+  */
+
+  /* EXEMPLE 7: Modifier le style des labels */
+  /*
+  form label {
+    @apply text-base font-bold;  // Texte plus grand et gras
+    @apply text-primary;  // Couleur primaire
+    @apply mb-2;  // Plus d'espace en bas
+  }
+  */
+
+  /* EXEMPLE 8: Changer le style des boutons dans les formulaires */
+  /*
+  form button[type="submit"] {
+    @apply bg-primary text-white font-bold py-3 px-6 rounded-xl;
+    @apply shadow-lg hover:shadow-xl;
+    @apply transform hover:scale-105 transition-all;
+  }
+  */
+
+  /* EXEMPLE 9: Modifier le style des messages d'erreur */
+  /*
+  form .text-destructive,
+  form .bg-destructive\/10 {
+    @apply bg-red-50 border border-red-200 rounded-lg p-3;
+    @apply text-red-700 font-medium;
+  }
+  */
+
+  /* EXEMPLE 10: Changer le style des selects */
+  /*
+  form select {
+    @apply bg-white border-2 border-primary/20;
+    @apply cursor-pointer;
+    @apply hover:border-primary transition-colors;
+  }
+  */
+
+  /* EXEMPLE 11: Modifier le style des textareas */
+  /*
+  form textarea {
+    @apply min-h-[120px];  // Hauteur minimale plus grande
+    @apply font-mono;  // Police monospace
+    @apply leading-relaxed;  // Interligne plus espacé
+  }
+  */
+
+  /* EXEMPLE 12: Ajouter un style pour les champs requis */
+  /*
+  form input[required],
+  form select[required],
+  form textarea[required] {
+    @apply border-l-4 border-l-primary;  // Bordure gauche bleue
+  }
+  */
+
+  /* EXEMPLE 13: Style pour les inputs désactivés */
+  /*
+  form input:disabled,
+  form select:disabled,
+  form textarea:disabled {
+    @apply bg-gray-100 text-gray-500;
+    @apply cursor-not-allowed;
+    @apply opacity-60;
+  }
+  */
+
+  /* EXEMPLE 14: Modifier le style des formulaires dans les dialogs */
+  /*
+  [role="dialog"] form,
+  .dialog form {
+    @apply p-8;  // Plus de padding
+    @apply bg-gradient-to-br from-white to-gray-50;  // Dégradé de fond
+  }
+  */
+
+  /* EXEMPLE 15: Changer le style des inputs en mode sombre */
+  /*
+  .dark form input[type="text"],
+  .dark form select,
+  .dark form textarea {
+    @apply bg-slate-800 text-slate-100;
+    @apply border-slate-600;
+    @apply placeholder:text-slate-400;
+  }
+  */
+
+  /* EXEMPLE 16: Ajouter une animation au focus */
+  /*
+  form input:focus,
+  form select:focus,
+  form textarea:focus {
+    @apply animate-pulse;  // Animation de pulsation
+    // Ou une transition personnalisée :
+    // transition: all 0.3s ease-in-out;
+    // transform: scale(1.02);
+  }
+  */
+
+  /* EXEMPLE 17: Modifier le style des grilles de formulaire */
+  /*
+  form .grid {
+    @apply gap-6;  // Plus d'espace entre les colonnes
+  }
+  */
+
+  /* EXEMPLE 18: Style personnalisé pour les dates */
+  /*
+  form input[type="date"] {
+    @apply bg-blue-50 border-blue-200;
+    @apply font-semibold;
+  }
+  */
+
+  /* EXEMPLE 19: Modifier le style des placeholders */
+  /*
+  form input::placeholder,
+  form textarea::placeholder {
+    @apply text-gray-400 italic;  // Texte gris et italique
+    @apply opacity-70;
+  }
+  */
+
+  /* EXEMPLE 20: Ajouter un style pour les formulaires de recherche */
+  /*
+  form[class*="search"] input,
+  .form-search-container input {
+    @apply rounded-full;  // Inputs arrondis
+    @apply pl-10 pr-4;
+    @apply border-2 border-primary/30;
+  }
+  */
 }

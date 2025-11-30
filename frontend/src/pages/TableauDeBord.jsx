@@ -64,7 +64,7 @@ export default function TableauDeBord() {
   const [overviewData, setOverviewData] = useState([]);
   const [employeeStatus, setEmployeeStatus] = useState([]);
   const [leaveData, setLeaveData] = useState([]);
-  const [rawCounts, setRawCounts] = useState({
+  const [_rawCounts, setRawCounts] = useState({
     totalEmployes: 0,
     totalUtilisateurs: 0,
     totalContrats: 0,
@@ -246,23 +246,23 @@ export default function TableauDeBord() {
         {/* Carte de bienvenue avec image */}
         <Card className="border-0 shadow-xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700">
           <CardContent className="p-0">
-            <div className="flex flex-col md:flex-row items-center justify-between">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               {/* Contenu texte */}
-              <div className="flex-1 p-8 md:p-10">
-                <div className="space-y-4">
+              <div className="flex-1 p-6 md:p-8 lg:p-10">
+                <div className="space-y-5">
                   <div>
-                    <h1 className="text-4xl md:text-5xl font-bold text-white mb-3">
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-2 leading-tight">
                       {getGreeting()}, {userData.prenom || userData.nom || "Utilisateur"}! 👋
                     </h1>
-                    <p className="text-blue-100 text-lg">
+                    <p className="text-blue-100 text-base md:text-lg">
                       Bienvenue sur votre tableau de bord de gestion RH
                     </p>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-2">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 pt-1">
                     <div className="flex items-center gap-2 text-white/90">
-                      <Calendar className="h-5 w-5" />
-                      <span className="text-sm font-medium">
+                      <Calendar className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium">
                         {new Date().toLocaleDateString('fr-FR', { 
                           weekday: 'long', 
                           day: 'numeric',
@@ -272,16 +272,16 @@ export default function TableauDeBord() {
                       </span>
                     </div>
                     
-                    <div className="h-6 w-px bg-white/20 hidden sm:block"></div>
+                    <div className="h-5 sm:h-6 w-px bg-white/20 hidden sm:block"></div>
                     
-                    <Badge className="bg-white/20 text-white border-0 hover:bg-white/30 transition-colors">
+                    <Badge className="bg-white/20 text-white border-0 hover:bg-white/30 transition-colors text-xs sm:text-sm">
                       <span className="font-semibold mr-1">Rôle:</span> {userData.role || "EMPLOYE"}
                     </Badge>
                   </div>
 
-                  <div className="flex flex-wrap gap-3 pt-4">
+                  <div className="flex flex-wrap gap-2 sm:gap-3 pt-2">
                     <Button 
-                      className="bg-white text-blue-700 hover:bg-blue-50 rounded-lg shadow-lg"
+                      className="bg-white text-blue-700 hover:bg-blue-50 rounded-lg shadow-lg text-sm sm:text-base"
                       onClick={() => navigate("/dashboard/employes")}
                     >
                       <Users className="h-4 w-4 mr-2" />
@@ -289,7 +289,7 @@ export default function TableauDeBord() {
                     </Button>
                     <Button 
                       variant="outline" 
-                      className="border-white/30 text-white hover:bg-white/10 rounded-lg"
+                      className="border-white/30 text-white hover:bg-white/10 rounded-lg text-sm sm:text-base"
                       onClick={() => navigate("/dashboard/bulletins")}
                     >
                       <FileText className="h-4 w-4 mr-2" />
@@ -301,14 +301,14 @@ export default function TableauDeBord() {
 
               {/* Image décorative */}
               <div className="relative w-full md:w-auto md:flex-shrink-0 overflow-hidden">
-                <div className="relative h-64 md:h-80 md:w-80 lg:w-96 flex items-center justify-center">
+                <div className="relative h-56 sm:h-64 md:h-80 md:w-80 lg:w-96 flex items-center justify-center">
                   {/* Cercles décoratifs en arrière-plan - Positionnés pour créer un effet derrière l'image */}
-                  <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-64 h-64 bg-gradient-to-br from-blue-400/30 to-purple-400/30 rounded-full blur-3xl animate-pulse"></div>
-                  <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-gradient-to-tr from-cyan-400/20 to-blue-400/20 rounded-full blur-2xl"></div>
-                  <div className="absolute top-1/3 left-1/4 w-32 h-32 bg-purple-400/20 rounded-full blur-xl"></div>
+                  <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-48 sm:w-64 h-48 sm:h-64 bg-gradient-to-br from-blue-400/30 to-purple-400/30 rounded-full blur-3xl animate-pulse"></div>
+                  <div className="absolute bottom-1/4 right-1/4 w-36 sm:w-48 h-36 sm:h-48 bg-gradient-to-tr from-cyan-400/20 to-blue-400/20 rounded-full blur-2xl"></div>
+                  <div className="absolute top-1/3 left-1/4 w-24 sm:w-32 h-24 sm:h-32 bg-purple-400/20 rounded-full blur-xl"></div>
                   
                   {/* Image principale avec fond transparent */}
-                  <div className="relative z-10 w-full h-full flex items-center justify-center p-4">
+                  <div className="relative z-10 w-full h-full flex items-center justify-center p-3 sm:p-4">
                     <img 
                       src={imagecarso} 
                       alt="Dashboard Illustration" 
@@ -322,17 +322,17 @@ export default function TableauDeBord() {
                     {/* Fallback si l'image n'existe pas */}
                     <div className="w-full h-full items-center justify-center hidden">
                       <div className="text-center text-white/70">
-                        <Users className="h-20 w-20 mx-auto mb-3 opacity-50" />
-                        <p className="text-sm font-medium">Image à venir</p>
-                        <p className="text-xs mt-2 opacity-70">Placez votre image dans<br/><code className="bg-white/10 px-2 py-1 rounded mt-1 inline-block">/public/images/dashboard-hero.png</code></p>
+                        <Users className="h-16 sm:h-20 w-16 sm:w-20 mx-auto mb-3 opacity-50" />
+                        <p className="text-xs sm:text-sm font-medium">Image à venir</p>
+                        <p className="text-[10px] sm:text-xs mt-2 opacity-70">Placez votre image dans<br/><code className="bg-white/10 px-2 py-1 rounded mt-1 inline-block">/public/images/dashboard-hero.png</code></p>
                       </div>
                     </div>
                   </div>
 
                   {/* Éléments décoratifs flottants */}
-                  <div className="absolute top-8 right-8 w-3 h-3 bg-yellow-400 rounded-full opacity-60 animate-bounce"></div>
-                  <div className="absolute bottom-16 right-12 w-2 h-2 bg-green-400 rounded-full opacity-60" style={{ animationDelay: '0.5s' }}></div>
-                  <div className="absolute top-20 right-16 w-2 h-2 bg-pink-400 rounded-full opacity-60 animate-pulse"></div>
+                  <div className="absolute top-6 sm:top-8 right-6 sm:right-8 w-2 sm:w-3 h-2 sm:h-3 bg-yellow-400 rounded-full opacity-60 animate-bounce"></div>
+                  <div className="absolute bottom-12 sm:bottom-16 right-8 sm:right-12 w-1.5 sm:w-2 h-1.5 sm:h-2 bg-green-400 rounded-full opacity-60" style={{ animationDelay: '0.5s' }}></div>
+                  <div className="absolute top-16 sm:top-20 right-12 sm:right-16 w-1.5 sm:w-2 h-1.5 sm:h-2 bg-pink-400 rounded-full opacity-60 animate-pulse"></div>
                 </div>
               </div>
             </div>
@@ -341,25 +341,31 @@ export default function TableauDeBord() {
 
         {/* Statistiques principales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.length > 0 ? stats.map((stat, index) => (
-            <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-white dark:bg-slate-800">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`p-3 rounded-xl ${stat.bgColor}`}>
-                    <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
+          {stats.length > 0 ? stats.map((stat, index) => {
+            // Définir les styles selon l'index pour correspondre au style de Performances.jsx
+            const cardStyles = [
+              { gradient: "from-blue-600 to-blue-700", labelColor: "text-blue-100", iconColor: "text-blue-200" },
+              { gradient: "from-blue-500 to-blue-600", labelColor: "text-blue-100", iconColor: "text-blue-200" },
+              { gradient: "from-emerald-500 to-emerald-600", labelColor: "text-emerald-100", iconColor: "text-emerald-200" },
+              { gradient: "from-rose-500 to-rose-600", labelColor: "text-rose-100", iconColor: "text-rose-200" }
+            ];
+            const style = cardStyles[index % cardStyles.length] || cardStyles[0];
+            
+            return (
+              <Card key={index} className={`relative overflow-hidden border-0 shadow-xl bg-gradient-to-br ${style.gradient} text-white`}>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                <CardContent className="p-6 relative">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className={`${style.labelColor} text-sm font-medium mb-2`}>{stat.title}</p>
+                      <p className="text-3xl font-bold">{stat.value}</p>
+                    </div>
+                    <stat.icon className={`h-8 w-8 ${style.iconColor}`} />
                   </div>
-                  <Badge variant={stat.isPositive ? "default" : "destructive"} className="rounded-full">
-                    {stat.isPositive ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
-                    {stat.change}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">{stat.title}</p>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-white">{stat.value}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )) : (
+                </CardContent>
+              </Card>
+            );
+          }) : (
             <div className="col-span-4 text-center py-8 text-slate-500">
               Chargement des statistiques...
             </div>
@@ -494,21 +500,70 @@ export default function TableauDeBord() {
                 </p>
                 <ResponsiveContainer width="100%" height={200}>
                   {radarData.length > 0 ? (
-                    <RadarChart data={radarData}>
-                      <PolarGrid stroke="#e5e7eb" radialLines={false} />
-                      <PolarAngleAxis dataKey="subject" stroke="#94a3b8" fontSize={12} />
-                      <PolarRadiusAxis stroke="#94a3b8" tick={false} axisLine={false} />
+                    <RadarChart data={radarData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                      <defs>
+                        <linearGradient id="radarFill" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.6} />
+                          <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.1} />
+                        </linearGradient>
+                      </defs>
+                      <PolarGrid 
+                        stroke="#e5e7eb" 
+                        strokeWidth={1}
+                        radialLines={true}
+                        className="dark:stroke-slate-700"
+                      />
+                      <PolarAngleAxis 
+                        dataKey="subject" 
+                        stroke="#94a3b8" 
+                        fontSize={11}
+                        tick={{ fill: '#64748b' }}
+                        className="dark:stroke-slate-400"
+                      />
+                      <PolarRadiusAxis 
+                        angle={90} 
+                        domain={[0, 20]}
+                        stroke="#94a3b8" 
+                        tick={true}
+                        tickCount={5}
+                        tickFormatter={(value) => value}
+                        axisLine={true}
+                        fontSize={10}
+                        className="dark:stroke-slate-400"
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                          padding: '8px 12px'
+                        }}
+                        labelStyle={{
+                          fontWeight: 'bold',
+                          color: '#1e293b',
+                          marginBottom: '4px'
+                        }}
+                        formatter={(value) => [`${value}/20`, 'Note']}
+                      />
                       <Radar
                         name="Performance"
                         dataKey="value"
                         stroke="#8b5cf6"
-                        strokeWidth={2}
-                        fill="none"
+                        strokeWidth={2.5}
+                        fill="url(#radarFill)"
+                        fillOpacity={0.6}
+                        dot={{ fill: '#8b5cf6', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                        activeDot={{ r: 6, fill: '#8b5cf6', strokeWidth: 3, stroke: '#fff' }}
                       />
                     </RadarChart>
                   ) : (
-                    <div className="flex items-center justify-center h-full text-slate-500">
-                      Aucune donnée disponible
+                    <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                      <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3">
+                        <TrendingUp className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <p className="text-sm font-medium">Aucune donnée disponible</p>
+                      <p className="text-xs text-slate-400 mt-1">Les performances apparaîtront ici</p>
                     </div>
                   )}
                 </ResponsiveContainer>
@@ -648,68 +703,60 @@ export default function TableauDeBord() {
 
         {/* Section statistiques supplémentaires */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <AlertTriangle className="h-8 w-8 opacity-80" />
-                <Badge className="bg-white/20 text-white border-0">
-                  <ArrowUp className="h-3 w-3 mr-1" />
-                  +1.1%
-                </Badge>
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium mb-2">Taux d'absence</p>
+                  <p className="text-3xl font-bold">{additionalStats.tauxAbsence.toFixed(1)}%</p>
+                </div>
+                <AlertTriangle className="h-8 w-8 text-blue-200" />
               </div>
-              <p className="text-sm opacity-90 mb-1">Taux d'absence</p>
-              <p className="text-3xl font-bold">{additionalStats.tauxAbsence.toFixed(1)}%</p>
-              <Progress value={Math.min(additionalStats.tauxAbsence, 100)} className="mt-3 h-2 bg-white/20" />
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <Award className="h-8 w-8 opacity-80" />
-                <Badge className="bg-white/20 text-white border-0">
-                  <ArrowUp className="h-3 w-3 mr-1" />
-                  8%
-                </Badge>
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-emerald-100 text-sm font-medium mb-2">Moyenne des performances</p>
+                  <p className="text-3xl font-bold">{additionalStats.performanceMoyenne.toFixed(1)}%</p>
+                </div>
+                <Award className="h-8 w-8 text-emerald-200" />
               </div>
-              <p className="text-sm opacity-90 mb-1">Moyenne des performances</p>
-              <p className="text-3xl font-bold">{additionalStats.performanceMoyenne.toFixed(1)}%</p>
-              <Progress value={additionalStats.performanceMoyenne} className="mt-3 h-2 bg-white/20" />
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <Layers className="h-8 w-8 opacity-80" />
-                <Badge className="bg-white/20 text-white border-0">
-                  <ArrowUp className="h-3 w-3 mr-1" />
-                  5%
-                </Badge>
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-purple-100 text-sm font-medium mb-2">Total des postes</p>
+                  <p className="text-3xl font-bold">{additionalStats.totalPostes}</p>
+                </div>
+                <Layers className="h-8 w-8 text-purple-200" />
               </div>
-              <p className="text-sm opacity-90 mb-1">Total des postes</p>
-              <p className="text-3xl font-bold">{additionalStats.totalPostes}</p>
-              <Progress value={Math.min((additionalStats.totalPostes / Math.max(rawCounts.totalEmployes || 1, 1)) * 100, 100)} className="mt-3 h-2 bg-white/20" />
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-rose-500 to-rose-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <DollarSign className="h-8 w-8 opacity-80" />
-                <Badge className="bg-white/20 text-white border-0">
-                  <ArrowUp className="h-3 w-3 mr-1" />
-                  15%
-                </Badge>
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-rose-100 text-sm font-medium mb-2">Salaire moyen</p>
+                  <p className="text-3xl font-bold">
+                    {additionalStats.salaireMoyen > 0 
+                      ? `${(additionalStats.salaireMoyen / 1000000).toFixed(1)}M Ar`
+                      : "0 Ar"
+                    }
+                  </p>
+                </div>
+                <DollarSign className="h-8 w-8 text-rose-200" />
               </div>
-              <p className="text-sm opacity-90 mb-1">Salaire moyen</p>
-              <p className="text-3xl font-bold">
-                {additionalStats.salaireMoyen > 0 
-                  ? `${(additionalStats.salaireMoyen / 1000000).toFixed(1)}M Ar`
-                  : "0 Ar"
-                }
-              </p>
-              <Progress value={Math.min((additionalStats.salaireMoyen / 3000000) * 100, 100)} className="mt-3 h-2 bg-white/20" />
             </CardContent>
           </Card>
         </div>

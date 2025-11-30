@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Sun, Moon, Bell, Search, X, Loader2, Sparkles, Zap, TrendingUp } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -38,6 +39,7 @@ const formatRelativeTime = (value) => {
 
 export default function Topbar() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const token = user?.token || localStorage.getItem("token");
   const { socket } = useSocket(user?.id || null);
   const {
@@ -157,10 +159,44 @@ export default function Topbar() {
     return `${prenom} ${nom}`.trim() || profil.email || "Utilisateur";
   };
 
-  // Recherche
+  // Recherche intelligente
   const handleSearch = (e) => {
     e.preventDefault();
-    console.log("Recherche:", searchQuery);
+    if (!searchQuery.trim()) return;
+
+    const query = searchQuery.trim().toLowerCase();
+    
+    // Détecter le type de recherche et naviguer vers la page appropriée
+    // Les pages utiliseront le paramètre de recherche pour filtrer
+    if (query.includes('employé') || query.includes('employee') || query.includes('employe')) {
+      navigate('/dashboard/employes', { state: { searchQuery: query } });
+    } else if (query.includes('contrat') || query.includes('cdi') || query.includes('cdd')) {
+      navigate('/dashboard/contrats', { state: { searchQuery: query } });
+    } else if (query.includes('congé') || query.includes('conge') || query.includes('vacance')) {
+      navigate('/dashboard/conges', { state: { searchQuery: query } });
+    } else if (query.includes('absence') || query.includes('absent')) {
+      navigate('/dashboard/absences', { state: { searchQuery: query } });
+    } else if (query.includes('présence') || query.includes('presence') || query.includes('présent')) {
+      navigate('/dashboard/presences', { state: { searchQuery: query } });
+    } else if (query.includes('paiement') || query.includes('salaire') || query.includes('pay')) {
+      navigate('/dashboard/paiements', { state: { searchQuery: query } });
+    } else if (query.includes('bulletin') || query.includes('salaire')) {
+      navigate('/dashboard/bulletins', { state: { searchQuery: query } });
+    } else if (query.includes('poste') || query.includes('job')) {
+      navigate('/dashboard/postes', { state: { searchQuery: query } });
+    } else if (query.includes('département') || query.includes('departement') || query.includes('volet')) {
+      navigate('/dashboard/departements', { state: { searchQuery: query } });
+    } else if (query.includes('utilisateur') || query.includes('user') || query.includes('admin')) {
+      navigate('/dashboard/utilisateurs', { state: { searchQuery: query } });
+    } else if (query.includes('performance') || query.includes('évaluation') || query.includes('evaluation')) {
+      navigate('/dashboard/performances', { state: { searchQuery: query } });
+    } else {
+      // Par défaut, chercher dans les employés (le plus commun)
+      navigate('/dashboard/employes', { state: { searchQuery: query } });
+    }
+    
+    // Fermer la recherche mobile si ouverte
+    setSearchOpen(false);
   };
 
   // Icône de notification selon le type

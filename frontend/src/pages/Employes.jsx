@@ -832,6 +832,7 @@
 
 // //frontend/src/pages/Employes.jsx
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Search, Download, Filter, MoreHorizontal, ChevronDown, Plus, Trash2, Users, DollarSign, Upload, AlertCircle } from "lucide-react";
 
 import { pdf } from '@react-pdf/renderer';
@@ -866,10 +867,21 @@ import EmployeePDFDocument from "@/exportPdf/EmployeePDFDocument.jsx";
 import logoDroite from "@/assets/carso 1.png";
 
 export default function EmployeeList() {
+  const location = useLocation();
   const permissions = usePermissions()
-  const [searchQuery, setSearchQuery] = useState("")
+  // Initialiser searchQuery avec le paramètre de navigation si disponible
+  const [searchQuery, setSearchQuery] = useState(location.state?.searchQuery || "")
   const [selectedDepartment, setSelectedDepartment] = useState("Tous les départements")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  
+  // Mettre à jour searchQuery si le paramètre de navigation change
+  useEffect(() => {
+    if (location.state?.searchQuery) {
+      setSearchQuery(location.state.searchQuery);
+      // Nettoyer l'état de navigation après utilisation
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState(null)

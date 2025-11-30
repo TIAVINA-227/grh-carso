@@ -452,11 +452,18 @@ function SidebarMenuItem({
 }
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden ring-sidebar-ring transition-all duration-200 ease-in-out focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:transition-transform [&>svg]:duration-200 hover:[&>svg]:scale-110",
   {
     variants: {
       variant: {
-        default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        default: [
+          "hover:bg-gradient-to-r hover:from-blue-500/10 hover:to-purple-500/10",
+          "hover:text-sidebar-accent-foreground",
+          "hover:shadow-sm",
+          "hover:translate-x-0.5",
+          "dark:hover:from-blue-500/20 dark:hover:to-purple-500/20",
+          "active:scale-[0.98] active:transition-transform",
+        ],
         outline:
           "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
       },
@@ -491,7 +498,25 @@ function SidebarMenuButton({
       data-sidebar="menu-button"
       data-size={size}
       data-active={isActive}
-      className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+      className={cn(
+        sidebarMenuButtonVariants({ variant, size }),
+        // Styles pour l'état actif - professionnel et adapté au thème
+        isActive && [
+          "bg-gradient-to-r from-blue-600 to-blue-700",
+          "dark:from-blue-500 dark:to-blue-600",
+          "text-white",
+          "font-semibold",
+          "shadow-md shadow-blue-500/30",
+          "dark:shadow-blue-500/50",
+          "border-l-4 border-blue-400",
+          "dark:border-blue-300",
+          "translate-x-0",
+          "hover:from-blue-600 hover:to-blue-700",
+          "dark:hover:from-blue-500 dark:hover:to-blue-600",
+          "[&>svg]:text-white [&>svg]:scale-110",
+        ],
+        className
+      )}
       {...props} />
   )
 
