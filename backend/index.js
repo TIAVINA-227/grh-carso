@@ -481,7 +481,66 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-// Login
+// // Login
+// app.post("/api/auth/login", async (req, res) => {
+//   try {
+//     const { email, mot_de_passe } = req.body;
+
+//     if (!email || !mot_de_passe) 
+//       return res.status(400).json({ message: "Email et mot de passe requis" });
+
+//     const utilisateur = await prisma.utilisateur.findUnique({
+//       where: { email },
+//       include: { employe: true, conges: true },
+//     });
+
+//     if (!utilisateur) 
+//       return res.status(401).json({ message: "Email ou mot de passe incorrect" });
+
+//     const motDePasseValide = await bcrypt.compare(mot_de_passe, utilisateur.mot_de_passe);
+//     if (!motDePasseValide) 
+//       return res.status(401).json({ message: "Email ou mot de passe incorrect" });
+
+//     if (utilisateur.statut && utilisateur.statut !== "ACTIF") {
+//       return res.status(401).json({ message: "Compte désactivé" });
+//     }
+
+//     const token = jwt.sign(
+//       {
+//         id: utilisateur.id,
+//         email: utilisateur.email,
+//         nom_utilisateur: utilisateur.nom_utilisateur,
+//         prenom_utilisateur: utilisateur.prenom_utilisateur,
+//         role: utilisateur.role,
+//       },
+//       process.env.JWT_SECRET || "votre_secret_jwt",
+//       { expiresIn: "24h" }
+//     );
+
+//     await prisma.utilisateur.update({
+//       where: { id: utilisateur.id },
+//       data: { derniere_connexion: new Date() },
+//     });
+
+//     res.json({
+//       token,
+//       user: {
+//         id: utilisateur.id,
+//         nom_utilisateur: utilisateur.nom_utilisateur,
+//         prenom_utilisateur: utilisateur.prenom_utilisateur,
+//         email: utilisateur.email,
+//         role: utilisateur.role,
+//         employe: utilisateur.employe,
+//       },
+//     });
+//   } catch (error) {
+//     console.error("❌ Erreur login :", error);
+//     res.status(500).json({ message: "Erreur interne du serveur" });
+//   }
+// });
+
+// backend/index.js - Modifier la route Login (ligne ~180)
+
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, mot_de_passe } = req.body;
@@ -522,6 +581,7 @@ app.post("/api/auth/login", async (req, res) => {
       data: { derniere_connexion: new Date() },
     });
 
+    // 🆕 IMPORTANT : Retourner premiere_connexion
     res.json({
       token,
       user: {
@@ -531,6 +591,8 @@ app.post("/api/auth/login", async (req, res) => {
         email: utilisateur.email,
         role: utilisateur.role,
         employe: utilisateur.employe,
+        premiere_connexion: utilisateur.premiere_connexion, // 🆕 Ajouté
+        mot_de_passe_temporaire: utilisateur.mot_de_passe_temporaire // 🆕 Ajouté (optionnel)
       },
     });
   } catch (error) {

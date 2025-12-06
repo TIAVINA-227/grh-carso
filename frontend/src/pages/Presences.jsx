@@ -427,7 +427,7 @@ export default function Presences() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-muted dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 p-4 md:p-8">
       <div className="mx-auto max-w-7xl space-y-8">
 
         {/* Header moderne avec glassmorphism */}

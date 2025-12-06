@@ -1132,13 +1132,13 @@ export default function EmployeeList() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {/* Header Section */}
         <div className="mb-8">
           <div className="mx-auto max-w-7xl ">
-                    <div className="relative overflow-hidden rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-2xl p-8">
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-blue-500/5 to-teal-500/10"></div>
+            <div className="relative overflow-hidden rounded-2xl bg-card/70 backdrop-blur-xl border border-border shadow-2xl p-8">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-blue-500/5 to-teal-500/10"></div>
                       <div className="relative">
                         <div className="flex items-center gap-4 mb-6">
                           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-700 shadow-2xl shadow-blue-500/30">
@@ -1177,7 +1177,8 @@ export default function EmployeeList() {
                               ) : null}
                           </div>
                         </div>
-                      </div>
+                      </div>                     
+                    
                       
               {permissions.canCreate("employes") && (
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

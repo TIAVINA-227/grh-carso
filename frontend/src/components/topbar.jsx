@@ -237,7 +237,7 @@ export default function Topbar() {
           : 'bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800'
       }`}
     >
-      <div className="flex items-center justify-between gap-3 px-4 lg:px-6 py-3.5">
+      <div className="flex items-center justify-between gap-3 px-3 lg:px-6 py-3">
         
         {/* ===== GAUCHE : Trigger Sidebar + Recherche ===== */}
         <div className="flex items-center gap-4 flex-1">

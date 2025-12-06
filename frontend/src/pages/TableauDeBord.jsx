@@ -240,11 +240,11 @@ export default function TableauDeBord() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4 md:p-6 lg:p-8">
       <div className="max-w-[1600px] mx-auto space-y-6">
 
         {/* Carte de bienvenue avec image */}
-        <Card className="border-0 shadow-xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700">
+        <Card className="border-0 shadow-xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-cyan-00">
           <CardContent className="p-0">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               {/* Contenu texte */}
@@ -281,7 +281,7 @@ export default function TableauDeBord() {
 
                   <div className="flex flex-wrap gap-2 sm:gap-3 pt-2">
                     <Button 
-                      className="bg-white text-blue-700 hover:bg-blue-50 rounded-lg shadow-lg text-sm sm:text-base"
+                      className="bg-white text-blue-950 hover:bg-white/10 rounded-lg shadow-lg text-sm sm:text-base"
                       onClick={() => navigate("/dashboard/employes")}
                     >
                       <Users className="h-4 w-4 mr-2" />
@@ -289,7 +289,7 @@ export default function TableauDeBord() {
                     </Button>
                     <Button 
                       variant="outline" 
-                      className="border-white/30 text-white hover:bg-white/10 rounded-lg text-sm sm:text-base"
+                      className="border-white/30 text-blue-950 hover:bg-white/10 rounded-lg text-sm sm:text-base"
                       onClick={() => navigate("/dashboard/bulletins")}
                     >
                       <FileText className="h-4 w-4 mr-2" />
@@ -312,7 +312,7 @@ export default function TableauDeBord() {
                     <img 
                       src={imagecarso} 
                       alt="Dashboard Illustration" 
-                      className="w-full h-full object-contain drop-shadow-[0_10px_40px_rgba(59,130,246,0.3)] hover:scale-105 transition-transform duration-500"
+                      className="w-250px h-250px object-contain drop-shadow-[0_10px_40px_rgba(59,130,246,0.3)] hover:scale-105 transition-transform duration-500"
                       onError={(e) => {
                         // Image de fallback si l'image n'est pas trouvée
                         e.target.style.display = 'none';

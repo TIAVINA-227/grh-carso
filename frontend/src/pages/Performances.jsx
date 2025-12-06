@@ -13,6 +13,7 @@ import {
   CheckCircle,
   MessageSquare,
   BarChart3,
+  ChartNoAxesCombined,
   X,
   AlertCircle,
 } from "lucide-react";
@@ -41,6 +42,7 @@ import { Button } from "@/components/ui/button";
 export default function Performances() {
   const { user } = useAuth();
   const permissions = usePermissions();
+  const [performances, setPerformances] = useState([]);
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [employes, setEmployes] = useState([]);
@@ -244,7 +246,7 @@ export default function Performances() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-muted dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 p-4 md:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
 
         {/* HEADER */}
@@ -252,7 +254,7 @@ export default function Performances() {
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-blue-500/5 to-blue-500/10"></div>
           <div className="relative">
             <div className="flex items-center gap-4 mb-6">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 shadow-2xl">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-700 shadow-2xl shadow-blue-500/30">
                 <TrendingUp className="h-8 w-8 text-white" />
               </div>
               <div className="flex-1">
@@ -493,7 +495,7 @@ export default function Performances() {
           </CardContent>
         </Card>
 
-        {/* LISTE DES ÉVALUATIONS */}
+        {/* LISTE DES ÉVALUATIONS
         <Card className="border-0 shadow-2xl">
           <CardContent className="p-8">
             <h3 className="text-lg font-semibold flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
@@ -548,6 +550,159 @@ export default function Performances() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </CardContent>
+        </Card> */}
+        {/* LISTE DES ÉVALUATIONS - VERSION MODERNE */}
+        <Card className="border-0 shadow-2xl overflow-hidden">
+          {/* En-tête avec dégradé */}
+          <div className="bg-muted/50 p-6 border-b">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                    <ChartNoAxesCombined  className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                  Liste des Performances
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {performances.length} evaluation{performances.length > 1 ? 's' : ''} trouvé{performances.length > 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <CardContent className="p-6">
+            {chartData.length === 0 ? (
+              <div className="text-center py-16">
+                <Award className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                <p className="text-muted-foreground text-lg">Aucune évaluation trouvée.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {chartData.slice().reverse().map((p) => {
+                  const getScoreColor = (note) => {
+                    if (note >= 16) return 'from-green-500 to-emerald-500';
+                    if (note >= 12) return 'from-blue-500 to-cyan-500';
+                    if (note >= 10) return 'from-yellow-500 to-orange-500';
+                    return 'from-red-500 to-pink-500';
+                  };
+
+                  const getScoreBadge = (note) => {
+                    if (note >= 16) return { text: 'Excellent', bg: 'bg-green-100 dark:bg-green-900/30', text_color: 'text-green-700 dark:text-green-400', border: 'border-green-200 dark:border-green-800' };
+                    if (note >= 12) return { text: 'Très bien', bg: 'bg-blue-100 dark:bg-blue-900/30', text_color: 'text-blue-700 dark:text-blue-400', border: 'border-blue-200 dark:border-blue-800' };
+                    if (note >= 10) return { text: 'Bien', bg: 'bg-yellow-100 dark:bg-yellow-900/30', text_color: 'text-yellow-700 dark:text-yellow-400', border: 'border-yellow-200 dark:border-yellow-800' };
+                    return { text: 'À améliorer', bg: 'bg-red-100 dark:bg-red-900/30', text_color: 'text-red-700 dark:text-red-400', border: 'border-red-200 dark:border-red-800' };
+                  };
+
+                  const badge = getScoreBadge(p.note);
+
+                  return (
+                    <div
+                      key={p.id}
+                      className="group relative bg-gradient-to-br from-card to-muted/30 rounded-xl border-2 border-border hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 hover:shadow-lg overflow-hidden"
+                    >
+                      {/* Barre de couleur latérale */}
+                      <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getScoreColor(p.note)}`} />
+
+                      <div className="p-6 pl-8">
+                        <div className="flex items-start justify-between gap-4">
+                          {/* Informations principales */}
+                          <div className="flex-1 space-y-3">
+                            {/* Nom et badge */}
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <h4 className="text-xl font-bold text-foreground">{p.nom}</h4>
+                              <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${badge.bg} ${badge.text_color} ${badge.border}`}>
+                                {badge.text}
+                              </span>
+                            </div>
+
+                            {/* Date et note */}
+                            <div className="flex items-center gap-6 flex-wrap text-sm">
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <Calendar className="h-4 w-4" />
+                                <span>{p.date}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Award className="h-4 w-4 text-blue-600" />
+                                <span className="font-bold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                                  {p.note}/20
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Commentaires */}
+                            {p.commentaires && (
+                              <div className="bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-400 dark:border-blue-600 p-3 rounded-r-lg">
+                                <p className="text-sm text-foreground/80 italic">"{p.commentaires}"</p>
+                              </div>
+                            )}
+
+                            {/* Objectifs et réalisation */}
+                            <div className="grid md:grid-cols-2 gap-4 mt-4">
+                              {p.objectifs && (
+                                <div className="flex gap-2">
+                                  <Target className="h-4 w-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
+                                  <div>
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase">Objectifs</p>
+                                    <p className="text-sm text-foreground">{p.objectifs}</p>
+                                  </div>
+                                </div>
+                              )}
+                              {p.realisation && (
+                                <div className="flex gap-2">
+                                  <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                                  <div>
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase">Réalisation</p>
+                                    <p className="text-sm text-foreground">{p.realisation}</p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Boutons d'action */}
+                          <div className="flex gap-2">
+                            {permissions.canEdit && permissions.canEdit("performances") && (
+                              <button
+                                onClick={() => {
+                                  setEditingId(p.id);
+                                  setForm({
+                                    employeId: String(p.employeId || ""),
+                                    note: String(p.note || ""),
+                                    date_eval: p.date ? String(p.date) : new Date().toISOString().slice(0, 10),
+                                    resultat: p.resultat || "",
+                                    commentaires: p.commentaires || "",
+                                    objectifs: p.objectifs || "",
+                                    realisation: p.realisation || "",
+                                  });
+                                  setIsDialogOpen(true);
+                                }}
+                                className="group/btn p-3 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/30 dark:hover:bg-blue-950/50 border-2 border-blue-200 hover:border-blue-300 dark:border-blue-800 dark:hover:border-blue-700 text-blue-700 dark:text-blue-400 rounded-xl transition-all duration-300 hover:shadow-md hover:scale-105"
+                                title="Modifier"
+                              >
+                                <Edit className="h-5 w-5" />
+                              </button>
+                            )}
+                            {permissions.canDelete && permissions.canDelete("performances") && (
+                              <button
+                                onClick={() => {
+                                  setDeleteId(p.id);
+                                  setConfirmDeleteOpen(true);
+                                }}
+                                className="group/btn p-3 bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-950/50 border-2 border-red-200 hover:border-red-300 dark:border-red-800 dark:hover:border-red-700 text-red-700 dark:text-red-400 rounded-xl transition-all duration-300 hover:shadow-md hover:scale-105"
+                                title="Supprimer"
+                              >
+                                <Trash2 className="h-5 w-5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>

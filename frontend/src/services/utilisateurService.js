@@ -52,6 +52,14 @@ export const getAdmins = () => getUtilisateursByRole("admin");
 
 export const getManagers = () => getUtilisateursByRole("manager");
 
+// 🆕 Ajouter cette fonction pour changer le mot de passe
+export const changePassword = async (userId, ancienMotDePasse, nouveauMotDePasse) => {
+  return request(`${API_BASE}/api/utilisateurs/${userId}/change-password`, {
+    method: "PUT",
+    body: JSON.stringify({ ancienMotDePasse, nouveauMotDePasse }),
+  });
+};
+
 export default {
   getUtilisateurs,
   createUtilisateur,
@@ -62,4 +70,5 @@ export default {
   getEmployes,
   getAdmins,
   getManagers,
+  changePassword, // 🆕 Exporter la nouvelle fonction
 };
