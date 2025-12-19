@@ -349,7 +349,7 @@ export default function Presences() {
 
   const colorStatut = (statut) => {
     switch (statut) {
-      case "PRESENT": return "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800";
+      case "PRESENT": return "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800";
       case "RETARD": return "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800";
       case "ABSENT": return "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800";
       default: return "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-800";
@@ -465,7 +465,7 @@ export default function Presences() {
                 {(permissions.canView('presences') || permissions.isEmploye) && (
                   <button 
                     onClick={exportToPDF} 
-                    className="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors border border-emerald-500/30 text-sm font-medium flex items-center gap-2"
+                    className="px-4 py-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors border border-blue-500/30 text-sm font-medium flex items-center gap-2"
                   >
                     <Upload className="h-4 w-4" />
                     Exporter PDF
@@ -534,15 +534,15 @@ export default function Presences() {
           </Card>
 
           {/* Carte 3: Taux de Présence du Jour */}
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-emerald-100 text-sm font-medium mb-2">Taux Aujourd'hui</p>
+                  <p className="text-blue-100 text-sm font-medium mb-2">Taux Aujourd'hui</p>
                   <p className="text-3xl font-bold">{stats.tauxJour}%</p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-emerald-200" />
+                <TrendingUp className="h-8 w-8 text-blue-200" />
               </div>
             </CardContent>
           </Card>
@@ -830,7 +830,7 @@ export default function Presences() {
 
             <div className="space-y-2">
               <Label htmlFor="statut" className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Activity className="w-4 h-4 text-emerald-500" />
+                <Activity className="w-4 h-4 text-blue-500" />
                 Statut <span className="text-destructive">*</span>
               </Label>
               <Select
@@ -843,7 +843,7 @@ export default function Presences() {
                 <SelectContent>
                   <SelectItem value="PRESENT">
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-emerald-600" />
+                      <CheckCircle className="w-4 h-4 text-blue-600" />
                       <span>Présent</span>
                     </div>
                   </SelectItem>

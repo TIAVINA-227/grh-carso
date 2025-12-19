@@ -1,12 +1,9 @@
 //frontend/src/pages/Bulletins.jsx
 import { useEffect, useState } from "react";
 import { Plus, Trash2, FileText, Calendar, DollarSign, CheckCircle, Clock, Archive, TrendingUp, Edit2, Upload, FileSpreadsheet, ChevronDown, Eye, Pencil, AlertCircle, RefreshCcw } from "lucide-react";
-// Import Dialog and related components
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
 import { Card, CardContent } from "@/components/ui/card";
-// Import Separator component
 import { Separator } from "@/components/ui/separator";
 import { pdf } from '@react-pdf/renderer';
 import { usePermissions } from "../hooks/usePermissions";
@@ -359,7 +356,7 @@ function Bulletins() {
                 {permissions.canView('bulletins') && (
                   <button 
                     onClick={exportToPDF} 
-                    className="px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors border border-emerald-500/30 text-sm font-medium flex items-center gap-2"
+                    className="px-4 py-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors border border-blue-500/30 text-sm font-medium flex items-center gap-2"
                   >
                     <Upload className="h-4 w-4" />
                     Exporter PDF
