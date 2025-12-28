@@ -463,7 +463,7 @@ function Bulletins() {
                   <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
                       <FileText className="w-5 h-5 text-primary-foreground" />
                     </div>
-                  bulletine des bulletins de paie
+                    Listes des bulletins de paie
                   </h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   {bulletin.length} bulletin{bulletin.length > 1 ? 's' : ''} trouvé{bulletin.length > 1 ? 's' : ''}
@@ -621,7 +621,7 @@ function Bulletins() {
                                 {permissions.canDelete('bulletins') && (
                                   <button
                                     onClick={() => requestDelete(b.id)}
-                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    className="p-2 text-red-600 hover:bg-red-900 rounded-lg transition-colors"
                                     title="Supprimer"
                                   >
                                     <Trash2 className="w-4 h-4"/>

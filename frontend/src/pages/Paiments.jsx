@@ -1787,7 +1787,7 @@ export default function Paiments() {
           <CardContent className="p-6">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-muted/50 border-b border-border">
+                <thead className="bg-muted border-b border-border/60 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   <tr>
                     {(permissions.isSuperAdmin || permissions.isAdmin) && (
                       <th className="px-6 py-4 text-left">
@@ -1795,7 +1795,7 @@ export default function Paiments() {
                           type="checkbox"
                           checked={selectedPaiements.size === filteredPaiements.length && filteredPaiements.length > 0}
                           onChange={(e) => handleSelectAll(e.target.checked)}
-                          className="w-4 h-4 rounded border-border text-blue-600 focus:ring-blue-500"
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                         />
                       </th>
                     )}
@@ -1847,7 +1847,7 @@ export default function Paiments() {
                     return (
                       <tr 
                         key={p.id} 
-                        className={`hover:bg-slate-50 transition-colors ${isSelected ? 'bg-blue-50' : ''}`}
+                        className={`transition-colors ${isSelected ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-muted/40'}`}
                       >
                         {(permissions.isSuperAdmin || permissions.isAdmin) && (
                           <td className="px-6 py-4">
@@ -1864,7 +1864,7 @@ export default function Paiments() {
                             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100">
                               <User className="h-4 w-4 text-slate-600" />
                             </div>
-                            <span className="font-medium text-slate-900">
+                            <span className="font-medium text-slate-100">
                               {employe ? `${employe.nom} ${employe.prenom}` : `Employé #${p.employeId}`}
                             </span>
                           </div>
