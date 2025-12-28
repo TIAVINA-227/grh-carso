@@ -60,6 +60,7 @@ import {
   AlertCircle,
   Pencil,
   Trash2,
+  Edit,
 } from "lucide-react";
 import { Separator } from "../components/ui/separator";
 import { Button } from "../components/ui/button";
@@ -454,7 +455,7 @@ export default function CongesPage() {
                   {permissions.isEmploye ? "Mes Demandes de Congés" : "Gestion des Congés"}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-2">
-                  {permissions.isEmploye ? "Soumettez et suivez vos demandes de congés" : "Gérez les demandes et approbations de congés"}e</p>
+                  {permissions.isEmploye ? "Soumettez et suivez vos demandes de congés" : "Gérez les demandes et approbations de congés"}</p>
               </div>
             </div>
             <Separator className="my-4 bg-border/40" />
@@ -501,7 +502,12 @@ export default function CongesPage() {
                     Votre Solde de Congés Annuels
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Année {new Date().getFullYear()}
+                    Année civile {new Date().getFullYear()}
+                    {soldeConges.joursReportes > 0 && (
+                      <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
+                        +{soldeConges.joursReportes} jour(s) reporté(s)
+                      </span>
+                    )}
                   </p>
                 </div>
 
@@ -511,6 +517,11 @@ export default function CongesPage() {
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
                     sur {soldeConges.soldeTotal} jours
+                    {soldeConges.soldeAnneeCourante !== undefined && soldeConges.soldeAnneeCourante !== soldeConges.soldeTotal && (
+                      <span className="block text-xs mt-1">
+                        ({soldeConges.soldeAnneeCourante} + {soldeConges.joursReportes || 0} reportés)
+                      </span>
+                    )}
                   </p>
                 </div>
 
@@ -520,7 +531,7 @@ export default function CongesPage() {
                 <div
                   className="h-full bg-primary transition-all duration-500"
                   style={{
-                    width: `${(soldeConges.joursUtilises / soldeConges.soldeTotal) * 100}%`,
+                    width: `${soldeConges.soldeTotal > 0 ? (soldeConges.joursUtilises / soldeConges.soldeTotal) * 100 : 0}%`,
                   }}
                 />
               </div>
@@ -531,6 +542,15 @@ export default function CongesPage() {
                   {soldeConges.soldeRestant} jours disponibles
                 </span>
               </div>
+
+              {/* ✅ Afficher les jours reportables si disponibles */}
+              {soldeConges.joursReportables !== undefined && soldeConges.joursReportables > 0 && (
+                <div className="mt-3 pt-3 border-t border-border/50">
+                  <p className="text-xs text-muted-foreground">
+                    📌 {soldeConges.joursReportables} jour(s) pourront être reporté(s) à l'année prochaine (max 6 jours)
+                  </p>
+                </div>
+              )}
 
             </CardContent>
           </Card>
@@ -726,9 +746,12 @@ export default function CongesPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredConges.map((conge) => {
-                      const dateDebut = new Date(conge.date_debut);
-                      const dateFin = new Date(conge.date_fin);
-                      const dureeJours = Math.ceil((dateFin - dateDebut) / (1000 * 60 * 60 * 24)) + 1;
+                      // ✅ Utiliser duree_jours si disponible (calculé côté backend), sinon calculer
+                      const dureeJours = conge.duree_jours || (() => {
+                        const dateDebut = new Date(conge.date_debut);
+                        const dateFin = new Date(conge.date_fin);
+                        return Math.ceil((dateFin - dateDebut) / (1000 * 60 * 60 * 24)) + 1;
+                      })();
                       
                       return (
                         <TableRow 
@@ -964,13 +987,16 @@ export default function CongesPage() {
               </div>
             </div>
 
-            {/* Calcul de la durée */}
+            {/* Calcul de la durée (jours calendaires) */}
             {formData.date_debut && formData.date_fin && (
               <div className="p-3 bg-primary/10 border border-primary/20 rounded-md">
                 <p className="text-sm text-primary">
                   📅 Durée: <strong>
                     {Math.ceil((new Date(formData.date_fin) - new Date(formData.date_debut)) / (1000 * 60 * 60 * 24)) + 1}
-                  </strong> jour(s)
+                  </strong> jour(s) calendaires
+                  <span className="block text-xs text-muted-foreground mt-1">
+                    (Week-ends et jours fériés inclus dans le décompte)
+                  </span>
                 </p>
               </div>
             )}

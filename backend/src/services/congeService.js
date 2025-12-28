@@ -230,6 +230,12 @@
 import { PrismaClient } from "@prisma/client";
 import { CONGES_RULES, calculateSoldeConges, validateConge } from '../config/congesRules.js';
 import { createNotificationsForRoles, notifyEmployeeCongeDecision } from "./notificationService.js";
+import { 
+  calculerJoursOuvres, 
+  calculerJoursCalendaires,
+  getDebutAnneeCivile, 
+  getFinAnneeCivile 
+} from '../utils/dateUtils.js';
 
 const prisma = new PrismaClient();
 const formatDateRangeFr = (dateDebut, dateFin) => {
@@ -237,6 +243,54 @@ const formatDateRangeFr = (dateDebut, dateFin) => {
   const debut = new Date(dateDebut).toLocaleDateString('fr-FR', options);
   const fin = new Date(dateFin).toLocaleDateString('fr-FR', options);
   return debut === fin ? debut : `${debut} ➝ ${fin}`;
+};
+
+/**
+ * 🔄 Récupérer les jours non pris de l'année précédente (pour le report)
+ * @param {number} employeId - ID de l'employé
+ * @param {number} anneePrecedente - Année précédente
+ * @returns {Promise<number>} Nombre de jours non pris (max 6 reportables)
+ */
+export const getJoursNonPrisAnneePrecedente = async (employeId, anneePrecedente) => {
+  // Récupérer l'employé pour sa date d'embauche
+  const employe = await prisma.employe.findUnique({
+    where: { id: Number(employeId) }
+  });
+  
+  if (!employe) {
+    return 0;
+  }
+  
+  const debutAnneePrec = getDebutAnneeCivile(anneePrecedente);
+  const finAnneePrec = getFinAnneeCivile(anneePrecedente);
+  
+  // Si l'employé n'était pas encore embauché, pas de report
+  if (new Date(employe.date_embauche) > finAnneePrec) {
+    return 0;
+  }
+  
+  // Calculer le solde de l'année précédente
+  const soldeAnneePrec = calculateSoldeConges(employe.date_embauche, debutAnneePrec);
+  
+  // Récupérer les congés pris l'année précédente
+  const congesPrisAnneePrec = await prisma.conge.findMany({
+    where: {
+      employeId: Number(employeId),
+      statut: "APPROUVE",
+      type_conge: "Congé annuel",
+      date_debut: { gte: debutAnneePrec },
+      date_fin: { lte: finAnneePrec }
+    }
+  });
+  
+  const joursUtilisesAnneePrec = congesPrisAnneePrec.reduce((total, c) => {
+    return total + (c.duree_jours || calculerJoursCalendaires(c.date_debut, c.date_fin));
+  }, 0);
+  
+  const joursNonPris = Math.max(0, soldeAnneePrec - joursUtilisesAnneePrec);
+  
+  // Limiter à 6 jours maximum reportables
+  return Math.min(joursNonPris, CONGES_RULES["Congé annuel"].maxReport);
 };
 
 /**
@@ -267,12 +321,16 @@ export const createConge = async (data) => {
     // 3️⃣ Calculer la durée du congé demandé
     const dateDebut = new Date(data.date_debut);
     const dateFin = new Date(data.date_fin);
-    const dureeJours = Math.ceil((dateFin - dateDebut) / (1000 * 60 * 60 * 24)) + 1;
+    
+    // ✅ Utiliser jours calendaires (la plupart des entreprises comptent ainsi)
+    // Pour un comptage en jours ouvrés uniquement, décommenter la ligne suivante
+    const dureeJours = calculerJoursCalendaires(dateDebut, dateFin);
+    // const dureeJours = calculerJoursOuvres(dateDebut, dateFin); // Alternative: jours ouvrés
 
-    // 4️⃣ Récupérer tous les congés approuvés de l'année en cours
+    // 4️⃣ Récupérer tous les congés approuvés de l'année civile en cours
     const anneeActuelle = new Date().getFullYear();
-    const debutAnnee = new Date(anneeActuelle, 0, 1);
-    const finAnnee = new Date(anneeActuelle, 11, 31, 23, 59, 59);
+    const debutAnnee = getDebutAnneeCivile(anneeActuelle);
+    const finAnnee = getFinAnneeCivile(anneeActuelle);
     
     const congesPrisAnnee = await prisma.conge.findMany({
       where: {
@@ -283,24 +341,35 @@ export const createConge = async (data) => {
       }
     });
 
-    // 5️⃣ Calculer le solde de congés annuels
-    const soldeTotal = calculateSoldeConges(employe.date_embauche);
+    // 5️⃣ Calculer le solde de congés annuels (année civile) avec report
+    const soldeAnneeCourante = calculateSoldeConges(employe.date_embauche, debutAnnee);
+    
+    // ✅ Ajouter le report des jours non pris de l'année précédente (max 6 jours)
+    const joursNonPrisAnneePrecedente = await getJoursNonPrisAnneePrecedente(data.employeId, anneeActuelle - 1);
+    const soldeTotal = soldeAnneeCourante + joursNonPrisAnneePrecedente;
+    
     const congesAnnuelsPris = congesPrisAnnee
       .filter(c => c.type_conge === "Congé annuel")
       .reduce((total, c) => {
-        const debut = new Date(c.date_debut);
-        const fin = new Date(c.date_fin);
-        return total + Math.ceil((fin - debut) / (1000 * 60 * 60 * 24)) + 1;
+        return total + (c.duree_jours || calculerJoursCalendaires(c.date_debut, c.date_fin));
       }, 0);
     
     const soldeRestant = soldeTotal - congesAnnuelsPris;
 
-    // 6️⃣ Valider le congé selon les règles
+    // 6️⃣ Calculer les jours déjà pris pour ce type de congé (pour les limites annuelles)
+    const joursPrisType = congesPrisAnnee
+      .filter(c => c.type_conge === data.type_conge)
+      .reduce((total, c) => {
+        return total + (c.duree_jours || calculerJoursCalendaires(c.date_debut, c.date_fin));
+      }, 0);
+
+    // 7️⃣ Valider le congé selon les règles
     const validation = validateConge(
       data.type_conge, 
       dureeJours, 
       soldeRestant, 
-      congesPrisAnnee
+      congesPrisAnnee,
+      joursPrisType
     );
     
     if (!validation.valid) {
@@ -482,11 +551,12 @@ export const updateConge = async (id, data) => {
     if (data.statut !== undefined) updateData.statut = data.statut;
     if (data.employeId !== undefined) updateData.employeId = Number(data.employeId);
 
-    // Recalculer la durée si les dates changent
+    // ✅ Recalculer la durée si les dates changent (utiliser la fonction de calcul)
     if (updateData.date_debut && updateData.date_fin) {
-      updateData.duree_jours = Math.ceil(
-        (updateData.date_fin - updateData.date_debut) / (1000 * 60 * 60 * 24)
-      ) + 1;
+      updateData.duree_jours = calculerJoursCalendaires(
+        updateData.date_debut, 
+        updateData.date_fin
+      );
     }
 
     const conge = await prisma.conge.update({
@@ -580,6 +650,7 @@ export const deleteExpiredConges = async () => {
 
 /**
  * 📊 Récupérer le solde de congés d'un employé
+ * Période de référence : Année civile (1er janvier - 31 décembre)
  */
 export const getSoldeConges = async (employeId) => {
   const employe = await prisma.employe.findUnique({
@@ -590,11 +661,17 @@ export const getSoldeConges = async (employeId) => {
     throw new Error("Employé introuvable");
   }
   
-  const soldeTotal = calculateSoldeConges(employe.date_embauche);
-  
   const anneeActuelle = new Date().getFullYear();
-  const debutAnnee = new Date(anneeActuelle, 0, 1);
-  const finAnnee = new Date(anneeActuelle, 11, 31, 23, 59, 59);
+  const debutAnnee = getDebutAnneeCivile(anneeActuelle);
+  const finAnnee = getFinAnneeCivile(anneeActuelle);
+  
+  // ✅ Calculer le solde avec la méthode corrigée (année civile)
+  const soldeTotal = calculateSoldeConges(employe.date_embauche, debutAnnee);
+  
+  // ✅ Ajouter le report des jours non pris de l'année précédente (max 6 jours)
+  const anneePrecedente = anneeActuelle - 1;
+  const joursNonPrisAnneePrecedente = await getJoursNonPrisAnneePrecedente(employeId, anneePrecedente);
+  const soldeTotalAvecReport = soldeTotal + joursNonPrisAnneePrecedente;
   
   const congesPris = await prisma.conge.findMany({
     where: {
@@ -607,13 +684,23 @@ export const getSoldeConges = async (employeId) => {
   });
   
   const joursUtilises = congesPris.reduce((total, c) => {
-    return total + (c.duree_jours || 0);
+    return total + (c.duree_jours || calculerJoursCalendaires(c.date_debut, c.date_fin));
   }, 0);
   
+  const soldeRestant = soldeTotalAvecReport - joursUtilises;
+  
+  // ✅ Calculer les jours non pris qui peuvent être reportés l'année suivante (max 6)
+  const joursNonPris = Math.max(0, soldeRestant);
+  const joursReportables = Math.min(joursNonPris, CONGES_RULES["Congé annuel"].maxReport);
+  
   return {
-    soldeTotal,
+    soldeTotal: soldeTotalAvecReport,
+    soldeAnneeCourante: soldeTotal,
+    joursReportes: joursNonPrisAnneePrecedente,
     joursUtilises,
-    soldeRestant: soldeTotal - joursUtilises,
+    soldeRestant: Math.max(0, soldeRestant),
+    joursNonPris,
+    joursReportables,
     congesPris
   };
 };
