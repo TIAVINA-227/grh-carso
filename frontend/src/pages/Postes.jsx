@@ -682,7 +682,7 @@ export default function PostesWithFileStorage() {
                   className="flex items-center gap-2"
                 >
                   <Trash2 className="h-4 w-4" />
-                  Supprimer
+                  Supprimer la sélection q
                 </Button>
               </div>
             )}
@@ -990,15 +990,15 @@ export default function PostesWithFileStorage() {
 
       {/* Dialog pour créer/modifier un poste */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden border shadow-2xl">
+        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border shadow-2xl">
           <div className="bg-primary p-6 text-primary-foreground">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center">
                   {editingId ? (
-                    <Edit className="w-5 h-5 text-primary-foreground" />
+                    <Edit className="w-5 h-5 "/>
                   ) : (
-                    <Briefcase className="w-5 h-5 text-primary-foreground" />
+                    <Briefcase className="w-5 h-5 " />
                   )}
                 </div>
                 {editingId ? "Modifier le poste" : "Nouveau poste"}
@@ -1009,7 +1009,7 @@ export default function PostesWithFileStorage() {
             </DialogHeader>
           </div>
           
-          <form onSubmit={handleSubmit} className="p-6 space-y-6 bg-card max-h-[65vh] overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-6 space-y-6 bg-card">
             {error && (
               <div className="bg-destructive/10 dark:bg-red-900/20 border border-destructive/20 dark:border-red-800 rounded-lg p-3">
                 <div className="text-sm text-destructive dark:text-red-400">{error}</div>
@@ -1063,12 +1063,12 @@ export default function PostesWithFileStorage() {
             </div>
             
             <Separator className="my-4" />
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex gap-3 sm:gap-3">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsDialogOpen(false)}
-                className="flex-1 h-12 border-2"
+                className="flex-1 h-12 border-2 hover:bg-muted transition-all"
               >
                 Annuler
               </Button>

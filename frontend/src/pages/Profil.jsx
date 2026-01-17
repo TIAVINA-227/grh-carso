@@ -1298,7 +1298,7 @@ export default function ProfilPage() {
               </div>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            <DialogFooter className="gap-2 sm:gap-0 mr-4">
               <Button
                 type="button"
                 variant="outline"
