@@ -83,6 +83,7 @@ model Utilisateur {
   employeId               Int?                @unique
   conges                  Conge[]
   notifications           Notification[]
+  sessions                Session[]           // 🆕 Sessions de connexion/déconnexion
 
   @@map("utilisateurs")
 }
@@ -236,4 +237,22 @@ model BulletinSalaire {
 
   paiement       Paiement @relation(fields: [paiementId], references: [id])
   paiementId     Int      @unique
+}
+
+// 🆕 Modèle pour enregistrer les sessions de connexion/déconnexion
+model Session {
+  id              Int       @id @default(autoincrement())
+  heure_connexion DateTime  @default(now())
+  heure_deconnexion DateTime?
+  duree_minutes   Int?      // Durée de la session en minutes (calculée)
+  ip_address      String?   // Adresse IP (optionnel)
+  user_agent      String?   // User agent du navigateur (optionnel)
+
+  // Relations
+  utilisateur     Utilisateur @relation(fields: [utilisateurId], references: [id])
+  utilisateurId   Int
+
+  @@index([utilisateurId])
+  @@index([heure_connexion])
+  @@map("sessions")
 }

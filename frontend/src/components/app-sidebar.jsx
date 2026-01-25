@@ -20,7 +20,8 @@ import {
   Search,
   Settings,
   HelpCircle,
-  X
+  X,
+  Activity
 } from "lucide-react"
 
 import SidebarItem from "@/components/ui/sidebar-item"
@@ -150,6 +151,12 @@ export function AppSidebar({ ...props }) {
       icon: MonitorCog,
       label: "Gérer Utilisateurs",
       show: permissions.canAccess('utilisateurs')
+    },
+    {
+      to: "/dashboard/sessions",
+      icon: Activity,
+      label: permissions.isEmploye ? "Mes Sessions" : "Sessions",
+      show: true // Accessible à tous les utilisateurs connectés
     },
 
   ];

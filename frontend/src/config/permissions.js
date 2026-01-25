@@ -114,6 +114,13 @@ export const PERMISSIONS = {
     delete: [ROLES.SUPER_ADMIN],
     viewOwn: [ROLES.EMPLOYE], // L'employé voit uniquement ses performances
     list: [ROLES.SUPER_ADMIN, ROLES.ADMIN] // Pour lister toutes les performances
+  },
+  
+  // Gestion des sessions de connexion/déconnexion
+  sessions: {
+    view: [ROLES.SUPER_ADMIN, ROLES.ADMIN], // Admins voient toutes les sessions
+    viewOwn: [ROLES.EMPLOYE, ROLES.ADMIN, ROLES.SUPER_ADMIN], // Tous peuvent voir leurs propres sessions
+    list: [ROLES.SUPER_ADMIN, ROLES.ADMIN] // Pour lister toutes les sessions
   }
 };
 
@@ -137,7 +144,8 @@ export const ROUTE_MODULES = {
   'paiements': 'paiements',
   'bulletins': 'bulletins',
   'performances': 'performances',
-  'utilisateurs': 'utilisateurs'
+  'utilisateurs': 'utilisateurs',
+  'sessions': 'sessions'
 };
 
 // ✅ Fonction pour vérifier l'accès à une route

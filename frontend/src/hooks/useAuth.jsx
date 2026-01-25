@@ -228,10 +228,32 @@ export function AuthProvider({ children }) {
     setUser(fullUser);
   };
 
-  const logout = () => {
-    console.log('🚪 Déconnexion');
+  const logout = async () => {
+    console.log('🚪 Déconnexion en cours...');
+    
+    // 🆕 Appeler l'API pour enregistrer l'heure de déconnexion
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+        await fetch(`${API_BASE}/api/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        });
+        console.log('✅ Heure de déconnexion enregistrée');
+      } catch (error) {
+        console.error('⚠️ Erreur lors de l\'enregistrement de la déconnexion (non bloquant):', error);
+        // Ne pas bloquer la déconnexion si l'API échoue
+      }
+    }
+    
+    // Supprimer le token et mettre user à null
     localStorage.removeItem("token");
     setUser(null);
+    console.log('✅ Déconnexion terminée');
   };
 
   const updateUser = (updates) => {

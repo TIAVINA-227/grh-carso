@@ -314,6 +314,7 @@ import { Server } from "socket.io";
 import { startCongesCronJob } from './src/jobs/congesCronJob.js';
 import notificationRoutes from "./src/routes/notificationRoutes.js";
 import { registerNotificationSocket } from "./src/services/notificationService.js";
+import * as sessionService from "./src/services/sessionService.js";
 
 // ✅ Import des routes principales
 import employeRoutes from "./src/routes/employeRoutes.js";
@@ -328,6 +329,7 @@ import paiementRoutes from "./src/routes/paiementRoutes.js";
 import bulletinRoutes from "./src/routes/bulletinRoutes.js";
 import utilisateurRoutes from "./src/routes/utilisateurRoutes.js";
 import uploadRoutes from "./src/routes/uploadRoutes.js";
+import sessionRoutes from "./src/routes/sessionRoutes.js";
 
 // ===========================
 // CONFIGURATION
@@ -581,6 +583,21 @@ app.post("/api/auth/login", async (req, res) => {
       data: { derniere_connexion: new Date() },
     });
 
+    // 🆕 Créer une session de connexion
+    try {
+      const ip_address = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+      const user_agent = req.headers['user-agent'];
+      await sessionService.createSession({
+        utilisateurId: utilisateur.id,
+        ip_address,
+        user_agent,
+      });
+      console.log(`✅ Session créée pour l'utilisateur ${utilisateur.id}`);
+    } catch (sessionError) {
+      console.error('⚠️ Erreur création session (non bloquant):', sessionError);
+      // Ne pas bloquer la connexion si la création de session échoue
+    }
+
     // 🆕 IMPORTANT : Retourner premiere_connexion
     res.json({
       token,
@@ -617,6 +634,53 @@ app.get("/api/auth/verify", async (req, res) => {
     res.json({ user: utilisateur });
   } catch (error) {
     res.status(401).json({ message: "Token invalide" });
+  }
+});
+
+// 🆕 Route de déconnexion - Enregistre l'heure de départ
+app.post("/api/auth/logout", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    
+    if (!token) {
+      // Si pas de token, on retourne quand même un succès (déconnexion silencieuse)
+      return res.json({ 
+        success: true, 
+        message: "Déconnexion effectuée" 
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || "votre_secret_jwt");
+    } catch (error) {
+      // Token invalide ou expiré, on retourne quand même un succès
+      return res.json({ 
+        success: true, 
+        message: "Déconnexion effectuée" 
+      });
+    }
+
+    // Enregistrer l'heure de déconnexion
+    try {
+      await sessionService.updateSessionLogout(decoded.id);
+      console.log(`✅ Session fermée pour l'utilisateur ${decoded.id}`);
+    } catch (sessionError) {
+      console.error('⚠️ Erreur mise à jour session (non bloquant):', sessionError);
+      // Ne pas bloquer la déconnexion si la mise à jour de session échoue
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Déconnexion effectuée avec succès" 
+    });
+  } catch (error) {
+    console.error("❌ Erreur logout :", error);
+    // Même en cas d'erreur, on retourne un succès pour ne pas bloquer la déconnexion
+    res.json({ 
+      success: true, 
+      message: "Déconnexion effectuée" 
+    });
   }
 });
 
@@ -855,6 +919,7 @@ app.use("/api/performances", performanceRoutes);
 app.use("/api/paiements", paiementRoutes);
 app.use("/api/bulletins", bulletinRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/sessions", sessionRoutes);
 
 // ===========================
 // 🚀 DÉMARRAGE DU SERVEUR

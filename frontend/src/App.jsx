@@ -194,6 +194,7 @@ import Performances from "./pages/Performances";
 import UtilisateursPage from "./pages/Utilisateurs";
 import ProfilPage from "./pages/Profil";
 import NotificationsPage from "./pages/Notifications";
+import Sessions from "./pages/Sessions";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import TableauDeBord from "./pages/TableauDeBord";
@@ -369,6 +370,14 @@ function AppContainer() {
             />
             <Route path="profil" element={<ProfilPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
+            <Route
+              path="sessions"
+              element={
+                <ProtectedRoute routeName="sessions">
+                  <Sessions />
+                </ProtectedRoute>
+              }
+            />
           </Route>
         </Routes>
       </div>
