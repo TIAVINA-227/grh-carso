@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,7 +7,189 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ================== ENUMS ==================
+model Utilisateur {
+  id                      Int               @id @default(autoincrement())
+  nom_utilisateur         String            @unique
+  prenom_utilisateur      String?
+  mot_de_passe            String
+  email                   String            @unique
+  role                    RoleUtilisateur   @default(EMPLOYE)
+  statut                  StatutUtilisateur @default(ACTIF)
+  date_creation           DateTime          @default(now())
+  derniere_connexion      DateTime?
+  premiere_connexion      Boolean           @default(true)
+  mot_de_passe_temporaire String?
+  token_reset_password    String?           @unique
+  token_expiration        DateTime?
+  avatar                  String?
+  photo_couverture        String?           @default("#3B82F6")
+  bio                     String?
+  telephone               String?
+  date_naissance          DateTime?
+  adresse                 String?
+  ville                   String?
+  pays                    String?           @default("Madagascar")
+  employeId               Int?              @unique
+  conges                  Conge[]
+  notifications           Notification[]
+  sessions                Session[]
+  employe                 Employe?          @relation(fields: [employeId], references: [id])
+
+  @@map("utilisateurs")
+}
+
+model Employe {
+  id             Int                @id @default(autoincrement())
+  matricule      String             @unique
+  nom            String
+  prenom         String
+  date_naissance DateTime
+  adresse        String?
+  email          String?            @unique
+  telephone      String?
+  date_embauche  DateTime
+  departementId  Int?
+  posteId        Int?
+  absences       Absence[]
+  conges         Conge[]
+  contrat        Contrat?
+  departement    Departement?       @relation(fields: [departementId], references: [id])
+  poste          Poste?             @relation(fields: [posteId], references: [id])
+  paiements      Paiement[]
+  presences      Presence[]
+  performances   SuiviPerformance[]
+  utilisateur    Utilisateur?
+}
+
+model Departement {
+  id              Int       @id @default(autoincrement())
+  nom_departement String    @unique
+  responsable     String?
+  employes        Employe[]
+}
+
+model Poste {
+  id          Int       @id @default(autoincrement())
+  intitule    String
+  description String?
+  niveau      String?
+  employes    Employe[]
+}
+
+model Contrat {
+  id           Int           @id @default(autoincrement())
+  type_contrat String
+  date_debut   DateTime
+  date_fin     DateTime?
+  salaire_base Float
+  statut       StatutContrat @default(ACTIF)
+  employeId    Int           @unique
+  employe      Employe       @relation(fields: [employeId], references: [id])
+}
+
+model Absence {
+  id            Int      @id @default(autoincrement())
+  date_debut    DateTime
+  date_fin      DateTime
+  type_absence  String
+  justification String?
+  piece_jointe  String?
+  employeId     Int
+  employe       Employe  @relation(fields: [employeId], references: [id])
+}
+
+model Presence {
+  id                 Int            @id @default(autoincrement())
+  date_jour          DateTime       @default(now())
+  statut             StatutPresence @default(PRESENT)
+  heures_travaillees Int?
+  justification      String?
+  employeId          Int
+  employe            Employe        @relation(fields: [employeId], references: [id])
+}
+
+model Conge {
+  id            Int         @id @default(autoincrement())
+  type_conge    String?
+  date_debut    DateTime
+  date_fin      DateTime
+  statut        StatutConge @default(SOUMIS)
+  utilisateurId Int
+  employeId     Int
+  motif         String?
+  duree_jours   Int?
+  employe       Employe     @relation(fields: [employeId], references: [id])
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id])
+}
+
+model Notification {
+  id            Int         @id @default(autoincrement())
+  titre         String
+  message       String
+  type          String      @default("info")
+  categorie     String?
+  lue           Boolean     @default(false)
+  date_creation DateTime    @default(now())
+  date_lue      DateTime?
+  metadata      Json?
+  utilisateurId Int
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id])
+
+  @@index([utilisateurId])
+  @@index([lue])
+  @@map("notifications")
+}
+
+model SuiviPerformance {
+  id           Int      @id @default(autoincrement())
+  date_eval    DateTime @default(now())
+  note         Int
+  resultat     String?
+  commentaires String?
+  objectifs    String?
+  realisation  String?
+  employeId    Int
+  employe      Employe  @relation(fields: [employeId], references: [id])
+}
+
+model Paiement {
+  id            Int              @id @default(autoincrement())
+  date_paiement DateTime         @default(now())
+  montant       Float
+  mode_paiement String
+  statut        StatutPaiement   @default(EFFECTUE)
+  periode_debut DateTime
+  periode_fin   DateTime
+  employeId     Int
+  bulletin      BulletinSalaire?
+  employe       Employe          @relation(fields: [employeId], references: [id])
+}
+
+model BulletinSalaire {
+  id           Int      @id @default(autoincrement())
+  mois         Int
+  annee        Int
+  salaire_brut Float
+  salaire_net  Float
+  statut       String   @default("valide")
+  paiementId   Int      @unique
+  paiement     Paiement @relation(fields: [paiementId], references: [id])
+}
+
+model Session {
+  id                Int         @id @default(autoincrement())
+  heure_connexion   DateTime    @default(now())
+  heure_deconnexion DateTime?
+  duree_minutes     Int?
+  ip_address        String?
+  user_agent        String?
+  utilisateurId     Int
+  utilisateur       Utilisateur @relation(fields: [utilisateurId], references: [id])
+
+  @@index([utilisateurId])
+  @@index([heure_connexion])
+  @@map("sessions")
+}
 
 enum StatutUtilisateur {
   ACTIF
@@ -47,212 +223,4 @@ enum StatutPaiement {
   EFFECTUE
   EN_ATTENTE
   ANNULE
-}
-
-// ================== MODELES ==================
-
-model Utilisateur {
-  id                      Int                 @id @default(autoincrement())
-  nom_utilisateur         String              @unique
-  prenom_utilisateur      String?
-  mot_de_passe            String
-  email                   String              @unique
-  role                    RoleUtilisateur     @default(EMPLOYE)
-  statut                  StatutUtilisateur   @default(ACTIF)
-  date_creation           DateTime            @default(now())
-  derniere_connexion      DateTime?
-
-  // Gestion première connexion
-  premiere_connexion      Boolean             @default(true)
-  mot_de_passe_temporaire String?
-  token_reset_password    String?             @unique
-  token_expiration        DateTime?
-
-  // Profil utilisateur
-  avatar                  String?             // URL ou base64 de la photo
-  photo_couverture        String?             @default("#3B82F6") // Couleur hex
-  bio                     String?             @db.Text // Biographie
-  telephone               String?             // Numéro de téléphone
-  date_naissance          DateTime?           // Date de naissance
-  adresse                 String?             // Adresse complète
-  ville                   String?             // Ville
-  pays                    String?             @default("Madagascar") // Pays
-
-  // Relations
-  employe                 Employe?            @relation(fields: [employeId], references: [id])
-  employeId               Int?                @unique
-  conges                  Conge[]
-  notifications           Notification[]
-  sessions                Session[]           // 🆕 Sessions de connexion/déconnexion
-
-  @@map("utilisateurs")
-}
-
-model Employe {
-  id             Int       @id @default(autoincrement())
-  matricule      String    @unique
-  nom            String
-  prenom         String
-  date_naissance DateTime
-  adresse        String?
-  email          String?   @unique
-  telephone      String?
-  date_embauche  DateTime
-
-  // Relations
-  departement    Departement? @relation(fields: [departementId], references: [id])
-  departementId  Int?
-  poste          Poste?       @relation(fields: [posteId], references: [id])
-  posteId        Int?
-
-  utilisateur    Utilisateur?
-  contrat        Contrat?
-  absences       Absence[]
-  presences      Presence[]
-  paiements      Paiement[]
-  conges         Conge[]
-  performances   SuiviPerformance[]
-}
-
-model Departement {
-  id              Int       @id @default(autoincrement())
-  nom_departement String    @unique
-  responsable     String?
-  employes        Employe[]
-}
-
-model Poste {
-  id         Int       @id @default(autoincrement())
-  intitule   String
-  description String?
-  niveau      String?
-  employes    Employe[]
-}
-
-model Contrat {
-  id            Int       @id @default(autoincrement())
-  type_contrat  String
-  date_debut    DateTime
-  date_fin      DateTime?
-  salaire_base  Float
-  statut        StatutContrat @default(ACTIF)
-
-  employe       Employe   @relation(fields: [employeId], references: [id])
-  employeId     Int       @unique
-}
-
-model Absence {
-  id             Int      @id @default(autoincrement())
-  date_debut     DateTime
-  date_fin       DateTime
-  type_absence   String
-  justification  String?
-  piece_jointe   String?
-
-  employe        Employe  @relation(fields: [employeId], references: [id])
-  employeId      Int
-}
-
-model Presence {
-  id              Int      @id @default(autoincrement())
-  date_jour       DateTime @default(now())
-  statut          StatutPresence @default(PRESENT)
-  heures_travaillees Int?
-  justification   String?
-
-  employe         Employe  @relation(fields: [employeId], references: [id])
-  employeId       Int
-}
-model Conge {
-  id             Int      @id @default(autoincrement())
-  type_conge     String?
-  date_debut     DateTime
-  date_fin       DateTime
-  statut         StatutConge @default(SOUMIS)
-  motif          String?
-  duree_jours    Int?      // 🆕 Ajout de la durée calculée
-
-  // Relations
-  utilisateur    Utilisateur @relation(fields: [utilisateurId], references: [id])
-  utilisateurId  Int
-
-  employe        Employe @relation(fields: [employeId], references: [id])
-  employeId      Int
-}
-
-model Notification {
-  id             Int       @id @default(autoincrement())
-  titre          String
-  message        String
-  type           String    @default("info")
-  categorie      String?
-  lue            Boolean   @default(false)
-  date_creation  DateTime  @default(now())
-  date_lue       DateTime?
-  metadata       Json?
-
-  utilisateur    Utilisateur @relation(fields: [utilisateurId], references: [id])
-  utilisateurId  Int
-
-  @@index([utilisateurId])
-  @@index([lue])
-  @@map("notifications")
-}
-
-model SuiviPerformance {
-  id              Int      @id @default(autoincrement())
-  date_eval       DateTime @default(now())
-  note            Int
-  resultat        String?
-  commentaires    String?
-  objectifs       String?
-  realisation     String?
-
-  employe         Employe  @relation(fields: [employeId], references: [id])
-  employeId       Int
-}
-
-model Paiement {
-  id             Int      @id @default(autoincrement())
-  date_paiement  DateTime @default(now())
-  montant        Float
-  mode_paiement  String
-  statut         StatutPaiement @default(EFFECTUE)
-  periode_debut  DateTime
-  periode_fin    DateTime
-
-  employe        Employe  @relation(fields: [employeId], references: [id])
-  employeId      Int
-
-  bulletin       BulletinSalaire?
-}
-
-model BulletinSalaire {
-  id             Int      @id @default(autoincrement())
-  mois           Int
-  annee          Int
-  salaire_brut   Float
-  salaire_net    Float
-  statut         String   @default("valide")
-
-  paiement       Paiement @relation(fields: [paiementId], references: [id])
-  paiementId     Int      @unique
-}
-
-// 🆕 Modèle pour enregistrer les sessions de connexion/déconnexion
-model Session {
-  id              Int       @id @default(autoincrement())
-  heure_connexion DateTime  @default(now())
-  heure_deconnexion DateTime?
-  duree_minutes   Int?      // Durée de la session en minutes (calculée)
-  ip_address      String?   // Adresse IP (optionnel)
-  user_agent      String?   // User agent du navigateur (optionnel)
-
-  // Relations
-  utilisateur     Utilisateur @relation(fields: [utilisateurId], references: [id])
-  utilisateurId   Int
-
-  @@index([utilisateurId])
-  @@index([heure_connexion])
-  @@map("sessions")
 }

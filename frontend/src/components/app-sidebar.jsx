@@ -43,6 +43,8 @@ import {
 } from "@/components/ui/dialog"
 import { useAuth } from "../hooks/useAuth"
 import { usePermissions } from "../hooks/usePermissions"
+import { useNotifications } from "../hooks/useNotifications"
+import { useSocket } from "../hooks/useSocket"
 import logocarso from "../assets/carso 7.png"
 
 export function AppSidebar({ ...props }) {
@@ -57,6 +59,15 @@ export function AppSidebar({ ...props }) {
   const [modalLogoError, setModalLogoError] = React.useState(false);
 
   const isCollapsed = state === "collapsed";
+
+  // 🆕 Récupérer les notifications pour le badge
+  const token = user?.token || (typeof window !== 'undefined' ? localStorage.getItem("token") : null);
+  const { socket } = useSocket(user?.id || null);
+  const { unreadCount } = useNotifications({ 
+    userId: user?.id || null, 
+    token, 
+    socket 
+  });
 
   console.log('=== DEBUG APP-SIDEBAR ===');
   console.log('1. user:', user);
@@ -410,16 +421,27 @@ export function AppSidebar({ ...props }) {
                   
                   {/* Items du groupe */}
                   <ul className="space-y-1">
-                    {group.items.map((item) => (
-                      <SidebarItem 
-                        key={item.to}
-                        to={item.to}
-                        icon={item.icon}
-                        label={item.label}
-                        isCollapsed={isCollapsed}
-                        searchQuery={searchQuery}
-                      />
-                    ))}
+                    {group.items.map((item) => {
+                      // 🆕 Badge animé pour les notifications - aligné avec le texte (comme dans la photo)
+                      const isNotifications = item.to === "/dashboard/notifications";
+                      const badgeComponent = isNotifications && unreadCount > 0 ? (
+                        <span className="absolute -top-1 right-0 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] text-white font-bold z-10">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      ) : null;
+
+                      return (
+                        <SidebarItem 
+                          key={item.to}
+                          to={item.to}
+                          icon={item.icon}
+                          label={item.label}
+                          isCollapsed={isCollapsed}
+                          searchQuery={searchQuery}
+                          badgeComponent={badgeComponent}
+                        />
+                      );
+                    })}
                   </ul>
                 </div>
               ))

@@ -7,8 +7,8 @@ export function SidebarItem({
   to = "#",
   icon: Icon,
   label,
-  exact = false,
   badge,
+  badgeComponent,
   className,
   ...props
 }) {
@@ -28,9 +28,14 @@ export function SidebarItem({
       >
         {({ isActive }) => (
           <SidebarMenuButton isActive={isActive} className={className} {...buttonProps}>
-            {Icon && <Icon className="size-4" />}
-            <span>{label}</span>
-            {badge ? <span className="ml-auto text-xs px-1 py-0.5 rounded-md bg-muted text-muted-foreground">{badge}</span> : null}
+            <div className="relative flex items-center gap-2 flex-1">
+              {Icon && <Icon className="size-4" />}
+              <span className="relative inline-block">{label}</span>
+              {badgeComponent}
+            </div>
+            {badge ? (
+              <span className="ml-auto text-xs px-1 py-0.5 rounded-md bg-muted text-muted-foreground">{badge}</span>
+            ) : null}
           </SidebarMenuButton>
         )}
       </NavLink>

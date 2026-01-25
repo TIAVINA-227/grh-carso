@@ -3,6 +3,7 @@
 // Service pour gérer les sessions de connexion/déconnexion
 // ========================================
 import { PrismaClient } from '@prisma/client';
+import { createNotificationsForRoles } from './notificationService.js';
 
 const prisma = new PrismaClient();
 
@@ -95,6 +96,34 @@ export const updateSessionLogout = async (utilisateurId) => {
     console.log(
       `✅ Session fermée pour l'utilisateur ${utilisateurId} - Durée: ${dureeMinutes} minutes`
     );
+
+    // 🆕 Créer une notification pour les super admins
+    try {
+      const utilisateur = sessionUpdated.utilisateur;
+      const nomUtilisateur = `${utilisateur?.prenom_utilisateur || ""} ${utilisateur?.nom_utilisateur || ""}`.trim() || utilisateur?.email || "Un utilisateur";
+      const dureeFormatee = dureeMinutes < 60 
+        ? `${dureeMinutes} min` 
+        : `${Math.floor(dureeMinutes / 60)}h ${dureeMinutes % 60}min`;
+      
+      await createNotificationsForRoles({
+        roles: ["SUPER_ADMIN"],
+        titre: "Déconnexion d'un utilisateur",
+        message: `${nomUtilisateur} s'est déconnecté après une session de ${dureeFormatee}.`,
+        type: "info",
+        categorie: "session",
+        metadata: { 
+          entity: "session", 
+          entityId: sessionUpdated.id, 
+          utilisateurId: utilisateurId,
+          duree_minutes: dureeMinutes 
+        },
+      });
+      console.log(`✅ Notification de déconnexion envoyée aux super admins`);
+    } catch (notificationError) {
+      console.error("⚠️ Notification déconnexion échouée:", notificationError);
+      // Ne pas bloquer la déconnexion si la notification échoue
+    }
+
     return sessionUpdated;
   } catch (error) {
     console.error('❌ Erreur mise à jour session:', error);
