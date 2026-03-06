@@ -1,6 +1,13 @@
 // backend/src/routes/absenceRoutes.js
+
 import express from 'express';
-import { createAbsence, getAllAbsences, getAbsenceById, updateAbsence, deleteAbsence } from '../controllers/absenceController.js';
+import { 
+    createAbsence, 
+    getAllAbsences, 
+    getAbsenceById, 
+    updateAbsence, 
+    deleteAbsence 
+} from '../controllers/absenceController.js';
 const router = express.Router();
 router.post('/', createAbsence);
 router.get('/', getAllAbsences);

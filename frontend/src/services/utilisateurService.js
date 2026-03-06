@@ -1,4 +1,3 @@
-// frontend/src/services/utilisateurService.js
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
 async function request(url, options = {}) {
@@ -52,7 +51,7 @@ export const getAdmins = () => getUtilisateursByRole("admin");
 
 export const getManagers = () => getUtilisateursByRole("manager");
 
-// 🆕 Ajouter cette fonction pour changer le mot de passe
+// Ajouter cette fonction pour changer le mot de passe
 export const changePassword = async (userId, ancienMotDePasse, nouveauMotDePasse) => {
   return request(`${API_BASE}/api/utilisateurs/${userId}/change-password`, {
     method: "PUT",
@@ -70,5 +69,5 @@ export default {
   getEmployes,
   getAdmins,
   getManagers,
-  changePassword, // 🆕 Exporter la nouvelle fonction
+  changePassword,
 };

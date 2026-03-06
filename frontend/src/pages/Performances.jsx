@@ -72,12 +72,12 @@ export default function Performances() {
       setList(Array.isArray(data) ? data : data.performances || []);
       setEmployes(Array.isArray(emps) ? emps : emps || []);
       
-      // ✅ Trouver l'employé correspondant à l'utilisateur connecté
+      //  Trouver l'employé correspondant à l'utilisateur connecté
       if (permissions.isEmploye && user) {
         // Méthode 1: Utiliser employeId si disponible dans user
         if (user.employeId) {
           setCurrentEmployeId(user.employeId);
-          console.log('✅ Employé trouvé via user.employeId:', user.employeId);
+          console.log(' Employé trouvé via user.employeId:', user.employeId);
         } else {
           // Méthode 2: Chercher par email
           const employe = emps.find(emp => 
@@ -85,7 +85,7 @@ export default function Performances() {
           );
           if (employe) {
             setCurrentEmployeId(employe.id);
-            console.log('✅ Employé trouvé par email pour les performances:', employe.id, employe.prenom, employe.nom);
+            console.log(' Employé trouvé par email pour les performances:', employe.id, employe.prenom, employe.nom);
           } else {
             console.warn('⚠️ Aucun employé trouvé pour l\'email:', user.email);
           }
@@ -105,7 +105,7 @@ export default function Performances() {
     load();
   }, [load]);
   
-  // ✅ Filtrer les performances selon le rôle et les permissions
+  //  Filtrer les performances selon le rôle et les permissions
   const filteredPerformances = useMemo(() => {
     // Admin et SuperAdmin voient tout
     if (permissions.isSuperAdmin || permissions.isAdmin) {
@@ -122,7 +122,7 @@ export default function Performances() {
   }, [list, permissions.isSuperAdmin, permissions.isAdmin, permissions.isEmploye, currentEmployeId]);
 
   const handleSubmit = async () => {
-    // ✅ Vérifier les permissions
+    //  Vérifier les permissions
     if (!permissions.canCreate || !permissions.canCreate('performances')) {
       toast({ title: "Erreur", description: "Vous n'avez pas la permission de créer une évaluation", variant: "destructive" });
       return;
@@ -156,7 +156,7 @@ export default function Performances() {
       };
 
       if (editingId) {
-        // ✅ Vérifier les permissions pour l'édition
+        //  Vérifier les permissions pour l'édition
         if (!permissions.canEdit || !permissions.canEdit('performances')) {
           toast({ title: "Erreur", description: "Vous n'avez pas la permission de modifier cette évaluation", variant: "destructive" });
           setSubmitting(false);
@@ -190,7 +190,7 @@ export default function Performances() {
   };
 
   const confirmDelete = async () => {
-    // ✅ Vérifier les permissions
+    //  Vérifier les permissions
     if (!permissions.canDelete || !permissions.canDelete('performances')) {
       toast({ title: "Erreur", description: "Vous n'avez pas la permission de supprimer cette évaluation", variant: "destructive" });
       setConfirmDeleteOpen(false);
@@ -270,7 +270,7 @@ export default function Performances() {
             </div>
             <Separator className="my-4 bg-border/40" />
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              {/* ✅ Masquer le select d'employé pour les employés */}
+              {/*  Masquer le select d'employé pour les employés */}
               {(permissions.isSuperAdmin || permissions.isAdmin) && (
                 <div className="w-full sm:w-72">
                   <select
@@ -291,7 +291,7 @@ export default function Performances() {
               {permissions.canCreate && permissions.canCreate("performances") && (
                 <button
                   onClick={() => {
-                    // ✅ Pré-remplir l'employé si c'est un employé
+                    //  Pré-remplir l'employé si c'est un employé
                     if (permissions.isEmploye && currentEmployeId) {
                       setForm((f) => ({
                         ...f,
@@ -317,10 +317,10 @@ export default function Performances() {
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm font-medium mb-2">Total Évaluations</p>
+                  <p className="text-cyan-100 text-sm font-medium mb-2">Total Évaluations</p>
                   <p className="text-3xl font-bold">{stats.total}</p>
                 </div>
-                <BarChart3 className="h-8 w-8 text-blue-200" />
+                <BarChart3 className="h-8 w-8 text-cyan-200" />
               </div>
             </CardContent>
           </Card>
@@ -330,10 +330,10 @@ export default function Performances() {
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm font-medium mb-2">Note Moyenne</p>
+                  <p className="text-cyan-100 text-sm font-medium mb-2">Note Moyenne</p>
                   <div className="flex items-baseline gap-1">
                     <p className="text-3xl font-bold">{stats.moyenne}</p>
-                    <p className="text-blue-100 text-sm">/20</p>
+                    <p className="text-cyan-100 text-sm">/20</p>
                   </div>
                 </div>
                 <TrendingUp className="h-8 w-8 text-blue-200" />
@@ -341,15 +341,15 @@ export default function Performances() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-emerald-100 text-sm font-medium mb-2">Meilleure Note</p>
+                  <p className="text-cyan-100 text-sm font-medium mb-2">Meilleure Note</p>
                   <div className="flex items-baseline gap-1">
                     <p className="text-3xl font-bold">{stats.meilleure}</p>
-                    <p className="text-emerald-100 text-sm">/20</p>
+                    <p className="text-cyan-100 text-sm">/20</p>
                   </div>
                 </div>
                 <Award className="h-8 w-8 text-emerald-200" />
@@ -357,18 +357,18 @@ export default function Performances() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-rose-100 text-sm font-medium mb-2">Dernière Note</p>
+                  <p className="text-cyan-100 text-sm font-medium mb-2">Dernière Note</p>
                   <div className="flex items-baseline gap-1">
                     <p className="text-3xl font-bold">{stats.derniere}</p>
-                    <p className="text-rose-100 text-sm">/20</p>
+                    <p className="text-cyan-100 text-sm">/20</p>
                   </div>
                 </div>
-                <Calendar className="h-8 w-8 text-rose-200" />
+                <Calendar className="h-8 w-8 text-cyan-200" />
               </div>
             </CardContent>
           </Card>
@@ -495,65 +495,6 @@ export default function Performances() {
           </CardContent>
         </Card>
 
-        {/* LISTE DES ÉVALUATIONS
-        <Card className="border-0 shadow-2xl">
-          <CardContent className="p-8">
-            <h3 className="text-lg font-semibold flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
-              <BarChart3 className="h-5 w-5 text-blue-600" />
-              Liste des évaluations
-            </h3>
-            {chartData.length === 0 ? (
-              <div className="text-sm text-muted-foreground text-center py-8">Aucune évaluation trouvée.</div>
-            ) : (
-              <div className="space-y-2">
-                {chartData.slice().reverse().map((p) => (
-                  <div key={p.id} className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors">
-                    <div>
-                      <div className="font-medium text-foreground">{p.nom}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {p.date} — Note : <span className="font-semibold text-blue-600">{p.note}</span>/20
-                      </div>
-                      {p.commentaires && <div className="text-sm text-muted-foreground italic mt-1">"{p.commentaires}"</div>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {permissions.canEdit && permissions.canEdit("performances") && (
-                        <button
-                          onClick={() => {
-                            setEditingId(p.id);
-                            setForm({
-                              employeId: String(p.employeId || ""),
-                              note: String(p.note || ""),
-                              date_eval: p.date ? String(p.date) : new Date().toISOString().slice(0, 10),
-                              resultat: p.resultat || "",
-                              commentaires: p.commentaires || "",
-                              objectifs: p.objectifs || "",
-                              realisation: p.realisation || "",
-                            });
-                            setIsDialogOpen(true);
-                          }}
-                          className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-md hover:bg-blue-100"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                      )}
-                      {permissions.canDelete && permissions.canDelete("performances") && (
-                        <button
-                          onClick={() => {
-                            setDeleteId(p.id);
-                            setConfirmDeleteOpen(true);
-                          }}
-                          className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 rounded-md hover:bg-red-100"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card> */}
         {/* LISTE DES ÉVALUATIONS - VERSION MODERNE */}
         <Card className="border-0 shadow-2xl overflow-hidden">
           {/* En-tête avec dégradé */}
@@ -717,7 +658,7 @@ export default function Performances() {
             setIsDialogOpen(open);
             if (!open) {
               setEditingId(null);
-              // ✅ Réinitialiser le formulaire
+              //  Réinitialiser le formulaire
               setForm({
                 employeId: "",
                 note: "",

@@ -1,3 +1,5 @@
+// backend/src/controllers/departementController.js
+
 import * as departementService from '../services/departementService.js';
 
 export const createDepartement = async (req, res) => {

@@ -1,5 +1,11 @@
 import express from 'express';
-import { createPerformance, getAllPerformances, getPerformanceById, updatePerformance, deletePerformance } from '../controllers/performanceController.js';
+import { 
+    createPerformance, 
+    getAllPerformances, 
+    getPerformanceById, 
+    updatePerformance, 
+    deletePerformance 
+} from '../controllers/performanceController.js';
 const router = express.Router();
 router.post('/', createPerformance);
 router.get('/', getAllPerformances);

@@ -1,6 +1,5 @@
-// ========================================
 // backend/src/controllers/presenceController.js
-// ========================================
+
 import * as presenceService from '../services/presenceService.js';
 
 export const createPresence = async (req, res) => {

@@ -1,6 +1,4 @@
-// ========================================
 // backend/src/routes/presenceRoutes.js
-// ========================================
 import express from 'express';
 import { 
   createPresence, 

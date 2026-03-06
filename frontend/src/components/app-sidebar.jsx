@@ -14,12 +14,9 @@ import {
   UserCog,
   ChartColumnIncreasing,
   MonitorCog,
-  Plus,
   Bell,
   Sparkles,
   Search,
-  Settings,
-  HelpCircle,
   X,
   Activity
 } from "lucide-react"
@@ -181,26 +178,6 @@ export function AppSidebar({ ...props }) {
     return item.label.toLowerCase().includes(query) || 
            item.to.toLowerCase().includes(query);
   });
-
-  // // Groupes de navigation avec recherche
-  // const groupedNavItems = [
-  //   {
-  //     title: "Principal",
-  //     items: filteredNavItems.slice(0, 3)
-  //   },
-  //   {
-  //     title: "Gestion",
-  //     items: filteredNavItems.slice(3, 8)
-  //   },
-  //   {
-  //     title: "Finance",
-  //     items: filteredNavItems.slice(8, 10)
-  //   },
-  //   {
-  //     title: "Système",
-  //     items: filteredNavItems.slice(10)
-  //   }
-  // ].filter(group => group.items.length > 0);
 
   // Groupes de navigation
   const groupedNavItems = [

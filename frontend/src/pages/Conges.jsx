@@ -111,7 +111,7 @@ export default function CongesPage() {
       setEmployes(data);
       console.log('Employés chargés:', data.length);
       
-      // 🔹 Trouver l'employé correspondant à l'utilisateur connecté
+      //  Trouver l'employé correspondant à l'utilisateur connecté
       if (permissions.isEmploye && user) {
         const employe = data.find(emp => emp.email === user.email);
         if (employe) {
@@ -155,14 +155,14 @@ export default function CongesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ Fonction pour charger le solde (réutilisable avec useCallback)
+  //  Fonction pour charger le solde (réutilisable avec useCallback)
   const loadSolde = useCallback(async () => {
     if (permissions.isEmploye && currentEmployeId) {
       try {
         console.log('🔄 Chargement du solde pour employé:', currentEmployeId);
         const solde = await getSoldeConges(currentEmployeId);
         setSoldeConges(solde);
-        console.log('✅ Solde chargé:', solde);
+        console.log(' Solde chargé:', solde);
       } catch (err) {
         console.error("❌ Erreur chargement solde:", err);
         // Ne pas afficher d'erreur toast pour éviter le spam
@@ -214,7 +214,7 @@ export default function CongesPage() {
       setIsDialogOpen(false);
       resetForm();
       await load();
-      // ✅ Recharger le solde après création/modification
+      //  Recharger le solde après création/modification
       await loadSolde();
       
     } catch (err) {
@@ -318,7 +318,7 @@ export default function CongesPage() {
         setSelectedConges(new Set());
       }
       await load();
-      // ✅ Recharger le solde après suppression (peut libérer des jours si c'était un congé annuel approuvé)
+      //  Recharger le solde après suppression (peut libérer des jours si c'était un congé annuel approuvé)
       await loadSolde();
     } catch (err) {
       console.error("Erreur suppression:", err);
@@ -329,13 +329,13 @@ export default function CongesPage() {
     }
   };
 
-  // 🔹 Approuver un congé
+  //  Approuver un congé
   const handleApprove = async (id) => {
     try {
       await updateConge(id, { statut: "APPROUVE" });
       toast.success("Congé approuvé");
       await load();
-      // ✅ Recharger le solde après approbation (affecte le solde si c'est un congé annuel)
+      //  Recharger le solde après approbation (affecte le solde si c'est un congé annuel)
       await loadSolde();
     } catch (err) {
       console.error("Erreur approbation:", err);
@@ -343,13 +343,13 @@ export default function CongesPage() {
     }
   };
 
-  // 🔹 Refuser un congé
+  //  Refuser un congé
   const handleReject = async (id) => {
     try {
       await updateConge(id, { statut: "REJETE" });
       toast.success("Congé refusé");
       await load();
-      // ✅ Recharger le solde après refus (peut libérer des jours si c'était un congé annuel approuvé)
+      //  Recharger le solde après refus (peut libérer des jours si c'était un congé annuel approuvé)
       await loadSolde();
     } catch (err) {
       console.error("Erreur refus:", err);
@@ -421,7 +421,7 @@ export default function CongesPage() {
     total: conges.length,
   };
 
-  // 🔹 Filtrage avec support rôle employé
+  //  Filtrage avec support rôle employé
   const filteredConges = conges.filter(conge => {
     // Si employé, ne voir QUE ses propres congés
     if (permissions.isEmploye && currentEmployeId) {
@@ -489,7 +489,7 @@ export default function CongesPage() {
           </div>
         </div>
 
-        {/* 💼 Carte du solde de congés - uniquement pour les employés */}
+        {/*  Carte du solde de congés - uniquement pour les employés */}
         {permissions.isEmploye && soldeConges && (
           <Card className="col-span-full border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 shadow-xl">
             <CardContent className="p-6">
@@ -543,7 +543,7 @@ export default function CongesPage() {
                 </span>
               </div>
 
-              {/* ✅ Afficher les jours reportables si disponibles */}
+              {/*  Afficher les jours reportables si disponibles */}
               {soldeConges.joursReportables !== undefined && soldeConges.joursReportables > 0 && (
                 <div className="mt-3 pt-3 border-t border-border/50">
                   <p className="text-xs text-muted-foreground">
@@ -585,7 +585,7 @@ export default function CongesPage() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
@@ -598,15 +598,15 @@ export default function CongesPage() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-rose-100 text-sm font-medium mb-2">Refusés</p>
+                  <p className="text-cyan-100 text-sm font-medium mb-2">Refusés</p>
                   <p className="text-3xl font-bold">{filteredConges.filter(c => c.statut === "REJETE").length}</p>
                 </div>
-                <XCircle className="h-8 w-8 text-rose-200" />
+                <XCircle className="h-8 w-8 text-cyan-200" />
               </div>
             </CardContent>
           </Card>
@@ -746,7 +746,7 @@ export default function CongesPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredConges.map((conge) => {
-                      // ✅ Utiliser duree_jours si disponible (calculé côté backend), sinon calculer
+                      //  Utiliser duree_jours si disponible (calculé côté backend), sinon calculer
                       const dureeJours = conge.duree_jours || (() => {
                         const dateDebut = new Date(conge.date_debut);
                         const dateFin = new Date(conge.date_fin);
@@ -1017,7 +1017,7 @@ export default function CongesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="SOUMIS">Soumis</SelectItem>
-                    <SelectItem value="APPROUVE">✅ Approuvé</SelectItem>
+                    <SelectItem value="APPROUVE"> Approuvé</SelectItem>
                     <SelectItem value="REJETE">❌ Refusé</SelectItem>
                   </SelectContent>
                 </Select>

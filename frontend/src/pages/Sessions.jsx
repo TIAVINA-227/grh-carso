@@ -234,33 +234,33 @@ export default function Sessions() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-green-600 to-green-700 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-green-100 text-sm font-medium mb-2">Aujourd'hui</p>
+                  <p className="text-cyan-100 text-sm font-medium mb-2">Aujourd'hui</p>
                   <p className="text-3xl font-bold">{stats.aujourdhui}</p>
                 </div>
-                <Calendar className="h-8 w-8 text-green-200" />
+                <Calendar className="h-8 w-8 text-cyan-200" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-purple-600 to-purple-700 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm font-medium mb-2">Durée Totale</p>
+                  <p className="text-blue-100 text-sm font-medium mb-2">Durée Totale</p>
                   <p className="text-2xl font-bold">{formatDuree(stats.dureeTotale)}</p>
                 </div>
-                <Clock className="h-8 w-8 text-purple-200" />
+                <Clock className="h-8 w-8 text-blue-200" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-cyan-500 to-cyan-600 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
@@ -273,15 +273,15 @@ export default function Sessions() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-orange-100 text-sm font-medium mb-2">Sessions Actives</p>
+                  <p className="text-cyan-100 text-sm font-medium mb-2">Sessions Actives</p>
                   <p className="text-3xl font-bold">{stats.actives}</p>
                 </div>
-                <LogIn className="h-8 w-8 text-orange-200" />
+                <LogIn className="h-8 w-8 text-cyan-200" />
               </div>
             </CardContent>
           </Card>

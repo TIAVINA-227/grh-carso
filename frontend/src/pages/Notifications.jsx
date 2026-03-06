@@ -189,15 +189,15 @@ const NotificationsPage = () => {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-emerald-100 text-sm font-medium mb-2">Lues</p>
+                  <p className="text-cyan-100 text-sm font-medium mb-2">Lues</p>
                   <p className="text-3xl font-bold">{notifications.length - unreadCount}</p>
                 </div>
-                <CheckCheck className="h-8 w-8 text-emerald-200" />
+                <CheckCheck className="h-8 w-8 text-cyan-200" />
               </div>
             </CardContent>
           </Card>

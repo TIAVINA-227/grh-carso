@@ -1,308 +1,3 @@
-// // backend/index.js
-// import { PrismaClient } from "@prisma/client";
-// import express from "express";
-// import dotenv from "dotenv";
-// import bcrypt from "bcrypt";
-// import jwt from "jsonwebtoken";
-// import cors from "cors";
-
-// // ✅ Import des routes principales
-// import employeRoutes from "./src/routes/employeRoutes.js";
-// import posteRoutes from "./src/routes/posteRoutes.js";
-// import departementRoutes from "./src/routes/departementRoutes.js";
-// import contratRoutes from "./src/routes/contratRoutes.js";
-// import absenceRoutes from "./src/routes/absenceRoutes.js";
-// import presenceRoutes from "./src/routes/presenceRoutes.js";
-// import congeRoutes from "./src/routes/congeRoutes.js";
-// import performanceRoutes from "./src/routes/performanceRoutes.js";
-// import paiementRoutes from "./src/routes/paiementRoutes.js";
-// import bulletinRoutes from "./src/routes/bulletinRoutes.js";
-// import utilisateurRoutes from "./src/routes/utilisateurRoutes.js";
-
-// // ✅ Import des nouvelles routes
-// import uploadRoutes from "./src/routes/uploadRoutes.js";
-
-// // Configuration
-// dotenv.config();
-// const app = express();
-// const prisma = new PrismaClient();
-// const PORT = process.env.PORT || 5000;
-
-// // ====================================
-// // MIDDLEWARE
-// // ====================================
-
-// // Body parser avec limite augmentée
-// app.use(express.json({ limit: '10mb' }));
-// app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// // ✅ CORS flexible pour tous les ports localhost en développement
-// app.use(cors({
-//   origin: function (origin, callback) {
-//     // Autoriser les requêtes sans origine (comme Postman) ou depuis localhost
-//     if (!origin || /^http:\/\/localhost:\d+$/.test(origin)) {
-//       callback(null, true);
-//     } else {
-//       callback(new Error('Not allowed by CORS'));
-//     }
-//   },
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization'],
-//   credentials: true
-// }));
-
-// // ====================================
-// // ROUTE DE BASE
-// // ====================================
-
-// app.get("/", (req, res) => {
-//   res.send("✅ API GRH CARSO - Prisma + Express + Cloudinary");
-// });
-
-// // ====================================
-// // ROUTES D'AUTHENTIFICATION
-// // ====================================
-
-// // Route d'inscription
-// app.post("/api/auth/register", async (req, res) => {
-//   try {
-//     const { nom_utilisateur, email, mot_de_passe, role } = req.body;
-
-//     if (!nom_utilisateur || !email || !mot_de_passe) {
-//       return res.status(400).json({ error: "Tous les champs sont requis." });
-//     }
-
-//     const existingUser = await prisma.utilisateur.findUnique({
-//       where: { email },
-//     });
-
-//     if (existingUser) {
-//       return res.status(400).json({ error: "Cet email est déjà utilisé !" });
-//     }
-
-//     const salt = await bcrypt.genSalt(10);
-//     const hashedPassword = await bcrypt.hash(mot_de_passe, salt);
-
-//     const roleValide = ["SUPER_ADMIN", "ADMIN", "EMPLOYE"].includes(role)
-//       ? role
-//       : "EMPLOYE";
-
-//     const nouvelUtilisateur = await prisma.utilisateur.create({
-//       data: {
-//         nom_utilisateur: nom_utilisateur.trim(),
-//         email: email.trim().toLowerCase(),
-//         mot_de_passe: hashedPassword,
-//         role: roleValide,
-//         statut: "ACTIF",
-//       },
-//     });
-
-//     res.status(201).json({
-//       message: "Compte créé avec succès.",
-//       utilisateur: {
-//         id: nouvelUtilisateur.id,
-//         nom_utilisateur: nouvelUtilisateur.nom_utilisateur,
-//         email: nouvelUtilisateur.email,
-//         role: nouvelUtilisateur.role,
-//         statut: nouvelUtilisateur.statut,
-//       },
-//     });
-//   } catch (err) {
-//     console.error("❌ Erreur signup :", err);
-//     res.status(500).json({ error: "Erreur serveur lors de l'inscription." });
-//   }
-// });
-
-// // backend/index.js - Route de login
-// app.post("/api/auth/login", async (req, res) => {
-//   try {
-//     const { email, mot_de_passe } = req.body;
-
-//     if (!email || !mot_de_passe) {
-//       return res.status(400).json({ message: "Email et mot de passe requis" });
-//     }
-
-//     const utilisateur = await prisma.utilisateur.findUnique({
-//       where: { email },
-//       include: { employe: true, conges: true }
-//     });
-
-//     if (!utilisateur) {
-//       return res.status(401).json({ message: "Email ou mot de passe incorrect" });
-//     }
-
-//     const motDePasseValide = await bcrypt.compare(mot_de_passe, utilisateur.mot_de_passe);
-
-//     if (!motDePasseValide) {
-//       return res.status(401).json({ message: "Email ou mot de passe incorrect" });
-//     }
-
-//     if (utilisateur.statut && utilisateur.statut !== "ACTIF") {
-//       return res.status(401).json({ message: "Compte désactivé" });
-//     }
-
-//     // ✅ CORRECTION : Inclure tous les champs dans le JWT
-//     const token = jwt.sign(
-//       {
-//         id: utilisateur.id,
-//         email: utilisateur.email, // ✅ Ajouté
-//         nom_utilisateur: utilisateur.nom_utilisateur,
-//         prenom_utilisateur: utilisateur.prenom_utilisateur, // ✅ Ajouté
-//         role: utilisateur.role,
-//       },
-//       process.env.JWT_SECRET || "votre_secret_jwt",
-//       { expiresIn: "24h" }
-//     );
-
-//     await prisma.utilisateur.update({
-//       where: { id: utilisateur.id },
-//       data: { derniere_connexion: new Date() }
-//     });
-
-//     res.json({
-//       token,
-//       user: {
-//         id: utilisateur.id,
-//         nom_utilisateur: utilisateur.nom_utilisateur,
-//         prenom_utilisateur: utilisateur.prenom_utilisateur, // ✅ Ajouté
-//         email: utilisateur.email,
-//         role: utilisateur.role,
-//         employe: utilisateur.employe
-//       }
-//     });
-
-//   } catch (error) {
-//     console.error("❌ Erreur lors de la connexion:", error);
-//     res.status(500).json({ message: "Erreur interne du serveur" });
-//   }
-// });
-
-// // Route pour vérifier le token
-// app.get("/api/auth/verify", async (req, res) => {
-//   try {
-//     const token = req.headers.authorization?.split(" ")[1];
-    
-//     if (!token) {
-//       return res.status(401).json({ message: "Token manquant" });
-//     }
-
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET || "votre_secret_jwt");
-    
-//     const utilisateur = await prisma.utilisateur.findUnique({
-//       where: { id: decoded.id },
-//       include: { employe: true }
-//     });
-
-//     if (!utilisateur) {
-//       return res.status(401).json({ message: "Utilisateur non trouvé" });
-//     }
-
-//     res.json({
-//       user: {
-//         id: utilisateur.id,
-//         nom_utilisateur: utilisateur.nom_utilisateur,
-//         email: utilisateur.email,
-//         role: utilisateur.role,
-//         employe: utilisateur.employe
-//       }
-//     });
-
-//   } catch (error) {
-//     res.status(401).json({ message: "Token invalide" });
-//   }
-// });
-
-// // Route protégée du dashboard
-// app.get("/api/dashboard", async (req, res) => {
-//   try {
-//     const authHeader = req.headers.authorization || "";
-//     const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
-
-//     if (!token) {
-//       return res.status(401).json({ message: "Token manquant" });
-//     }
-
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET || "votre_secret_jwt");
-
-//     const utilisateur = await prisma.utilisateur.findUnique({
-//       where: { id: decoded.id },
-//       select: { id: true, nom_utilisateur: true, email: true, role: true }
-//     });
-
-//     if (!utilisateur) {
-//       return res.status(401).json({ message: "Utilisateur non trouvé" });
-//     }
-
-//     return res.json({
-//       success: true,
-//       message: "Bienvenue sur le Dashboard 🚀",
-//       user: utilisateur,
-//     });
-
-//   } catch (error) {
-//     if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
-//       return res.status(401).json({ message: "Token invalide" });
-//     }
-//     console.error("❌ Erreur /api/dashboard:", error);
-//     return res.status(500).json({ message: "Erreur interne du serveur" });
-//   }
-// });
-
-// // ====================================
-// // ROUTES API
-// // ====================================
-
-// // ✅ Routes d'upload Cloudinary
-// app.use("/api/upload", uploadRoutes);
-
-// // Routes utilisateurs
-// app.use("/api/utilisateurs", utilisateurRoutes);
-
-// // Routes employés
-// app.use("/api/employes", employeRoutes);
-
-// // Routes postes
-// app.use("/api/postes", posteRoutes);
-
-// // Autres routes
-// app.use("/api/departements", departementRoutes);
-// app.use("/api/contrats", contratRoutes);
-// app.use("/api/absences", absenceRoutes);
-// app.use("/api/presences", presenceRoutes);
-// app.use("/api/conges", congeRoutes);
-// app.use("/api/performances", performanceRoutes);
-// app.use("/api/paiements", paiementRoutes);
-// app.use("/api/bulletins", bulletinRoutes);
-
-// // ====================================
-// // DÉMARRAGE DU SERVEUR
-// // ====================================
-
-// app.listen(PORT, () => {
-//   console.log(`✅ Serveur démarré sur http://localhost:${PORT}`);
-//   console.log(`📁 Routes disponibles:`);
-//   console.log(`   - POST /api/auth/register`);
-//   console.log(`   - POST /api/auth/login`);
-//   console.log(`   - GET  /api/auth/verify`);
-//   console.log(`   - GET  /api/dashboard`);
-//   console.log(`   - POST /api/upload/avatar (Cloudinary)`);
-//   console.log(`   - /api/utilisateurs`);
-//   console.log(`   - /api/employes`);
-//   console.log(`   - /api/postes`);
-//   console.log(`   - /api/departements`);
-//   console.log(`   - /api/contrats`);
-//   console.log(`   - /api/absences`);
-//   console.log(`   - /api/presences`);
-//   console.log(`   - /api/conges`);
-//   console.log(`   - /api/performances`);
-//   console.log(`   - /api/paiements`);
-//   console.log(`   - /api/bulletins`);
-// });
-
-//backend/index.js
-// ===========================
-// IMPORTS
-// ===========================
 import { PrismaClient } from "@prisma/client";
 import express from "express";
 import dotenv from "dotenv";
@@ -315,8 +10,6 @@ import { startCongesCronJob } from './src/jobs/congesCronJob.js';
 import notificationRoutes from "./src/routes/notificationRoutes.js";
 import { registerNotificationSocket } from "./src/services/notificationService.js";
 import * as sessionService from "./src/services/sessionService.js";
-
-// ✅ Import des routes principales
 import employeRoutes from "./src/routes/employeRoutes.js";
 import posteRoutes from "./src/routes/posteRoutes.js";
 import departementRoutes from "./src/routes/departementRoutes.js";
@@ -331,18 +24,14 @@ import utilisateurRoutes from "./src/routes/utilisateurRoutes.js";
 import uploadRoutes from "./src/routes/uploadRoutes.js";
 import sessionRoutes from "./src/routes/sessionRoutes.js";
 
-// ===========================
 // CONFIGURATION
-// ===========================
 dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
 
-// ===========================
-// Serveur HTTP + Socket.io
-// ===========================
+// Serveur HTTP et Socket.io
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -361,9 +50,7 @@ const io = new Server(server, {
 });
 registerNotificationSocket(io);
 
-// ===========================
 // Middleware
-// ===========================
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
@@ -384,14 +71,12 @@ app.use(
   })
 );
 
-// ===========================
 // Gestion des utilisateurs en ligne
-// ===========================
 let onlineUsers = new Set();
 const userSockets = new Map();
 
 io.on("connection", (socket) => {
-  console.log("⚡ Nouvelle connexion Socket.io :", socket.id);
+  console.log(" Nouvelle connexion Socket.io :", socket.id);
 
   socket.on("user-online", (userId) => {
     if (!userId) return;
@@ -410,7 +95,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log("❌ Utilisateur déconnecté :", socket.id);
+    console.log(" Utilisateur déconnecté :", socket.id);
     const userId = socket.data.userId;
 
     if (userId && userSockets.has(userId)) {
@@ -426,16 +111,10 @@ io.on("connection", (socket) => {
   });
 });
 
-// ===========================
 // Route de base
-// ===========================
 app.get("/", (req, res) => {
-  res.send("✅ API GRH CARSO - Prisma + Express + Cloudinary + Socket.io");
+  res.send(" API GRH CARSO - Prisma + Express + Cloudinary + Socket.io");
 });
-
-// ===========================
-// Routes Auth
-// ===========================
 
 // Inscription
 app.post("/api/auth/register", async (req, res) => {
@@ -478,70 +157,10 @@ app.post("/api/auth/register", async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("❌ Erreur signup :", err);
+    console.error(" Erreur signup :", err);
     res.status(500).json({ error: "Erreur serveur lors de l'inscription." });
   }
 });
-
-// // Login
-// app.post("/api/auth/login", async (req, res) => {
-//   try {
-//     const { email, mot_de_passe } = req.body;
-
-//     if (!email || !mot_de_passe) 
-//       return res.status(400).json({ message: "Email et mot de passe requis" });
-
-//     const utilisateur = await prisma.utilisateur.findUnique({
-//       where: { email },
-//       include: { employe: true, conges: true },
-//     });
-
-//     if (!utilisateur) 
-//       return res.status(401).json({ message: "Email ou mot de passe incorrect" });
-
-//     const motDePasseValide = await bcrypt.compare(mot_de_passe, utilisateur.mot_de_passe);
-//     if (!motDePasseValide) 
-//       return res.status(401).json({ message: "Email ou mot de passe incorrect" });
-
-//     if (utilisateur.statut && utilisateur.statut !== "ACTIF") {
-//       return res.status(401).json({ message: "Compte désactivé" });
-//     }
-
-//     const token = jwt.sign(
-//       {
-//         id: utilisateur.id,
-//         email: utilisateur.email,
-//         nom_utilisateur: utilisateur.nom_utilisateur,
-//         prenom_utilisateur: utilisateur.prenom_utilisateur,
-//         role: utilisateur.role,
-//       },
-//       process.env.JWT_SECRET || "votre_secret_jwt",
-//       { expiresIn: "24h" }
-//     );
-
-//     await prisma.utilisateur.update({
-//       where: { id: utilisateur.id },
-//       data: { derniere_connexion: new Date() },
-//     });
-
-//     res.json({
-//       token,
-//       user: {
-//         id: utilisateur.id,
-//         nom_utilisateur: utilisateur.nom_utilisateur,
-//         prenom_utilisateur: utilisateur.prenom_utilisateur,
-//         email: utilisateur.email,
-//         role: utilisateur.role,
-//         employe: utilisateur.employe,
-//       },
-//     });
-//   } catch (error) {
-//     console.error("❌ Erreur login :", error);
-//     res.status(500).json({ message: "Erreur interne du serveur" });
-//   }
-// });
-
-// backend/index.js - Modifier la route Login (ligne ~180)
 
 app.post("/api/auth/login", async (req, res) => {
   try {
@@ -583,7 +202,7 @@ app.post("/api/auth/login", async (req, res) => {
       data: { derniere_connexion: new Date() },
     });
 
-    // 🆕 Créer une session de connexion
+    // Créer une session de connexion
     try {
       const ip_address = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
       const user_agent = req.headers['user-agent'];
@@ -592,13 +211,13 @@ app.post("/api/auth/login", async (req, res) => {
         ip_address,
         user_agent,
       });
-      console.log(`✅ Session créée pour l'utilisateur ${utilisateur.id}`);
+      console.log(` Session créée pour l'utilisateur ${utilisateur.id}`);
     } catch (sessionError) {
-      console.error('⚠️ Erreur création session (non bloquant):', sessionError);
+      console.error(' Erreur création session (non bloquant):', sessionError);
       // Ne pas bloquer la connexion si la création de session échoue
     }
 
-    // 🆕 IMPORTANT : Retourner premiere_connexion
+    // IMPORTANT : Retourner premiere_connexion
     res.json({
       token,
       user: {
@@ -608,12 +227,12 @@ app.post("/api/auth/login", async (req, res) => {
         email: utilisateur.email,
         role: utilisateur.role,
         employe: utilisateur.employe,
-        premiere_connexion: utilisateur.premiere_connexion, // 🆕 Ajouté
-        mot_de_passe_temporaire: utilisateur.mot_de_passe_temporaire // 🆕 Ajouté (optionnel)
+        premiere_connexion: utilisateur.premiere_connexion,
+        mot_de_passe_temporaire: utilisateur.mot_de_passe_temporaire 
       },
     });
   } catch (error) {
-    console.error("❌ Erreur login :", error);
+    console.error(" Erreur login :", error);
     res.status(500).json({ message: "Erreur interne du serveur" });
   }
 });
@@ -637,7 +256,7 @@ app.get("/api/auth/verify", async (req, res) => {
   }
 });
 
-// 🆕 Route de déconnexion - Enregistre l'heure de départ
+// Route de déconnexion - Enregistre l'heure de départ
 app.post("/api/auth/logout", async (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
@@ -664,9 +283,9 @@ app.post("/api/auth/logout", async (req, res) => {
     // Enregistrer l'heure de déconnexion
     try {
       await sessionService.updateSessionLogout(decoded.id);
-      console.log(`✅ Session fermée pour l'utilisateur ${decoded.id}`);
+      console.log(` Session fermée pour l'utilisateur ${decoded.id}`);
     } catch (sessionError) {
-      console.error('⚠️ Erreur mise à jour session (non bloquant):', sessionError);
+      console.error(' Erreur mise à jour session (non bloquant):', sessionError);
       // Ne pas bloquer la déconnexion si la mise à jour de session échoue
     }
 
@@ -675,7 +294,7 @@ app.post("/api/auth/logout", async (req, res) => {
       message: "Déconnexion effectuée avec succès" 
     });
   } catch (error) {
-    console.error("❌ Erreur logout :", error);
+    console.error(" Erreur logout :", error);
     // Même en cas d'erreur, on retourne un succès pour ne pas bloquer la déconnexion
     res.json({ 
       success: true, 
@@ -700,14 +319,14 @@ app.get("/api/dashboard", async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Bienvenue sur le Dashboard 🚀",
+      message: "Bienvenue sur le Dashboard ",
       user: utilisateur,
     });
   } catch (error) {
     if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
       return res.status(401).json({ message: "Token invalide" });
     }
-    console.error("❌ Erreur /api/dashboard:", error);
+    console.error(" Erreur /api/dashboard:", error);
     return res.status(500).json({ message: "Erreur interne du serveur" });
   }
 });
@@ -898,14 +517,12 @@ app.get("/api/dashboard/stats", async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("❌ Erreur /api/dashboard/stats:", error);
+    console.error(" Erreur /api/dashboard/stats:", error);
     res.status(500).json({ message: "Erreur interne du serveur", error: error.message });
   }
 });
 
-// ===========================
 // Routes API
-// ===========================
 app.use("/api/upload", uploadRoutes);
 app.use("/api/utilisateurs", utilisateurRoutes);
 app.use("/api/employes", employeRoutes);
@@ -921,17 +538,15 @@ app.use("/api/bulletins", bulletinRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/sessions", sessionRoutes);
 
-// ===========================
-// 🚀 DÉMARRAGE DU SERVEUR
-// ===========================
+// DÉMARRAGE DU SERVEUR
 server.listen(PORT, () => {
-  console.log(`✅ Serveur HTTP + Socket.io démarré sur http://localhost:${PORT}`);
-  console.log(`🌐 Socket.io configuré et prêt`);
-  console.log(`🕐 Démarrage de la tâche CRON des congés...`);
+  console.log(` Serveur HTTP + Socket.io démarré sur http://localhost:${PORT}`);
+  console.log(`Socket.io configuré et prêt`);
+  console.log(`Démarrage de la tâche CRON des congés...`);
   
   startCongesCronJob();
   
-  console.log(`\n📁 Routes API disponibles :`);
+  console.log(`\n Routes API disponibles :`);
   console.log(`   - POST   /api/auth/register`);
   console.log(`   - POST   /api/auth/login`);
   console.log(`   - GET    /api/auth/verify`);
@@ -952,9 +567,7 @@ server.listen(PORT, () => {
   console.log(`   - CRUD   /api/notifications`);
 });
 
-// ===========================
 // Gestion propre de la déconnexion
-// ===========================
 process.on('SIGINT', async () => {
   console.log('\n🛑 Arrêt du serveur...');
   await prisma.$disconnect();

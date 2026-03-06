@@ -1,3 +1,5 @@
+//backend/src/controllers/bulletinController.js
+
 import * as bulletinService from '../services/bulletinService.js';
 export const createBulletin = async (req,res)=>{
     try{

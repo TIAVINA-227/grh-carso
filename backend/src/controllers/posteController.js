@@ -1,4 +1,5 @@
 // src/controllers/posteController.js
+
 import * as posteService from '../services/posteService.js';
 
 export const createPoste = async (req, res) => {

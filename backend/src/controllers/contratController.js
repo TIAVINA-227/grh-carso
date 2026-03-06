@@ -1,4 +1,5 @@
 // backend/src/controllers/contratController.js
+
 import * as contratService from '../services/contratService.js';
 
 export const createContrat = async (req, res) => { 

@@ -1,7 +1,6 @@
-// ========================================
 // backend/src/routes/sessionRoutes.js
 // Routes pour gérer les sessions de connexion/déconnexion
-// ========================================
+
 import express from 'express';
 import {
   createSession,

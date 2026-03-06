@@ -1,6 +1,5 @@
-// ========================================
 // Corrections pour backend/src/controllers/absenceController.js
-// ========================================
+
 import * as absenceService from '../services/absenceService.js';
 
 export const createAbsence = async (req, res) => {

@@ -1,7 +1,6 @@
-// ========================================
 // backend/src/controllers/sessionController.js
 // Contrôleur pour gérer les sessions de connexion/déconnexion
-// ========================================
+
 import * as sessionService from '../services/sessionService.js';
 
 /**

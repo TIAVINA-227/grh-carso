@@ -342,12 +342,11 @@ export default function TableauDeBord() {
         {/* Statistiques principales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.length > 0 ? stats.map((stat, index) => {
-            // Définir les styles selon l'index pour correspondre au style de Performances.jsx
             const cardStyles = [
               { gradient: "from-blue-600 to-blue-700", labelColor: "text-blue-100", iconColor: "text-blue-200" },
               { gradient: "from-blue-500 to-blue-600", labelColor: "text-blue-100", iconColor: "text-blue-200" },
-              { gradient: "from-emerald-500 to-emerald-600", labelColor: "text-emerald-100", iconColor: "text-emerald-200" },
-              { gradient: "from-rose-500 to-rose-600", labelColor: "text-rose-100", iconColor: "text-rose-200" }
+              { gradient: "from-blue-600 to-blue-700", labelColor: "text-blue-100", iconColor: "text-blue-200" },
+              { gradient: "from-blue-500 to-blue-600", labelColor: "text-blue-100", iconColor: "text-blue-200" }
             ];
             const style = cardStyles[index % cardStyles.length] || cardStyles[0];
             
@@ -716,7 +715,7 @@ export default function TableauDeBord() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
@@ -729,7 +728,7 @@ export default function TableauDeBord() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
@@ -742,7 +741,7 @@ export default function TableauDeBord() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">

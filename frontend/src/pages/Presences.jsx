@@ -76,7 +76,7 @@ export default function Presences() {
         if (employe) {
           setCurrentEmployeId(employe.id);
           setForm(prev => ({ ...prev, employeId: employe.id.toString() }));
-          console.log('✅ Employé auto-sélectionné:', employe.id);
+          console.log(' Employé auto-sélectionné:', employe.id);
         }
       }
     } catch (err) {
@@ -198,14 +198,14 @@ export default function Presences() {
       if (editingId) {
         await updatePresence(editingId, updatedForm);
         toast({
-          title: "Présence mise à jour ✅",
+          title: "Présence mise à jour ",
           description: "Les informations ont été modifiées avec succès.",
           className: "bg-green-600 text-white",
         });
       } else {
         await createPresence(updatedForm);
         toast({
-          title: "Présence enregistrée ✅",
+          title: "Présence enregistrée ",
           description: "Nouvelle présence ajoutée avec succès.",
           className: "bg-green-600 text-white",
         });
@@ -233,14 +233,14 @@ export default function Presences() {
       if (presenceToDelete) {
         await deletePresence(presenceToDelete);
         toast({
-          title: "Présence supprimée ✅",
+          title: "Présence supprimée ",
           description: "L'enregistrement a été supprimé avec succès.",
           className: "bg-green-600 text-white",
         });
       } else if (selectedPresences.size > 0) {
         await Promise.all(Array.from(selectedPresences).map(id => deletePresence(id)));
         toast({
-          title: `${selectedPresences.size} présence(s) supprimée(s) ✅`,
+          title: `${selectedPresences.size} présence(s) supprimée(s) `,
           className: "bg-green-600 text-white",
         });
         setSelectedPresences(new Set());
@@ -286,7 +286,7 @@ export default function Presences() {
     }
   };
 
-  // ✅ STATISTIQUES CORRIGÉES POUR LES PRÉSENCES
+  //  STATISTIQUES CORRIGÉES POUR LES PRÉSENCES
   const calculateStats = () => {
     const today = new Date().toISOString().split("T")[0];
     const currentMonth = new Date().getMonth();
@@ -412,7 +412,7 @@ export default function Presences() {
       URL.revokeObjectURL(url);
 
       toast({
-        title: "PDF généré ✅",
+        title: "PDF généré ",
         description: "Le fichier PDF de la liste des présences a été téléchargé.",
         className: "bg-green-600 text-white",
       });
@@ -502,10 +502,9 @@ export default function Presences() {
           </div>
         </div>
 
-        {/* ✅ CARTES STATISTIQUES CORRIGÉES */}
+        {/*  CARTES STATISTIQUES */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           
-          {/* Carte 1: Total Présences du Jour */}
           <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
@@ -519,7 +518,6 @@ export default function Presences() {
             </CardContent>
           </Card>
 
-          {/* Carte 2: Total Présences du Mois */}
           <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
@@ -533,8 +531,7 @@ export default function Presences() {
             </CardContent>
           </Card>
 
-          {/* Carte 3: Taux de Présence du Jour */}
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
@@ -547,8 +544,7 @@ export default function Presences() {
             </CardContent>
           </Card>
 
-          {/* Carte 4: Taux de Présence du Mois */}
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
@@ -792,7 +788,7 @@ export default function Presences() {
                 <Select
                   value={form.employeId}
                   onValueChange={(value) => {
-                    console.log('✅ Employé sélectionné:', value);
+                    console.log(' Employé sélectionné:', value);
                     setForm(prev => ({ ...prev, employeId: value }));
                   }}
                   required

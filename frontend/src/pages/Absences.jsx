@@ -47,7 +47,7 @@ export default function Absences() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
-  // ✅ UN SEUL ÉTAT FORM (suppression de formData)
+  //  UN SEUL ÉTAT FORM (suppression de formData)
   const [form, setForm] = useState({ 
     employeId: "", 
     date_debut: new Date().toISOString().split('T')[0], 
@@ -69,7 +69,7 @@ export default function Absences() {
 
   const [currentEmployeId, setCurrentEmployeId] = useState(null);
 
-  // ✅ Fonction pour charger les employés
+  //  Fonction pour charger les employés
   const loadEmployes = async () => {
     try {
       setLoadingEmployes(true);
@@ -77,14 +77,13 @@ export default function Absences() {
       setEmployes(data);
       console.log('Employés chargés:', data.length);
       
-      // 🔹 Trouver l'employé correspondant à l'utilisateur connecté
+      //  Trouver l'employé correspondant à l'utilisateur connecté
       if (permissions.isEmploye && user) {
         const employe = data.find(emp => emp.email === user.email);
         if (employe) {
           setCurrentEmployeId(employe.id);
-          // ✅ CORRECTION : utiliser form au lieu de formData
           setForm(prev => ({ ...prev, employeId: employe.id.toString() }));
-          console.log('✅ Employé auto-sélectionné:', employe.id);
+          console.log(' Employé auto-sélectionné:', employe.id);
         }
       }
     } catch (err) {
@@ -135,7 +134,7 @@ export default function Absences() {
   const openCreate = () => {
     setEditingId(null);
     
-    // ✅ Si employé connecté, pré-remplir son ID
+    //  Si employé connecté, pré-remplir son ID
     const initialEmployeId = permissions.isEmploye && currentEmployeId 
       ? currentEmployeId.toString() 
       : "";
@@ -164,16 +163,15 @@ export default function Absences() {
     setIsDialogOpen(true);
   };
 
-  // ✅ CORRECTION MAJEURE : handleSubmit avec validation
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     
-    // ✅ Logs de debug
+    //  Logs de debug
     console.log('📤 Form avant envoi:', form);
     console.log('👤 EmployeId:', form.employeId);
     
-    // ✅ Validation employeId
+    //  Validation employeId
     if (!form.employeId) {
       const errorMsg = "Veuillez sélectionner un employé";
       setError(errorMsg);
@@ -183,7 +181,7 @@ export default function Absences() {
     
     const updatedForm = {
       ...form,
-      employeId: Number(form.employeId) // ✅ Convertir en nombre
+      employeId: Number(form.employeId) //  Convertir en nombre
     };
     
     console.log('📤 Données envoyées au backend:', updatedForm);
@@ -252,7 +250,7 @@ export default function Absences() {
 
 // ... vos imports et état ...
 
-// ✅ DÉPLACER calculateDays ICI (avant les stats)
+//  DÉPLACER calculateDays ICI (avant les stats)
 const calculateDays = (dateDebut, dateFin) => {
   const debut = new Date(dateDebut);
   const fin = new Date(dateFin);
@@ -425,7 +423,7 @@ const stats = {
 
         {/* Cartes statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Carte 1: Absences du jour */}
+
           <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
@@ -439,7 +437,6 @@ const stats = {
             </CardContent>
           </Card>
 
-          {/* Carte 2: Absences du mois */}
           <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
@@ -453,8 +450,7 @@ const stats = {
             </CardContent>
           </Card>
 
-          {/* Carte 3: Durée moyenne */}
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
@@ -467,8 +463,7 @@ const stats = {
             </CardContent>
           </Card>
 
-          {/* Carte 4: Type le plus fréquent */}
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white">
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
@@ -715,7 +710,7 @@ const stats = {
               </div>
             )}
 
-            {/* ✅ CORRECTION : Employé - utiliser form au lieu de formData */}
+            {/*  CORRECTION : Employé - utiliser form au lieu de formData */}
             <div className="space-y-2">
               <Label htmlFor="employeId" className="font-semibold flex items-center gap-2">
                 <Users className="w-4 h-4 text-primary" />
@@ -739,7 +734,7 @@ const stats = {
                 <Select
                   value={form.employeId}
                   onValueChange={(value) => {
-                    console.log('✅ Employé sélectionné:', value);
+                    console.log(' Employé sélectionné:', value);
                     setForm(prev => ({ ...prev, employeId: value }));
                   }}
                   required

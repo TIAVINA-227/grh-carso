@@ -1,4 +1,3 @@
-// // frontend/src/pages/Utilisateurs.jsx
 import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
@@ -41,16 +40,6 @@ import {
 } from "../services/utilisateurService";
 import { usePermissions } from "../hooks/usePermissions";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from "../components/ui/alert-dialog";
 
 export default function UtilisateursPage() {
   const permissions = usePermissions();
@@ -133,7 +122,7 @@ export default function UtilisateursPage() {
         role: "SUPER_ADMIN",
       });
 
-      toast.success("✅ Utilisateur ajouté", {
+      toast.success(" Utilisateur ajouté", {
         description: `${user.prenom_utilisateur || user.nom_utilisateur} a été ajouté avec succès.`,
       });
     } catch (error) {
@@ -187,7 +176,7 @@ export default function UtilisateursPage() {
       setShowEditModal(false);
       setEditingUser(null);
 
-      toast.success("✅ Mise à jour réussie", {
+      toast.success(" Mise à jour réussie", {
         description: `${updated.prenom_utilisateur || updated.nom_utilisateur} a été modifié.`,
       });
     } catch (error) {
@@ -210,7 +199,7 @@ export default function UtilisateursPage() {
       setUtilisateurs(utilisateurs.filter((u) => u.id !== userToDelete));
       setShowDeleteModal(false);
       setUserToDelete(null);
-      toast.success("🗑️ Utilisateur supprimé");
+      toast.success(" Utilisateur supprimé");
     } catch (error) {
       console.error("Erreur suppression utilisateur:", error);
       toast.error("Échec de la suppression", {
@@ -324,28 +313,28 @@ export default function UtilisateursPage() {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-            <CardContent className="p-6 relative">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-emerald-100 text-sm font-medium mb-2">Administrateurs</p>
-                  <p className="text-3xl font-bold">{utilisateurs.filter(u => u.role === "ADMIN").length}</p>
-                </div>
-                <Shield className="h-8 w-8 text-emerald-200" />
-              </div>
-            </CardContent>
-          </Card>
-
           <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <CardContent className="p-6 relative">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm font-medium mb-2">Super Admin</p>
+                  <p className="text-cyan-100 text-sm font-medium mb-2">Administrateurs</p>
+                  <p className="text-3xl font-bold">{utilisateurs.filter(u => u.role === "ADMIN").length}</p>
+                </div>
+                <Shield className="h-8 w-8 text-cyan-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-600 to-blue-700 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <CardContent className="p-6 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-cyan-100 text-sm font-medium mb-2">Super Admin</p>
                   <p className="text-3xl font-bold">{utilisateurs.filter(u => u.role === "SUPER_ADMIN").length}</p>
                 </div>
-                <Shield className="h-8 w-8 text-blue-200" />
+                <Shield className="h-8 w-8 text-cyan-200" />
               </div>
             </CardContent>
           </Card>
@@ -377,7 +366,7 @@ export default function UtilisateursPage() {
                   placeholder="Rechercher un utilisateur..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-input h-11 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary transition"
+                  className="pl-10 bg-gray-300 h-11 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary transition"
                 />
               </div>
             </div>
